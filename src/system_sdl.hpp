@@ -27,6 +27,10 @@ class detail::system_impl {
 public:
     system_impl(system* sys);
 
+    bool is_running() const noexcept {
+        return is_running_;
+    }
+
     void do_events(bool wait);
     
     void delay(std::chrono::nanoseconds ns);
@@ -37,6 +41,7 @@ private:
     sdl_state    sdl_;
     sdl_window   window_;
     sdl_renderer renderer_;
+    bool         is_running_ = true;
 };
 
 } // namespace bkrl

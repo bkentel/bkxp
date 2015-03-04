@@ -36,6 +36,8 @@ bkrl::detail::system_impl::system_impl(system* sys)
   , window_   {init_sdl_window()}
   , renderer_ {init_sdl_renderer(window_)}
 {
+    sys_->on_text_input   = [](bklib::utf8_string_view const&) { };
+    sys_->on_request_quit = []() { return true; };
 }
 
 //----------------------------------------------------------------------------------------------
@@ -44,8 +46,14 @@ void bkrl::detail::system_impl::do_events(bool const wait)
     auto const function = wait ? &SDL_WaitEvent : &SDL_PollEvent;
     
     SDL_Event event;
-    while (function(&event)) {
+    while (is_running_ && function(&event)) {
         switch (event.type) {
+        case SDL_QUIT :
+            if (sys_->on_request_quit()) {
+                is_running_ = false;
+                return;
+            }
+            break;
         case SDL_KEYDOWN :
             break;
         case SDL_KEYUP :
@@ -53,9 +61,7 @@ void bkrl::detail::system_impl::do_events(bool const wait)
         case SDL_TEXTEDITING :
             break;
         case SDL_TEXTINPUT :
-            if (sys_->on_text_input) {
-                sys_->on_text_input(event.text.text);
-            }
+            sys_->on_text_input(event.text.text);
             break;
         default :
             break;

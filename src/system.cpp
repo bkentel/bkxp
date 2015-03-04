@@ -9,6 +9,11 @@ bkrl::system::system()
 bkrl::system::~system() = default;
 
 //----------------------------------------------------------------------------------------------
+bool bkrl::system::is_running() const noexcept {
+    return impl_->is_running();
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::system::do_events(bool const wait)
 {
     impl_->do_events(wait);

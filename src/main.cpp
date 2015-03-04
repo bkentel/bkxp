@@ -138,7 +138,7 @@ void main() try {
     sys.on_text_input = [&](bklib::utf8_string_view s) {
     };
 
-    for (;;) {
+    while (sys.is_running()) {
         sys.do_events(true);
     }
 
