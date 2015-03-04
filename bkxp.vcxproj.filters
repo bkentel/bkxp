@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="bklib">
+      <UniqueIdentifier>{804724c9-7765-4298-b55d-786206b3de25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="bkrl">
+      <UniqueIdentifier>{6810349c-3184-4c71-b6ac-4b4f1f50fc80}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\bklib\math.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bklib\assert.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bklib\string.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bklib\utility.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bsp_layout.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\random.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system_sdl.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\map.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\bsp_layout.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\system_sdl.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\system.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
