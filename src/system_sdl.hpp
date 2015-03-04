@@ -23,7 +23,7 @@ struct sdl_state {
 };
 
 //----------------------------------------------------------------------------------------------
-class system_impl {
+class detail::system_impl {
 public:
     system_impl(system* sys);
 

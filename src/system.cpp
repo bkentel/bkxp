@@ -2,7 +2,7 @@
 #include "system_sdl.hpp"
 
 bkrl::system::system()
-  : impl_ {std::make_unique<system_impl>(this)}
+  : impl_ {std::make_unique<detail::system_impl>(this)}
 {
 }
 

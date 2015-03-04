@@ -1,7 +1,7 @@
 #pragma once
 
 #include "random.hpp"
-#include "math.hpp"
+#include "bklib/math.hpp"
 
 #include <memory>
 #include <functional>

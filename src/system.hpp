@@ -1,6 +1,6 @@
 #pragma once
 
-#include "string.hpp"
+#include "bklib/string.hpp"
 
 #include <functional>
 #include <memory>
@@ -9,7 +9,7 @@
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class system_impl;
+namespace detail { class system_impl; }
 
 class system {
 public:
@@ -33,7 +33,7 @@ public:
 public:
     std::function<void (bklib::utf8_string_view)> on_text_input;
 private:
-    std::unique_ptr<system_impl> impl_;
+    std::unique_ptr<detail::system_impl> impl_;
 };
 
 } //namespace bkrl

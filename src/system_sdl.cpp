@@ -31,7 +31,7 @@ bkrl::sdl_renderer init_sdl_renderer(bkrl::sdl_window const& w)
 } //namespace
 
 //----------------------------------------------------------------------------------------------
-bkrl::system_impl::system_impl(system* sys)
+bkrl::detail::system_impl::system_impl(system* sys)
   : sys_      {sys}
   , window_   {init_sdl_window()}
   , renderer_ {init_sdl_renderer(window_)}
@@ -39,7 +39,7 @@ bkrl::system_impl::system_impl(system* sys)
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::system_impl::do_events(bool const wait)
+void bkrl::detail::system_impl::do_events(bool const wait)
 {
     auto const function = wait ? &SDL_WaitEvent : &SDL_PollEvent;
     
@@ -64,11 +64,11 @@ void bkrl::system_impl::do_events(bool const wait)
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::system_impl::delay(std::chrono::nanoseconds const ns)
+void bkrl::detail::system_impl::delay(std::chrono::nanoseconds const ns)
 {
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::system_impl::handle_keyboard_(SDL_KeyboardEvent const& event)
+void bkrl::detail::system_impl::handle_keyboard_(SDL_KeyboardEvent const& event)
 {
 }

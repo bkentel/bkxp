@@ -1,12 +1,12 @@
 #define CATCH_CONFIG_RUNNER
 
 #include "map.hpp"
-#include "assert.hpp"
-#include "string.hpp"
-#include "utility.hpp"
+#include "bklib/assert.hpp"
+#include "bklib/string.hpp"
+#include "bklib/utility.hpp"
 #include "system.hpp"
 #include "random.hpp"
-#include "math.hpp"
+#include "bklib/math.hpp"
 #include "bsp_layout.hpp"
 
 #include <exception>

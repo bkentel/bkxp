@@ -1,8 +1,8 @@
 #include "bsp_layout.hpp"
 
-#include "assert.hpp"
+#include "bklib/assert.hpp"
 #include "random.hpp"
-#include "math.hpp"
+#include "bklib/math.hpp"
 
 #include <vector>
 #include <algorithm>
