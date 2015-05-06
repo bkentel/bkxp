@@ -29,7 +29,8 @@ public:
     };
 
     ~bsp_layout();
-    explicit bsp_layout(bklib::irect bounds, param_t params = param_t {});
+    bsp_layout(bklib::irect bounds, param_t params);
+    explicit bsp_layout(bklib::irect bounds);
 
     using room_gen_t = std::function<void (bklib::irect const&)>;
 

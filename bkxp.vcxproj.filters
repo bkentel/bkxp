@@ -36,6 +36,13 @@
     <ClInclude Include="src\map.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\exception.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pch.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -48,6 +55,13 @@
       <Filter>bkrl</Filter>
     </ClCompile>
     <ClCompile Include="src\system.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\catch.cpp">
       <Filter>bkrl</Filter>
     </ClCompile>
   </ItemGroup>

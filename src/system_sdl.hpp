@@ -1,31 +1,103 @@
 #pragma once
 
 #include "system.hpp"
+#include "renderer.hpp"
+#include "bklib/exception.hpp"
 #include <SDL2/SDL.h>
 #include <memory>
 
 namespace bkrl {
 
-using sdl_window   = std::unique_ptr<SDL_Window,   decltype(&SDL_DestroyWindow)>;
-using sdl_renderer = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
+class sdl_state;
+class sdl_window;
+class sdl_texture;
 
 //----------------------------------------------------------------------------------------------
-struct sdl_state {
-    sdl_state() {
-        if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-            throw "TODO";
-        }
-    }
+//! Global SDl state.
+//----------------------------------------------------------------------------------------------
+class sdl_state {
+public:
+    sdl_state();
+    ~sdl_state();
+};
 
-    ~sdl_state() {
-        SDL_Quit();
+//----------------------------------------------------------------------------------------------
+//! SDL Window interaction.
+//----------------------------------------------------------------------------------------------
+class sdl_window {
+public:
+    sdl_window()
+      : handle_(create_())
+    {
     }
+    
+    ~sdl_window() = default;
+
+    SDL_Window* handle()       noexcept { return handle_.get(); }
+    SDL_Window* handle() const noexcept { return handle_.get(); }
+private:
+    using handle_t = std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)>;
+
+    static handle_t create_();
+
+    handle_t handle_;
+};
+
+//----------------------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------------------
+using sdl_surface = std::unique_ptr<SDL_Surface, decltype(&SDL_FreeSurface)>;
+
+using sdl_renderer = class detail::renderer_impl;
+
+//----------------------------------------------------------------------------------------------
+//! SDL texture interaction.
+//----------------------------------------------------------------------------------------------
+class sdl_texture {
+public:
+    sdl_texture(sdl_renderer& r, bklib::utf8_string const& filename);
+    ~sdl_texture() = default;
+
+    SDL_Texture* handle()       noexcept { return handle_.get(); }
+    SDL_Texture* handle() const noexcept { return handle_.get(); }
+private:
+    using handle_t = std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)>;
+    static handle_t load_bmp_(sdl_renderer& r, bklib::utf8_string const& filename);
+
+    handle_t handle_;
+};
+
+//----------------------------------------------------------------------------------------------
+//! SDL renderer interaction.
+//----------------------------------------------------------------------------------------------
+class detail::renderer_impl {
+public:
+    explicit renderer_impl(system& sys);
+
+    ~renderer_impl() = default;
+
+    SDL_Renderer* handle()       noexcept { return handle_.get(); }
+    SDL_Renderer* handle() const noexcept { return handle_.get(); }
+
+    void clear();
+    void present();
+
+    void render_copy(sdl_texture const& texture, SDL_Rect src, SDL_Rect dst);
+
+    void render_fill_rect(int x, int y, int w, int h);
+private:
+    using handle_t = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
+
+    static handle_t create_(sdl_window const& w);
+
+    handle_t handle_;
 };
 
 //----------------------------------------------------------------------------------------------
 class detail::system_impl {
+    friend renderer_impl;
 public:
-    system_impl(system* sys);
+    explicit system_impl(system* sys);
 
     bool is_running() const noexcept {
         return is_running_;
@@ -37,11 +109,10 @@ public:
 private:
     void handle_keyboard_(SDL_KeyboardEvent const& event);
 
-    system*      sys_ = nullptr;
-    sdl_state    sdl_;
-    sdl_window   window_;
-    sdl_renderer renderer_;
-    bool         is_running_ = true;
+    system*       sys_ = nullptr;
+    sdl_state     sdl_;
+    sdl_window    window_;
+    bool          is_running_ = true;
 };
 
 } // namespace bkrl

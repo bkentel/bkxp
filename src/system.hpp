@@ -10,8 +10,10 @@ namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace detail { class system_impl; }
+namespace detail { class renderer_impl; }
 
 class system {
+    friend class detail::renderer_impl;
 public:
     system();
     ~system();
@@ -24,7 +26,8 @@ public:
     //----------------------------------------------------------------------------------------------
     //!
     //----------------------------------------------------------------------------------------------
-    void do_events(bool wait = false);
+    void do_events_nowait();
+    void do_events_wait();
     
     //----------------------------------------------------------------------------------------------
     //!
@@ -38,6 +41,7 @@ public:
 public:
     std::function<void (bklib::utf8_string_view)> on_text_input;
     std::function<bool ()>                        on_request_quit;
+    std::function<void(int)>                      on_key_up;
 private:
     std::unique_ptr<detail::system_impl> impl_;
 };

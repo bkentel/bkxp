@@ -1,26 +1,14 @@
-#define CATCH_CONFIG_RUNNER
-
-#include "map.hpp"
 #include "bklib/assert.hpp"
 #include "bklib/string.hpp"
 #include "bklib/utility.hpp"
-#include "system.hpp"
-#include "random.hpp"
 #include "bklib/math.hpp"
+#include "bklib/exception.hpp"
+#include "map.hpp"
+#include "system.hpp"
+#include "renderer.hpp"
+#include "random.hpp"
 #include "bsp_layout.hpp"
 
-#include <exception>
-#include <array>
-#include <algorithm>
-#include <memory>
-#include <functional>
-#include <chrono>
-#include <vector>
-
-#include <fstream>
-
-#include <cstdint>
-#include <cstdio>
 
 namespace bklib {
 
@@ -54,7 +42,6 @@ struct room_generator {
 
     }
 };
-
 
 } //namespace bkrl
 
@@ -93,6 +80,8 @@ struct closed_interval {
 };
 
 void main() try {
+    bkrl::map map;
+
     bkrl::random_t gen {1984};
 
     bkrl::bsp_layout layout {bklib::irect {0, 0, 100, 100}};
@@ -102,49 +91,22 @@ void main() try {
         room_gen.generate(gen, bounds);
     });
 
-    //char grid[100][100] {};
-    //char id = 'a';
-
-    //for (auto const& n : layout.nodes_) {
-    //    if (!n.child) {
-
-    //        for (int y = n.top; y < n.bottom; ++y) {
-    //            for (int x = n.left; x < n.right; ++x) {
-    //                grid[y][x] = id;
-    //            }
-    //        }
-
-    //        id = (id + 1) % (0x80 - '0') + '0';
-
-    //        printf("w: %3d h: %3d\n", n.width(), n.height());
-    //    }
-
-    //    if (n.width() < 5) {
-    //        printf("bad");
-    //    } else if (n.height() < 5) {
-    //        printf("bad");
-    //    }
-    //}
-
-    //{
-    //    std::ofstream out {"out.txt"};
-    //    for (int y = 0; y < 100; ++y) {
-    //        out << bklib::utf8_string_view(grid[y], 100) << '\n';
-    //    }
-    //}
-
     bkrl::system sys;
+    bkrl::renderer render(sys);
 
     sys.on_text_input = [&](bklib::utf8_string_view s) {
+        printf("foo\n");
     };
 
     while (sys.is_running()) {
-        sys.do_events(true);
+        sys.do_events_wait();
+        render.clear();
+        render.present();
     }
 
-
     return;
+} catch (bklib::exception_base const&) {
+} catch (boost::exception const&) {
 } catch (std::exception const&) {
 } catch (...) {
 }
-

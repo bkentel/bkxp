@@ -14,9 +14,13 @@ bool bkrl::system::is_running() const noexcept {
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::system::do_events(bool const wait)
-{
-    impl_->do_events(wait);
+void bkrl::system::do_events_nowait() {
+    impl_->do_events(false);
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::system::do_events_wait() {
+    impl_->do_events(true);
 }
     
 //----------------------------------------------------------------------------------------------

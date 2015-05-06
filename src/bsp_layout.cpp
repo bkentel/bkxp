@@ -11,6 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class bkrl::detail::bsp_layout_impl {
+public:
     //----------------------------------------------------------------------------------------------
     struct node_t : bklib::irect {
         using index_t = uint16_t;
@@ -34,7 +35,7 @@ class bkrl::detail::bsp_layout_impl {
         index_t parent = 0;
         index_t child  = 0;
     };
-public:
+
     //----------------------------------------------------------------------------------------------
     using param_t = bsp_layout::param_t;
 
@@ -53,7 +54,7 @@ public:
              first = last, last = nodes_.size())
         {
             for (auto i = first; i < last; ++i) {
-                split_(gen, i);
+                split(gen, i);
             }
         }
 
@@ -63,14 +64,14 @@ public:
             }
         }
     }
-private:
+
     //----------------------------------------------------------------------------------------------
     enum class split_type : int {
         none, vertical, horizonal, random
     };
 
     //----------------------------------------------------------------------------------------------
-    split_type get_split_type_(int const w, int const h) const noexcept {
+    split_type get_split_type(int const w, int const h) const noexcept {
         switch (bklib::combine_bool(w >= p_.min_w * 2, h >= p_.min_h * 2)) {
         default : return split_type::none;
         case 0  : return split_type::none;
@@ -91,7 +92,7 @@ private:
         return split_type::random;
     }
 
-    int get_split_point_(random_t& gen, int const n, int const min) {
+    int get_split_point(random_t& gen, int const n, int const min) {
         BK_ASSERT(n >= min * 2);  
     
         auto const split = static_cast<int>(std::lround(((2 + split_dist_(gen)) * n) / 4));
@@ -99,7 +100,7 @@ private:
     }
 
     //----------------------------------------------------------------------------------------------
-    bool do_split_(random_t& gen, int const w, int const h) {
+    bool do_split(random_t& gen, int const w, int const h) {
         double const a = p_.max_edge_size;             // max size
         double const b = std::min(p_.min_w, p_.min_h); // min size
         double const p = p_.min_split_chance;          // min chance
@@ -110,38 +111,38 @@ private:
     }
 
     //----------------------------------------------------------------------------------------------
-    void split_(random_t& gen, size_t const i) {
+    void split(random_t& gen, size_t const i) {
         auto const w = nodes_[i].width();
         auto const h = nodes_[i].height();
 
-        if (i && !do_split_(gen, w, h)) {
+        if (i && !do_split(gen, w, h)) {
             return;
         }
 
-        switch (get_split_type_(w, h)) {
+        switch (get_split_type(w, h)) {
         default                    : break;
         case split_type::none      : break;
-        case split_type::vertical  : split_vert_(gen, i); break;
-        case split_type::horizonal : split_hori_(gen, i); break;
-        case split_type::random    : split_rand_(gen, i); break;
+        case split_type::vertical  : split_vert(gen, i); break;
+        case split_type::horizonal : split_hori(gen, i); break;
+        case split_type::random    : split_rand(gen, i); break;
         }
     }
 
     //----------------------------------------------------------------------------------------------
-    void split_rand_(random_t& gen, size_t const i) {
+    void split_rand(random_t& gen, size_t const i) {
         if (gen() & 1) {
-            split_vert_(gen, i);
+            split_vert(gen, i);
         } else {
-            split_hori_(gen, i);
+            split_hori(gen, i);
         }
     }
 
     //----------------------------------------------------------------------------------------------
-    void split_hori_(random_t& gen, size_t const i) {
+    void split_hori(random_t& gen, size_t const i) {
         auto const n = nodes_[i].set_children(nodes_.size()).bounds();
 
         int const y0 = n.top;
-        int const y1 = y0 + get_split_point_(gen, n.height(), p_.min_h);
+        int const y1 = y0 + get_split_point(gen, n.height(), p_.min_h);
         int const y2 = n.bottom;
 
         nodes_.emplace_back(i, bklib::irect {n.left, y0, n.right, y1});
@@ -149,11 +150,11 @@ private:
     }
     
     //----------------------------------------------------------------------------------------------
-    void split_vert_(random_t& gen, size_t const i) {
+    void split_vert(random_t& gen, size_t const i) {
         auto const n = nodes_[i].set_children(nodes_.size()).bounds();
 
         int const x0 = n.left;
-        int const x1 = x0 + get_split_point_(gen, n.width(), p_.min_w);
+        int const x1 = x0 + get_split_point(gen, n.width(), p_.min_w);
         int const x2 = n.right;
 
         nodes_.emplace_back(i, bklib::irect {x0, n.top, x1, n.bottom});
@@ -186,7 +187,14 @@ bkrl::bsp_layout::bsp_layout(bklib::irect bounds, param_t params)
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::bsp_layout::generate(random_t& gen, room_gen_t room_gen) {
+bkrl::bsp_layout::bsp_layout(bklib::irect bounds)
+  : bsp_layout {bounds, param_t {}}
+{
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::bsp_layout::generate(random_t& gen, room_gen_t room_gen)
+{
     impl_->generate(gen, room_gen);
 }
 
@@ -195,5 +203,37 @@ void bkrl::bsp_layout::generate(random_t& gen, room_gen_t room_gen) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef BK_NO_UNIT_TESTS
 #include <catch/catch.hpp>
+
+TEST_CASE("bsp_layout", "[bsp_layout][mapgen]") {
+    bkrl::random_t gen;
+    bkrl::detail::bsp_layout_impl layout(bklib::irect {0, 0, 100, 100}, bkrl::bsp_layout::param_t {});
+    auto const& p = layout.p_;
+
+    using type = bkrl::detail::bsp_layout_impl::split_type;
+
+    auto const ok_w = p.min_w*2;
+    auto const ok_h = p.min_h*2;
+
+    SECTION("Simple split scenarios") {
+        REQUIRE(layout.get_split_type(ok_w,     ok_h)     == type::random);
+        REQUIRE(layout.get_split_type(ok_w - 1, ok_h)     == type::horizonal);
+        REQUIRE(layout.get_split_type(ok_w,     ok_h - 1) == type::vertical);
+        REQUIRE(layout.get_split_type(ok_w - 1, ok_h - 1) == type::none);
+    }
+
+    SECTION("Aspect ratio split scenarios") {
+        auto const size = std::max(ok_w, ok_h);
+        auto const aspect_w = size * p.aspect.num;
+        auto const aspect_h = size * p.aspect.den;
+
+        REQUIRE(aspect_w >= ok_w);
+        REQUIRE(aspect_h >= ok_h);
+        REQUIRE(aspect_w >= aspect_h);
+
+        REQUIRE(layout.get_split_type(aspect_w,     aspect_h)     == type::random);
+        REQUIRE(layout.get_split_type(aspect_w + 1, aspect_h)     == type::horizonal);
+        REQUIRE(layout.get_split_type(aspect_h,     aspect_w + 1) == type::vertical);
+    }
+}
 
 #endif // BK_NO_UNIT_TESTS
