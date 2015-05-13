@@ -18,6 +18,7 @@
     <ClInclude Include="src\bklib\utility.hpp" />
     <ClInclude Include="src\bsp_layout.hpp" />
     <ClInclude Include="src\commands.hpp" />
+    <ClInclude Include="src\creature.hpp" />
     <ClInclude Include="src\identifier.hpp" />
     <ClInclude Include="src\map.hpp" />
     <ClInclude Include="src\pch.hpp" />
@@ -37,7 +38,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\commands.cpp" />
+    <ClCompile Include="src\creature.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

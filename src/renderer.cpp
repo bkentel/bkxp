@@ -28,7 +28,7 @@ void bkrl::renderer::draw_filled_rect(rect_t const r)
     impl_->render_fill_rect(r.x, r.y, r.w, r.h);
 }
 
-void bkrl::renderer::draw_textured_rect(rect_t const r)
+void bkrl::renderer::draw_cell(int const cell_x, int const cell_y, int const tile_index)
 {
-    //impl_->render_copy(r.x, r.y, r.w, r.h);
+    impl_->draw_cell(cell_x, cell_y, tile_index);
 }

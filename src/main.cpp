@@ -10,6 +10,7 @@
 #include "random.hpp"
 #include "bsp_layout.hpp"
 #include "commands.hpp"
+#include "creature.hpp"
 
 #include <unordered_set>
 
@@ -97,7 +98,7 @@ using worth_value_t = bklib::tagged_value<int, struct tag_worth_value_t>;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // terrain
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//----------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 struct texture_def : id_base<id::texture> {
     id::texture_source source;
     int                off_x {0};
@@ -159,6 +160,39 @@ private:
 
 ////////////////////////////////////////////////////////////
 
+constexpr bklib::ivec3 vec_here   { 0,  0,  0};
+constexpr bklib::ivec3 vec_north  { 0, -1,  0};
+constexpr bklib::ivec3 vec_south  { 0,  1,  0};
+constexpr bklib::ivec3 vec_east   { 1,  0,  0};
+constexpr bklib::ivec3 vec_west   {-1,  0,  0};
+constexpr bklib::ivec3 vec_n_east { 1, -1,  0};
+constexpr bklib::ivec3 vec_n_west {-1, -1,  0};
+constexpr bklib::ivec3 vec_s_east { 1,  1,  0};
+constexpr bklib::ivec3 vec_s_west {-1,  1,  0};
+constexpr bklib::ivec3 vec_up     { 0,  0, -1};
+constexpr bklib::ivec3 vec_down   { 0,  0,  1};
+
+bklib::ivec3 direction_vector(command_type const cmd) {
+    switch (cmd) {
+    case command_type::dir_here:   return vec_here;
+    case command_type::dir_north:  return vec_north;
+    case command_type::dir_south:  return vec_south;
+    case command_type::dir_east:   return vec_east;
+    case command_type::dir_west:   return vec_west;
+    case command_type::dir_n_west: return vec_n_west;
+    case command_type::dir_n_east: return vec_n_east;
+    case command_type::dir_s_west: return vec_s_west;
+    case command_type::dir_s_east: return vec_s_east;
+    case command_type::dir_up:     return vec_up;
+    case command_type::dir_down:   return vec_down;
+    }
+
+    return vec_here;
+}
+
+//--------------------------------------------------------------------------------------------------
+// Game simulation state.
+//--------------------------------------------------------------------------------------------------
 class game {
 public:
     game()
@@ -183,9 +217,20 @@ public:
 
         while (system_.is_running()) {
             system_.do_events_wait();
-            renderer_.clear();
-            renderer_.present();
+            render();
         }
+
+    }
+
+    void render() {
+        renderer_.clear();
+
+        current_map_.draw(renderer_);
+
+        renderer_.present();
+    }
+
+    void update() {
 
     }
 
@@ -222,6 +267,7 @@ public:
     }
 
     void do_open() {
+        update();
     }
 
     void on_open() {
@@ -242,10 +288,35 @@ public:
         });
     }
 
+    void do_move() {
+
+    }
+
+    void on_move(bklib::ivec3 v) {
+        printf("on_move %d %d\n", x(v), y(v));
+    }
+
     void on_command(command const& cmd) {
         switch (cmd.type) {
-        case command_type::open: on_open(); break;
-        case command_type::quit: on_quit(); break;
+        case command_type::dir_here:
+        case command_type::dir_north:
+        case command_type::dir_south:
+        case command_type::dir_east:
+        case command_type::dir_west:
+        case command_type::dir_n_west:
+        case command_type::dir_n_east:
+        case command_type::dir_s_west:
+        case command_type::dir_s_east:
+        case command_type::dir_up:
+        case command_type::dir_down:
+            on_move(direction_vector(cmd.type));
+            break;
+        case command_type::open:
+            on_open();
+            break;
+        case command_type::quit:
+            on_quit();
+            break;
         default:
             break;
         }
@@ -254,6 +325,9 @@ private:
     system             system_;
     renderer           renderer_;
     command_translator command_translator_;
+
+    map    current_map_;
+    player player_;
 };
 
 } //namespace bkrl

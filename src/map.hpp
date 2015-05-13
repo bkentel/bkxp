@@ -1,49 +1,69 @@
 #pragma once
 
+#include "creature.hpp"
+
 #include <array>
 #include <cstdint>
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class renderer;
+
 constexpr size_t size_block = 16;
 constexpr size_t size_chunk = size_block * size_block;
 
 //--------------------------------------------------------------------------------------------------
-//!
+//! Base map data block 16 x 16 currently (see size_block)
 //--------------------------------------------------------------------------------------------------
 template <typename T>
 struct block_t {
+    T const& cell_at(int const x, int const y) const noexcept {
+        return data[yi * size_block + xi];
+    }
+
+    template <typename Function>
+    void for_each_cell(Function&& f, int const x0, int const y0) const {
+        for (size_t i = 0; i < data.size(); ++i) {
+            auto const yi = i / size_block;
+            auto const xi = i % size_block;
+            f(x0 + xi, y0 + yi, data[i]);
+        }
+    }
+
     std::array<T, size_block * size_block> data;
+};
+
+//--------------------------------------------------------------------------------------------------
+//! Map "chunk" consisting of 16 x 16 block_t currently (see size_chunk)
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+struct chunk_t {
+    block_t<T> const& block_at(int const x, int const y) const noexcept {
+        auto const yi = y / size_block;
+        auto const xi = x / size_block;
+        return data[yi * size_block + xi];
+    }
+
+    template <typename Function>
+    void for_each_cell(Function&& f, int const x0, int const y0) const {
+        for (size_t i = 0; i < data.size(); ++i) {
+            auto const yi = i / size_block;
+            auto const xi = i % size_block;
+            data[i].for_each_cell(std::forward<Function>(f), x0 + xi * size_block, y0 + yi * size_block);
+        }
+    }
+
+    std::array<block_t<T>, size_block * size_block> data;
 };
 
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
-template <typename T>
-using chunk_t = block_t<block_t<T>>;
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
 template <typename T, typename Function>
-void for_each_cell(block_t<T>& block, Function&& f, int x = 0, int y = 0) {
-    for (size_t i = 0; i < size_block * size_block; ++i) {
-        auto const xx = x + (i % size_block);
-        auto const yy = y + (i / size_block);
-        f(xx, yy, block.data[i]);
-    }
-}
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-template <typename T, typename Function>
-void for_each_cell(chunk_t<T>& chunk, Function&& f, int x = 0, int y = 0) {
-    for (size_t i = 0; i < size_block * size_block; ++i) {
-        auto const xx = x + (size_block * (i % size_block));
-        auto const yy = y + (size_block * (i / size_block));
-        for_each_cell(chunk.data[i], std::forward<Function>(f), xx, yy);
-    }
+void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
+    block.for_each_cell(std::forward<Function>(f), x, y);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -82,6 +102,8 @@ struct map_light_t {
 //--------------------------------------------------------------------------------------------------
 class map {
 public:
+    void move_by(creature& critter, int dx, int dy);
+    void draw(renderer& render);
 private:
     chunk_t<map_cell_t>  base_;
     chunk_t<map_light_t> light_;

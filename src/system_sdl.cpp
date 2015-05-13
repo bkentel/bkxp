@@ -48,10 +48,18 @@ bkrl::detail::renderer_impl::handle_t bkrl::detail::renderer_impl::create_(sdl_w
     return handle_t(result, &SDL_DestroyRenderer);
 }
 
+namespace {
+bkrl::tilemap make_tilemap(bkrl::sdl_texture const& tex) {
+    auto const size = tex.get_size(tex);
+    return {18, 18, size.first, size.second};
+}
+} //namespace
+
 //----------------------------------------------------------------------------------------------
 bkrl::detail::renderer_impl::renderer_impl(system& sys)
   : handle_(create_(sys.impl_->window_))
   , tile_texture_(*this, "data/tiles.bmp")
+  , tile_tilemap_(make_tilemap(tile_texture_))
 {
 }
 
@@ -93,16 +101,27 @@ void bkrl::detail::renderer_impl::render_copy(
 
 //----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::render_fill_rect(
-    int const x
-  , int const y
-  , int const w
-  , int const h
+    int const x, int const y
+  , int const w, int const h
 ) {
     SDL_Rect const r {x, y, w, h};
     if (SDL_RenderFillRect(handle(), &r)) {
         BOOST_THROW_EXCEPTION(bklib::platform_error {}
           << boost::errinfo_api_function {"SDL_RenderFillRect"});
     }
+}
+
+void bkrl::detail::renderer_impl::draw_cell(
+    int const cell_x, int const cell_y, int const tile_index
+) {
+    auto const r = tile_tilemap_.get_bounds(tile_index);
+    auto const w = tile_tilemap_.tile_w();
+    auto const h = tile_tilemap_.tile_h();
+
+    SDL_Rect const src {r.left,     r.top,      r.width(), r.height()};
+    SDL_Rect const dst {cell_x * w, cell_y * h, r.width(), r.height()};
+
+    render_copy(tile_texture_, src, dst);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -214,4 +233,19 @@ bkrl::sdl_texture::handle_t bkrl::sdl_texture::load_bmp_(
     }
 
     return result;
+}
+
+std::pair<int, int> bkrl::sdl_texture::get_size(sdl_texture const& texture) const
+{
+    Uint32 format;
+    int    access;
+    int    w;
+    int    h;
+
+    if (SDL_QueryTexture(texture.handle(), &format, &access, &w, &h)) {
+        BOOST_THROW_EXCEPTION(bklib::platform_error {}
+          << boost::errinfo_api_function {"SDL_QueryTexture"});
+    }
+
+    return {w, h};
 }

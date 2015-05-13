@@ -58,6 +58,9 @@
     <ClInclude Include="src\commands.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\creature.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -83,6 +86,12 @@
       <Filter>test\bklib</Filter>
     </ClCompile>
     <ClCompile Include="src\commands.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\creature.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\map.cpp">
       <Filter>bkrl</Filter>
     </ClCompile>
   </ItemGroup>

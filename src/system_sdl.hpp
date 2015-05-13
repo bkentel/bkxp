@@ -60,6 +60,8 @@ public:
 
     SDL_Texture* handle()       noexcept { return handle_.get(); }
     SDL_Texture* handle() const noexcept { return handle_.get(); }
+
+    std::pair<int, int> get_size(sdl_texture const& texture) const;
 private:
     using handle_t = std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)>;
     static handle_t load_bmp_(sdl_renderer& r, bklib::utf8_string const& filename);
@@ -87,6 +89,10 @@ public:
     void render_copy(sdl_texture const& texture, SDL_Rect src, SDL_Rect dst);
 
     void render_fill_rect(int x, int y, int w, int h);
+
+    void draw_cell(int cell_x, int cell_y, int tile_index);
+
+    
 private:
     using handle_t = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
 
@@ -95,6 +101,7 @@ private:
     handle_t handle_;
 
     sdl_texture tile_texture_; //TODO move in the future
+    tilemap     tile_tilemap_;  //TODO move in the future
 };
 
 //----------------------------------------------------------------------------------------------

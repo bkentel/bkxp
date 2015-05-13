@@ -81,32 +81,44 @@ constexpr inline unsigned combine_bool(Ts const... values) noexcept {
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
-template <unsigned Dimension, typename T = int>
-struct point_t {
+
+template <typename Tag, unsigned Dimension, typename T = int>
+struct tuple_base_t {
+    using tag_t = Tag;
+    using value_t = T;
     static constexpr unsigned dimension = Dimension;
 
-    std::array<T, Dimension> data;
+    std::array<value_t, Dimension> data;
 };
 
-template <unsigned D, typename T>
-constexpr T x(point_t<D, T> const& p) noexcept {
+template <unsigned Dimension, typename T = int>
+using point_t = tuple_base_t<struct tag_point_t, Dimension, T>;
+
+template <unsigned Dimension, typename T = int>
+using vector_t = tuple_base_t<struct tag_vector_t, Dimension, T>;
+
+template <typename Tag, unsigned D, typename T>
+constexpr T x(tuple_base_t<Tag, D, T> const& p) noexcept {
     static_assert(D > 0, "wrong dimension");
     return p.data[0];
 }
 
-template <unsigned D, typename T>
-constexpr T y(point_t<D, T> const& p) noexcept {
+template <typename Tag, unsigned D, typename T>
+constexpr T y(tuple_base_t<Tag, D, T> const& p) noexcept {
     static_assert(D > 1, "wrong dimension");
     return p.data[1];
 }
 
-template <unsigned D, typename T>
-constexpr T z(point_t<D, T> const& p) noexcept {
+template <typename Tag, unsigned D, typename T>
+constexpr T z(tuple_base_t<Tag, D, T> const& p) noexcept {
     static_assert(D > 2, "wrong dimension");
     return p.data[2];
 }
 
 using ipoint2 = point_t<2, int>;
+using ivec2   = vector_t<2, int>;
+using ipoint3 = point_t<3, int>;
+using ivec3   = vector_t<3, int>;
 
 //--------------------------------------------------------------------------------------------------
 //!
