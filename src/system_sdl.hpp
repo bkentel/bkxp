@@ -82,6 +82,8 @@ public:
     void clear();
     void present();
 
+    void set_active_texture(renderer::texture tex);
+
     void render_copy(sdl_texture const& texture, SDL_Rect src, SDL_Rect dst);
 
     void render_fill_rect(int x, int y, int w, int h);
@@ -91,6 +93,8 @@ private:
     static handle_t create_(sdl_window const& w);
 
     handle_t handle_;
+
+    sdl_texture tile_texture_; //TODO move in the future
 };
 
 //----------------------------------------------------------------------------------------------
@@ -98,6 +102,8 @@ class detail::system_impl {
     friend renderer_impl;
 public:
     explicit system_impl(system* sys);
+
+    void quit();
 
     bool is_running() const noexcept {
         return is_running_;

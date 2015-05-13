@@ -17,6 +17,7 @@
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
+#include <boost/optional.hpp>
 
 #include <string>
 #include <vector>

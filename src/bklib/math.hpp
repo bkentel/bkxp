@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <array>
 #include <cstdlib>
 
 namespace bklib {
@@ -76,6 +77,36 @@ template <typename... Ts>
 constexpr inline unsigned combine_bool(Ts const... values) noexcept {
     return detail::combine_bool_impl<sizeof...(Ts) - 1>(values...);
 }
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <unsigned Dimension, typename T = int>
+struct point_t {
+    static constexpr unsigned dimension = Dimension;
+
+    std::array<T, Dimension> data;
+};
+
+template <unsigned D, typename T>
+constexpr T x(point_t<D, T> const& p) noexcept {
+    static_assert(D > 0, "wrong dimension");
+    return p.data[0];
+}
+
+template <unsigned D, typename T>
+constexpr T y(point_t<D, T> const& p) noexcept {
+    static_assert(D > 1, "wrong dimension");
+    return p.data[1];
+}
+
+template <unsigned D, typename T>
+constexpr T z(point_t<D, T> const& p) noexcept {
+    static_assert(D > 2, "wrong dimension");
+    return p.data[2];
+}
+
+using ipoint2 = point_t<2, int>;
 
 //--------------------------------------------------------------------------------------------------
 //!

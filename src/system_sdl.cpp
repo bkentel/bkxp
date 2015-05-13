@@ -48,14 +48,17 @@ bkrl::detail::renderer_impl::handle_t bkrl::detail::renderer_impl::create_(sdl_w
     return handle_t(result, &SDL_DestroyRenderer);
 }
 
+//----------------------------------------------------------------------------------------------
 bkrl::detail::renderer_impl::renderer_impl(system& sys)
   : handle_(create_(sys.impl_->window_))
+  , tile_texture_(*this, "data/tiles.bmp")
 {
 }
 
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::clear()
 {
-    if (SDL_SetRenderDrawColor(handle(), 255, 0, 255, 255)) {
+    if (SDL_SetRenderDrawColor(handle(), 255, 0, 0, 255)) {
         BOOST_THROW_EXCEPTION(bklib::platform_error {}
           << boost::errinfo_api_function {"SDL_SetRenderDrawColor"});
     }
@@ -66,10 +69,18 @@ void bkrl::detail::renderer_impl::clear()
     }
 }
 
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::present() {
     SDL_RenderPresent(handle());
 }
 
+//----------------------------------------------------------------------------------------------
+void bkrl::detail::renderer_impl::set_active_texture(renderer::texture const tex)
+{
+    
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::render_copy(
     sdl_texture const& texture
   , SDL_Rect const src, SDL_Rect const dst
@@ -80,6 +91,7 @@ void bkrl::detail::renderer_impl::render_copy(
     }
 }
 
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::render_fill_rect(
     int const x
   , int const y
@@ -98,13 +110,19 @@ void bkrl::detail::renderer_impl::render_fill_rect(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bkrl::detail::system_impl::system_impl(system* const sys)
-  : sys_      {sys}
-  , sdl_      {}
-  , window_   {}
+  : sys_    {sys}
+  , sdl_    {}
+  , window_ {}
 {
     sys_->on_text_input   = [](bklib::utf8_string_view const&) { };
     sys_->on_request_quit = []() { return true; };
     sys_->on_key_up       = [](int) { };
+    sys_->on_key_down     = [](int) { };
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::detail::system_impl::quit() {
+    is_running_ = false;
 }
 
 //----------------------------------------------------------------------------------------------
@@ -163,7 +181,11 @@ void bkrl::detail::system_impl::delay(std::chrono::nanoseconds const ns)
 //----------------------------------------------------------------------------------------------
 void bkrl::detail::system_impl::handle_keyboard_(SDL_KeyboardEvent const& event)
 {
-    sys_->on_key_up(event.keysym.sym);
+    if (event.state == SDL_PRESSED) {
+        sys_->on_key_down(event.keysym.sym);
+    } else if (event.state == SDL_RELEASED) {
+        sys_->on_key_up(event.keysym.sym);
+    }
 }
 
 //----------------------------------------------------------------------------------------------

@@ -7,6 +7,15 @@
     <Filter Include="bkrl">
       <UniqueIdentifier>{6810349c-3184-4c71-b6ac-4b4f1f50fc80}</UniqueIdentifier>
     </Filter>
+    <Filter Include="test">
+      <UniqueIdentifier>{f134c604-84a5-4f80-a53b-c9ecfa1409c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test\bklib">
+      <UniqueIdentifier>{5e5a972f-4627-4245-82d5-364ae11274a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test\bkrl">
+      <UniqueIdentifier>{6cf778a3-d3ea-4e0d-ab72-afdf74bfb15a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bklib\math.hpp">
@@ -43,6 +52,12 @@
       <Filter>bkrl</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.hpp" />
+    <ClInclude Include="src\identifier.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\commands.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -62,6 +77,12 @@
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\catch.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\string_test.cpp">
+      <Filter>test\bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\commands.cpp">
       <Filter>bkrl</Filter>
     </ClCompile>
   </ItemGroup>

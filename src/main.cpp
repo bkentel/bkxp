@@ -3,14 +3,20 @@
 #include "bklib/utility.hpp"
 #include "bklib/math.hpp"
 #include "bklib/exception.hpp"
+#include "identifier.hpp"
 #include "map.hpp"
 #include "system.hpp"
 #include "renderer.hpp"
 #include "random.hpp"
 #include "bsp_layout.hpp"
+#include "commands.hpp"
 
+#include <unordered_set>
 
 namespace bklib {
+
+template <typename T>
+using optional = boost::optional<T>;
 
 struct icolor {
     uint8_t a;
@@ -79,30 +85,191 @@ struct closed_interval {
     T hi;
 };
 
-void main() try {
-    bkrl::map map;
 
-    bkrl::random_t gen {1984};
+namespace bkrl {
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    bkrl::bsp_layout layout {bklib::irect {0, 0, 100, 100}};
-    bkrl::room_generator room_gen;
-    
-    layout.generate(gen, [&](bklib::irect const& bounds) {
-        room_gen.generate(gen, bounds);
-    });
+using weight_value_t = bklib::tagged_value<int, struct tag_weight_value_t>;
+using worth_value_t = bklib::tagged_value<int, struct tag_worth_value_t>;
 
-    bkrl::system sys;
-    bkrl::renderer render(sys);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// terrain
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------
+struct texture_def : id_base<id::texture> {
+    id::texture_source source;
+    int                off_x {0};
+    int                off_y {0};
+};
 
-    sys.on_text_input = [&](bklib::utf8_string_view s) {
-        printf("foo\n");
+//----------------------------------------------------------------------------------------------
+struct terrain_def : id_base<id::terrain> {
+    id::texture        texture;
+    bklib::utf8_string name;
+    bklib::utf8_string description;
+    bklib::utf8_string symbol;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// entities
+////////////////////////////////////////////////////////////////////////////////////////////////////
+using entity_id = bklib::tagged_value<int, struct tag_entity_id>;
+using entity_def_id = bklib::tagged_value<int, struct tag_entity_def_id>;
+
+class entity_def {
+public:
+private:
+    bklib::utf8_string name_;
+};
+
+class entity {
+public:
+    enum class flags : unsigned {
+        is_player
     };
+private:
+    entity_id      id_;
+    entity_def_id  definition_;
+    flags          flags_;
+    bklib::ipoint2 pos_;
+};
 
-    while (sys.is_running()) {
-        sys.do_events_wait();
-        render.clear();
-        render.present();
+class entity_attribute {
+public:
+private:
+    using value_t = int;
+
+    value_t value_;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// items
+////////////////////////////////////////////////////////////////////////////////////////////////////
+using item_id = bklib::tagged_value<int, struct tag_item_id>;
+using item_def_id = bklib::tagged_value<int, struct tag_item_def_id>;
+
+class item {
+public:
+private:
+    item_id     id_;
+    item_def_id definition_;
+};
+
+////////////////////////////////////////////////////////////
+
+class game {
+public:
+    game()
+      : system_()
+      , renderer_(system_)
+      , command_translator_()
+    {
+        command_translator_.push_handler([&](command const& cmd) {
+            on_command(cmd);
+        });
+
+        system_.on_text_input = [&](bklib::utf8_string_view s) {
+        };
+
+        system_.on_key_up = [&](int const key) {
+            command_translator_.on_key_up(key);
+        };
+
+        system_.on_key_down = [&](int const key) {
+            command_translator_.on_key_down(key);
+        };
+
+        while (system_.is_running()) {
+            system_.do_events_wait();
+            renderer_.clear();
+            renderer_.present();
+        }
+
     }
+
+    void display_message(bklib::utf8_string_view const msg) {
+        printf("%s\n", msg.data());
+    }
+
+    void do_quit() {
+        system_.quit();
+    }
+
+    void on_quit() {
+        display_message("Are you sure you want to quit? Y/N");
+
+        query_yn(command_translator_, [this](command_type const cmd) {
+            switch (cmd) {
+            case command_type::yes:
+                do_quit();
+                return query_result::done;
+            case command_type::no:
+                display_message("Ok.");
+                return query_result::done;
+            case command_type::cancel:
+                display_message("Canceled.");
+                return query_result::done;
+            case command_type::invalid:
+                display_message("Invalid choice.");
+            default:
+                break;
+            }
+            
+            return query_result::more;
+        });
+    }
+
+    void do_open() {
+    }
+
+    void on_open() {
+        display_message("Open in which direction?");
+
+        query_dir(command_translator_, [this](command_type const cmd) {
+            switch (cmd) {
+            case command_type::cancel:
+                display_message("Nevermind.");
+                return query_result::done;
+            case command_type::invalid:
+                display_message("Invalid choice.");
+            default:
+                break;
+            }
+            
+            return query_result::more;
+        });
+    }
+
+    void on_command(command const& cmd) {
+        switch (cmd.type) {
+        case command_type::open: on_open(); break;
+        case command_type::quit: on_quit(); break;
+        default:
+            break;
+        }
+    }
+private:
+    system             system_;
+    renderer           renderer_;
+    command_translator command_translator_;
+};
+
+} //namespace bkrl
+
+namespace std {
+template <> struct hash<bkrl::texture_def> : bkrl::id_hash_base<bkrl::texture_def> {};
+template <> struct hash<bkrl::terrain_def> : bkrl::id_hash_base<bkrl::terrain_def> {};
+}
+
+
+int run_unit_tests();
+
+void main() try {
+    run_unit_tests();
+
+    bkrl::game game;
 
     return;
 } catch (bklib::exception_base const&) {

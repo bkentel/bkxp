@@ -66,7 +66,12 @@ inline constexpr uint32_t static_djb2_hash(char const* const str) noexcept {
 //!
 //--------------------------------------------------------------------------------------------------
 struct string_id_base {
-    string_id_base(utf8_string_view string)
+    string_id_base() noexcept
+      : hash {0}, hash_string {{}}
+    {
+    }
+
+    explicit string_id_base(utf8_string_view const string) noexcept
       : hash(djb2_hash(string))
     {
         size_t const size = std::min(hash_string.size() - 1, string.size() + 1);
@@ -85,6 +90,16 @@ template <typename Tag>
 struct string_id : string_id_base {
     using string_id_base::string_id_base;
 };
+
+template <typename Tag>
+inline bool operator==(string_id<Tag> const& lhs, string_id<Tag> const& rhs) noexcept {
+    return lhs.hash == rhs.hash;
+}
+
+template <typename Tag>
+inline bool operator!=(string_id<Tag> const& lhs, string_id<Tag> const& rhs) noexcept {
+    return !(lhs == rhs);
+}
 
 } //namespace bklib
 ////////////////////////////////////////////////////////////////////////////////////////////////////

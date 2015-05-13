@@ -18,7 +18,17 @@ void bkrl::renderer::present()
     impl_->present();
 }
 
+void bkrl::renderer::set_active_texture(texture const tex)
+{
+    impl_->set_active_texture(tex);
+}
+
 void bkrl::renderer::draw_filled_rect(rect_t const r)
 {
     impl_->render_fill_rect(r.x, r.y, r.w, r.h);
+}
+
+void bkrl::renderer::draw_textured_rect(rect_t const r)
+{
+    //impl_->render_copy(r.x, r.y, r.w, r.h);
 }
