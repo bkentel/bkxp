@@ -1,43 +1,18 @@
 #pragma once
 
-#include "bklib/string.hpp"
+#include "bklib/utility.hpp"
+#include <cstdint>
 
 namespace bkrl {
-namespace id {
-    using texture_source = bklib::string_id<struct tag_texture_source>;
-    using texture        = bklib::string_id<struct tag_texture>;
-    using terrain        = bklib::string_id<struct tag_terrain>;
-} //namespace id
 
-//----------------------------------------------------------------------------------------------
-// small mix-in to allow hashing of types with an "id" member.
-//----------------------------------------------------------------------------------------------
-template <typename T>
-struct id_hash_base {
-    using argument_type = T;
-    using result_type   = std::size_t;
-
-    result_type operator()(argument_type const& arg) const noexcept {
-        return arg.id.hash;
-    }
-};
-
-//----------------------------------------------------------------------------------------------
-// small mix-in to use for classes that have an id.
-//----------------------------------------------------------------------------------------------
-template <typename T>
-struct id_base {
-    using id_type = T;
-
-    id_base() = default;
-    explicit id_base(T id) : id(id) { }
-    
-    T id;
-};
+using item_def_id          = bklib::tagged_value<uint32_t, struct tag_item_def_id>;
+using item_instance_id     = bklib::tagged_value<uint32_t, struct tag_item_instance_id>;
+using creature_def_id      = bklib::tagged_value<uint32_t, struct tag_creature_def_id>;
+using creature_instance_id = bklib::tagged_value<uint32_t, struct tag_creature_instance_id>;
 
 template <typename T>
-bool operator==(id_base<T> const& lhs, id_base<T> const& rhs) noexcept {
-    return lhs.id.hash == rhs.id.hash;
+inline auto idof(const T& value) noexcept {
+    return typename T::id_t {std::hash<T> {}(value)};
 }
 
 } //namespace bkrl

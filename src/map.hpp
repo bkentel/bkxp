@@ -1,6 +1,8 @@
 #pragma once
 
-#include "creature.hpp"
+#include <bklib/math.hpp>
+
+#include "terrain.hpp"
 
 #include <array>
 #include <cstdint>
@@ -19,8 +21,12 @@ constexpr size_t size_chunk = size_block * size_block;
 //--------------------------------------------------------------------------------------------------
 template <typename T>
 struct block_t {
+    T& cell_at(int const x, int const y) noexcept {
+        return data[(y % size_block) * size_block + (x % size_block)];
+    }
+
     T const& cell_at(int const x, int const y) const noexcept {
-        return data[yi * size_block + xi];
+        return const_cast<block_t*>(this)->cell_at(x, y);
     }
 
     template <typename Function>
@@ -40,10 +46,14 @@ struct block_t {
 //--------------------------------------------------------------------------------------------------
 template <typename T>
 struct chunk_t {
-    block_t<T> const& block_at(int const x, int const y) const noexcept {
+    block_t<T>& block_at(int const x, int const y) noexcept {
         auto const yi = y / size_block;
         auto const xi = x / size_block;
         return data[yi * size_block + xi];
+    }
+
+    block_t<T> const& block_at(int const x, int const y) const noexcept {
+        return const_cast<chunk_t*>(this)->block_at(x, y);
     }
 
     template <typename Function>
@@ -66,47 +76,34 @@ void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
     block.for_each_cell(std::forward<Function>(f), x, y);
 }
 
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-struct map_terrain_t {
-    uint16_t base_type = 0; // floor
-    uint16_t variation = 0; // dirty floor
-};
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-struct map_object_t {
-    uint16_t base_type = 0; // door
-    uint16_t variation = 0; // rusty door
-};
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-struct map_cell_t {
-    map_terrain_t ter;
-    map_object_t  obj;
-};
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-struct map_light_t {
-    float light = 0.0f;
-};
 
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
 class map {
 public:
-    void move_by(creature& critter, int dx, int dy);
     void draw(renderer& render);
+
+    void update_render_data(int x, int y);
+    void update_render_data();
+
+    bklib::irect bounds() const noexcept {
+        return {0, 0, size_chunk, size_chunk};
+    }
+
+    terrain_entry& at(int x, int y) {
+        return terrain_entries_.block_at(x, y).cell_at(x, y);
+    }
+
+    terrain_entry const& at(int x, int y) const {
+        return terrain_entries_.block_at(x, y).cell_at(x, y);
+    }
+
+    void fill(bklib::irect r, terrain_type value);
+    void fill(bklib::irect r, terrain_type value, terrain_type border);
 private:
-    chunk_t<map_cell_t>  base_;
-    chunk_t<map_light_t> light_;
+    chunk_t<terrain_entry>       terrain_entries_;
+    chunk_t<terrain_render_data> terrain_render_data_;
 };
 
 

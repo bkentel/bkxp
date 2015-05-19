@@ -115,6 +115,22 @@ constexpr T z(tuple_base_t<Tag, D, T> const& p) noexcept {
     return p.data[2];
 }
 
+template <unsigned D, typename T>
+inline point_t<D, T>& operator+=(point_t<D, T>& p, vector_t<D, T> const v) noexcept {
+    // TODO specialize for performance
+    for (int i = 0; i < D; ++i) {
+        p.data[i] += v.data[i];
+    }
+
+    return p;
+}
+
+template <unsigned D, typename T>
+inline point_t<D, T>& operator+(point_t<D, T> const p, vector_t<D, T> const v) noexcept {
+    auto q = p;
+    return q += v;   
+}
+
 using ipoint2 = point_t<2, int>;
 using ivec2   = vector_t<2, int>;
 using ipoint3 = point_t<3, int>;

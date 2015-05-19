@@ -61,6 +61,21 @@
     <ClInclude Include="src\creature.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\terrain.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\direction.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bklib\hash.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\item.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -79,9 +94,6 @@
       <Filter>bkrl</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\catch.cpp">
-      <Filter>bkrl</Filter>
-    </ClCompile>
     <ClCompile Include="test\bklib\string_test.cpp">
       <Filter>test\bklib</Filter>
     </ClCompile>
@@ -92,6 +104,19 @@
       <Filter>bkrl</Filter>
     </ClCompile>
     <ClCompile Include="src\map.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\catch.cpp" />
+    <ClCompile Include="src\game.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\direction.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\item.cpp">
       <Filter>bkrl</Filter>
     </ClCompile>
   </ItemGroup>

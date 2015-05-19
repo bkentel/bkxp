@@ -13,19 +13,24 @@
   <ItemGroup>
     <ClInclude Include="src\bklib\assert.hpp" />
     <ClInclude Include="src\bklib\exception.hpp" />
+    <ClInclude Include="src\bklib\hash.hpp" />
     <ClInclude Include="src\bklib\math.hpp" />
     <ClInclude Include="src\bklib\string.hpp" />
     <ClInclude Include="src\bklib\utility.hpp" />
     <ClInclude Include="src\bsp_layout.hpp" />
     <ClInclude Include="src\commands.hpp" />
     <ClInclude Include="src\creature.hpp" />
+    <ClInclude Include="src\direction.hpp" />
+    <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\identifier.hpp" />
+    <ClInclude Include="src\item.hpp" />
     <ClInclude Include="src\map.hpp" />
     <ClInclude Include="src\pch.hpp" />
     <ClInclude Include="src\random.hpp" />
     <ClInclude Include="src\renderer.hpp" />
     <ClInclude Include="src\system.hpp" />
     <ClInclude Include="src\system_sdl.hpp" />
+    <ClInclude Include="src\terrain.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bsp_layout.cpp" />
@@ -39,6 +44,9 @@
     </ClCompile>
     <ClCompile Include="src\commands.cpp" />
     <ClCompile Include="src\creature.cpp" />
+    <ClCompile Include="src\direction.cpp" />
+    <ClCompile Include="src\game.cpp" />
+    <ClCompile Include="src\item.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\pch.cpp">
@@ -48,6 +56,7 @@
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\system.cpp" />
     <ClCompile Include="src\system_sdl.cpp" />
+    <ClCompile Include="src\terrain.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
