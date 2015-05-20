@@ -8,6 +8,9 @@ bkrl::game::game()
   : system_()
   , renderer_(system_)
   , command_translator_()
+  , creature_factory_()
+  , current_map_()
+  , player_(creature_factory_.create(random_, creature_def {}, bklib::ipoint2 {0, 0}))
 {
     command_translator_.push_handler([&](command const& cmd) {
         on_command(cmd);
@@ -35,11 +38,15 @@ bkrl::game::game()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::generate_map()
 {
-    current_map_.fill(bklib::irect {5, 5, 15, 20}
-    , terrain_type::floor, terrain_type::wall);
+    auto& m = current_map_;
 
-    current_map_.update_render_data();
+    m.fill(bklib::irect {5, 5, 15, 20}, terrain_type::floor, terrain_type::wall);
 
+    m.update_render_data();
+
+    for (int i = 0; i < 10; ++i) {
+        m.generate_creature(random_, creature_factory_, creature_def {});
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -50,7 +57,19 @@ void bkrl::game::render()
     current_map_.draw(renderer_);
     player_.draw(renderer_);
 
+    
+
     renderer_.present();
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::advance()
+{
+    current_map_.advance(random_);
+}
+
+inline void bkrl::game::display_message(bklib::utf8_string_view const msg) {
+    printf("%s\n", msg.data());
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -88,7 +107,7 @@ void bkrl::game::on_quit()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_open()
 {
-    update();
+    advance();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -114,23 +133,8 @@ void bkrl::game::on_open()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    auto const p = player_.position();
-    auto const bounds = current_map_.bounds();
-
-    auto const q = p + bklib::ivec2 {x(v), y(v)};
-
-    if (x(q) < bounds.left || x(q) >= (bounds.right)
-     || y(q) < bounds.top  || y(q) >= (bounds.bottom)
-    ) {
-        return;
-    }
-
-    auto const& ter = current_map_.at(x(q), y(q));
-    if (ter.type != terrain_type::empty && ter.type != terrain_type::floor) {
-        return;
-    }
-
-    player_.move_by(x(v), y(v));
+    current_map_.move_creature_by(player_, bklib::truncate<2>(v));
+    advance();
 }
 
 //--------------------------------------------------------------------------------------------------

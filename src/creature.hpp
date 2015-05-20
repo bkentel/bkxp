@@ -1,6 +1,8 @@
 #pragma once
 
 #include "identifier.hpp"
+#include "random.hpp"
+
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 #include "bklib/hash.hpp"
@@ -12,6 +14,8 @@ namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class renderer;
+class map;
+
 struct creature_def;
 class creature;
 class creature_factory;
@@ -63,18 +67,19 @@ public:
     creature(creature const&) = delete;
     creature& operator=(creature const&) = delete;
 
-    void draw(renderer& render);
-    void update();
+    void draw(renderer& render) const;
+    void advance(random_state& random, map& m);
 
     bool is_player() const noexcept;
 
     bool move_by(bklib::ivec2 const v);
-
     bool move_by(int dx, int dy);
 
     bklib::ipoint2 position() const noexcept;
+
+    creature_instance_id id() const noexcept;
 private:
-    creature(creature_instance_id id, creature_def const& def);
+    creature(creature_instance_id id, creature_def const& def, bklib::ipoint2 p);
 
     creature_instance_id id_;
     creature_def_id      def_;
@@ -87,7 +92,7 @@ private:
 //--------------------------------------------------------------------------------------------------
 class creature_factory {
 public:
-    creature create(creature_def const& def);
+    creature create(random_state& random, creature_def const& def, bklib::ipoint2 p);
 private:
     creature_instance_id::value_type next_id_;
 };
@@ -97,10 +102,36 @@ private:
 //--------------------------------------------------------------------------------------------------
 class creature_map {
 public:
+    void emplace(creature&& c) {
+        data_.emplace_back(std::move(c));
+    }
+
+    creature*       operator[](creature_instance_id id);
+    creature const* operator[](creature_instance_id id) const;
+
     creature*       at(int x, int y);
     creature const* at(int x, int y) const;
+
+    decltype(auto) begin() { return std::begin(data_); }
+    decltype(auto) end()   { return std::end(data_); }
+
+    decltype(auto) begin() const { return std::begin(data_); }
+    decltype(auto) end()   const { return std::end(data_); }
 private:
     std::vector<creature> data_;
+};
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
+namespace detail { class creature_dictionary_impl; }
+
+class creature_dictionary {
+public:
+    ~creature_dictionary();
+    explicit creature_dictionary(bklib::utf8_string_view filename);
+private:
+    std::unique_ptr<detail::creature_dictionary_impl> impl_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

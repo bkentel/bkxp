@@ -131,6 +131,17 @@ inline point_t<D, T>& operator+(point_t<D, T> const p, vector_t<D, T> const v) n
     return q += v;   
 }
 
+template <unsigned D, typename T>
+inline vector_t<D, T> operator-(point_t<D, T> const p, point_t<D, T> const q) noexcept {
+    vector_t<D, T> result {p.data};
+
+    for (int i = 0; i < D; ++i) {
+        result.data[i] -= q.data[i];
+    }
+
+    return result;
+}
+
 using ipoint2 = point_t<2, int>;
 using ivec2   = vector_t<2, int>;
 using ipoint3 = point_t<3, int>;
@@ -155,6 +166,35 @@ struct rect_t {
 
     T left, top, right, bottom;
 };
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline bool intersects(rect_t<T> const r, point_t<2, T> const p) noexcept {
+    auto const x = bklib::x(p);
+    auto const y = bklib::y(p);
+
+    return r.left <= x && x < r.right
+        && r.top  <= y && y < r.bottom;
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline bool intersects(point_t<2, T> const p, rect_t<T> const r) noexcept {
+    return intersects(r, p);
+}
+
+//--------------------------------------------------------------------------------------------------
+template <unsigned D1, unsigned D0, typename T, typename Tag>
+inline auto truncate(tuple_base_t<Tag, D0, T> const& value) noexcept {
+    static_assert(D1 < D0, "bad dimension");
+    
+    tuple_base_t<Tag, D1, T> result;
+    for (size_t i = 0; i < D1; ++i) {
+        result.data[i] = value.data[i];
+    }
+
+    return result;
+}
 
 using irect = rect_t<int>;
 

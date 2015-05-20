@@ -3,6 +3,9 @@
 #include <bklib/math.hpp>
 
 #include "terrain.hpp"
+#include "creature.hpp"
+#include "identifier.hpp"
+#include "random.hpp"
 
 #include <array>
 #include <cstdint>
@@ -82,7 +85,15 @@ void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
 //--------------------------------------------------------------------------------------------------
 class map {
 public:
-    void draw(renderer& render);
+    void draw(renderer& render) const;
+    void advance(random_state& random);
+
+    bool move_creature_by(creature& c, bklib::ivec2 v);
+    bool move_creature_to(creature& c, bklib::ipoint2 p);
+    bool move_creature_by(creature_instance_id id, bklib::ivec2 v);
+    bool move_creature_to(creature_instance_id id, bklib::ipoint2 p);
+
+    void generate_creature(random_state& random, creature_factory& factory, creature_def const& def);
 
     void update_render_data(int x, int y);
     void update_render_data();
@@ -99,11 +110,16 @@ public:
         return terrain_entries_.block_at(x, y).cell_at(x, y);
     }
 
+    terrain_entry const& at(bklib::ipoint2 const p) const { return at(x(p), y(p)); }
+    terrain_entry&       at(bklib::ipoint2 const p)       { return at(x(p), y(p)); }
+
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
 private:
     chunk_t<terrain_entry>       terrain_entries_;
     chunk_t<terrain_render_data> terrain_render_data_;
+
+    creature_map creatures_;
 };
 
 
