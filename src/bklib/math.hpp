@@ -10,6 +10,60 @@ namespace bklib {
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
+template <typename Result = void, typename T>
+inline auto floor_to(T const n) noexcept {
+    using result_t = std::conditional_t<std::is_same<void, Result>::value, T, Result>;
+    return static_cast<result_t>(std::floor(n));
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <typename Result = void, typename T>
+inline auto ceil_to(T const n) noexcept {
+    using result_t = std::conditional_t<std::is_same<void, Result>::value, T, Result>;
+    return static_cast<result_t>(std::ceil(n));
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <typename Result = void, typename T>
+inline auto trunc_to(T const n) noexcept {
+    using result_t = std::conditional_t<std::is_same<void, Result>::value, T, Result>;
+    return static_cast<result_t>(std::trunc(n));
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <typename Result = void, typename T>
+inline auto round_to(T const n) noexcept {
+    using result_t = std::conditional_t<std::is_same<void, Result>::value, T, Result>;
+    return static_cast<result_t>(std::round(n));
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline constexpr T clamp(T const n, T const lo, T const hi) noexcept {
+    return (n < lo) ? lo : (n > hi) ? hi : n;
+}
+
+template <typename T>
+inline constexpr T clamp_min(T const n, T const lo) noexcept {
+    return (n < lo) ? lo : n;
+}
+
+template <typename T>
+inline constexpr T clamp_max(T const n, T const hi) noexcept {
+    return (n > hi) ? hi : n;
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
 template <typename T = int, typename SetPixel>
 void bresenham_line(T const x0, T const y0, T const x1, T const y1, SetPixel&& set_pixel) {
     static_assert(std::is_signed<T>::value, "");
@@ -49,14 +103,6 @@ struct aspect_ratio {
     T num;
     T den;
 };
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-template <typename T>
-constexpr T clamp(T const lo, T const n, T const hi) noexcept {
-    return (n < lo) ? lo : (n > hi) ? hi : n;
-}
 
 //--------------------------------------------------------------------------------------------------
 //!

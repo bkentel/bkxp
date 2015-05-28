@@ -31,6 +31,7 @@
     <ClInclude Include="src\system.hpp" />
     <ClInclude Include="src\system_sdl.hpp" />
     <ClInclude Include="src\terrain.hpp" />
+    <ClInclude Include="src\view.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bsp_layout.cpp" />
@@ -57,7 +58,9 @@
     <ClCompile Include="src\system.cpp" />
     <ClCompile Include="src\system_sdl.cpp" />
     <ClCompile Include="src\terrain.cpp" />
+    <ClCompile Include="src\view.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
+    <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{658B5DF2-C9CC-4844-85C5-E42ADE59C37B}</ProjectGuid>
