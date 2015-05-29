@@ -63,6 +63,33 @@ bkrl::detail::renderer_impl::renderer_impl(system& sys)
 {
 }
 
+void bkrl::detail::renderer_impl::set_scale(double const sx, double const sy)
+{
+    sx_ = sx;
+    sy_ = sy;
+}
+
+void bkrl::detail::renderer_impl::set_scale(double const scale)
+{
+    set_scale(scale, scale);
+}
+
+void bkrl::detail::renderer_impl::set_translation(double const dx, double const dy)
+{
+    tx_ = dx;
+    ty_ = dy;
+}
+
+bklib::point_t<2, double> bkrl::detail::renderer_impl::get_scale() const
+{
+    return {sx_, sy_};
+}
+
+bklib::point_t<2, double> bkrl::detail::renderer_impl::get_translation() const
+{
+    return {tx_, ty_};
+}
+
 //----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::clear()
 {
@@ -91,8 +118,13 @@ void bkrl::detail::renderer_impl::set_active_texture(renderer::texture const tex
 //----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::render_copy(
     sdl_texture const& texture
-  , SDL_Rect const src, SDL_Rect const dst
+  , SDL_Rect const src, SDL_Rect dst
 ) {
+    dst.x = bklib::floor_to<int>(dst.x * sx_ + tx_);
+    dst.y = bklib::floor_to<int>(dst.y * sy_ + ty_);
+    dst.w = bklib::ceil_to<int>(dst.w * sx_);
+    dst.h = bklib::ceil_to<int>(dst.h * sy_);
+
     if (SDL_RenderCopy(handle(), texture.handle(), &src, &dst)) {
         BOOST_THROW_EXCEPTION(bklib::platform_error {}
           << boost::errinfo_api_function {"SDL_RenderCopy"});
@@ -133,10 +165,36 @@ bkrl::detail::system_impl::system_impl(system* const sys)
   , sdl_    {}
   , window_ {}
 {
-    sys_->on_text_input   = [](bklib::utf8_string_view const&) { };
-    sys_->on_request_quit = []() { return true; };
-    sys_->on_key_up       = [](int) { };
-    sys_->on_key_down     = [](int) { };
+    sys_->on_window_resize = [](int, int) { };
+    sys_->on_text_input    = [](bklib::utf8_string_view const&) { };
+    sys_->on_request_quit  = []() { return true; };
+    sys_->on_key_up        = [](int) { };
+    sys_->on_key_down      = [](int) { };
+    sys_->on_mouse_motion  = [](mouse_state) { };
+    sys_->on_mouse_move    = [](mouse_state) { };
+}
+
+//----------------------------------------------------------------------------------------------
+bklib::ipoint2 bkrl::detail::system_impl::client_size() const
+{
+    int w {0};
+    int h {0};
+    
+    SDL_GetWindowSize(window_.handle(), &w, &h);
+
+    return {w, h};
+}
+
+//----------------------------------------------------------------------------------------------
+int bkrl::detail::system_impl::client_width() const
+{
+    return x(client_size());
+}
+
+//----------------------------------------------------------------------------------------------
+int bkrl::detail::system_impl::client_height() const
+{
+    return y(client_size());
 }
 
 //----------------------------------------------------------------------------------------------
@@ -155,6 +213,12 @@ void bkrl::detail::system_impl::do_events(bool const wait)
             if (sys_->on_request_quit()) {
                 is_running_ = false;
             }
+            break;
+        case SDL_WINDOWEVENT :
+            handle_window_(event.window);
+            break;
+        case SDL_MOUSEMOTION :
+            handle_mouse_motion_(event.motion);
             break;
         case SDL_KEYDOWN :
         case SDL_KEYUP :
@@ -204,6 +268,46 @@ void bkrl::detail::system_impl::handle_keyboard_(SDL_KeyboardEvent const& event)
         sys_->on_key_down(event.keysym.sym);
     } else if (event.state == SDL_RELEASED) {
         sys_->on_key_up(event.keysym.sym);
+    }
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::detail::system_impl::handle_mouse_motion_(SDL_MouseMotionEvent const& event)
+{
+    mouse_state const state {
+        event.x, event.y
+      , event.xrel, event.yrel
+      , event.state
+    };
+
+    sys_->on_mouse_motion(state);
+    //sys_->on_mouse_move(event.x, event.y, state);
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::detail::system_impl::handle_window_(SDL_WindowEvent const& event)
+{
+    switch (event.event) {
+    case SDL_WINDOWEVENT_NONE :
+    case SDL_WINDOWEVENT_SHOWN :
+    case SDL_WINDOWEVENT_HIDDEN :
+    case SDL_WINDOWEVENT_EXPOSED :
+    case SDL_WINDOWEVENT_MOVED :
+        break;
+    case SDL_WINDOWEVENT_RESIZED :
+        sys_->on_window_resize(event.data1, event.data2);
+        break;
+    case SDL_WINDOWEVENT_SIZE_CHANGED :
+    case SDL_WINDOWEVENT_MINIMIZED :
+    case SDL_WINDOWEVENT_MAXIMIZED :
+    case SDL_WINDOWEVENT_RESTORED :
+    case SDL_WINDOWEVENT_ENTER :
+    case SDL_WINDOWEVENT_LEAVE :
+    case SDL_WINDOWEVENT_FOCUS_GAINED :
+    case SDL_WINDOWEVENT_FOCUS_LOST :
+    case SDL_WINDOWEVENT_CLOSE :
+    default:
+        break;
     }
 }
 

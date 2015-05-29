@@ -12,11 +12,37 @@ namespace bkrl {
 namespace detail { class system_impl; }
 namespace detail { class renderer_impl; }
 
+enum class mouse_button : uint32_t {
+    left = 1
+  , middle
+  , right
+  , x1
+  , x2
+};
+
+struct mouse_state {
+    bool is_down(mouse_button const button) const noexcept {
+        auto const shift = static_cast<uint32_t>(button) - 1;
+        return !!(state & (1 << shift));
+    }
+
+    int x;
+    int y;
+    int dx;
+    int dy;
+
+    uint32_t state;
+};
+
 class system {
     friend class detail::renderer_impl;
 public:
     system();
     ~system();
+
+    //----------------------------------------------------------------------------------------------
+    int client_width() const;
+    int client_height() const;
 
     //----------------------------------------------------------------------------------------------
     //!
@@ -44,10 +70,18 @@ public:
         delay(std::chrono::duration_cast<std::chrono::nanoseconds>(dur));
     }
 public:
+    //! Window resize (w, h)
+    std::function<void (int, int)> on_window_resize;
+
     std::function<void (bklib::utf8_string_view)> on_text_input;
     std::function<bool ()>                        on_request_quit;
     std::function<void (int)>                     on_key_up;
     std::function<void (int)>                     on_key_down;
+
+    //! Mouse motion delta (dx, dy)
+    std::function<void (mouse_state)> on_mouse_motion;
+    //! Mouse position update (x, y)
+    std::function<void (mouse_state)> on_mouse_move;
 private:
     std::unique_ptr<detail::system_impl> impl_;
 };

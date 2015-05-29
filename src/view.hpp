@@ -54,6 +54,18 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
+    void scroll_by_world(double const dx, double const dy) noexcept {
+        scroll_x_ += dx * zoom_x_;
+        scroll_y_ += dy * zoom_y_;
+    }
+
+    //----------------------------------------------------------------------------------------------
+    void scroll_by_screen(double const dx, double const dy) noexcept {
+        scroll_x_ += dx;
+        scroll_y_ += dy;
+    }
+
+    //----------------------------------------------------------------------------------------------
     void zoom_in() noexcept {
         zoom_x_ = bklib::clamp_max(zoom_x_ * (1.0 + zoom_delta), zoom_max);
         zoom_y_ = bklib::clamp_max(zoom_y_ * (1.0 + zoom_delta), zoom_max);
@@ -83,15 +95,25 @@ public:
           , bklib::round_to<int>(scroll_y_)
         };
     }
+
+    //----------------------------------------------------------------------------------------------
+    bklib::point_t<2, double> get_zoom() const noexcept {
+        return {zoom_x_, zoom_y_};
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bklib::point_t<2, double> get_scroll() const noexcept {
+        return {scroll_x_, scroll_y_};
+    }
 private:
     int window_w_;
     int window_h_;
     int tile_w_;
     int tile_h_;
-    double zoom_x_   = 1.0;
-    double zoom_y_   = 1.0;
-    double scroll_x_ = 0.0;
-    double scroll_y_ = 0.0;
+    double zoom_x_   = 1.0; //!< scaling factor
+    double zoom_y_   = 1.0; //!< scaling factor
+    double scroll_x_ = 0.0; //!< translation in world space
+    double scroll_y_ = 0.0; //!< translation in world space
 };
 
 } //namespace bkrl

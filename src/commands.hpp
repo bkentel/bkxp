@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <cstdint>
+#include <type_traits>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
@@ -14,6 +15,8 @@ namespace bkrl {
 enum class command_type : int32_t {
     none
   , invalid
+  , scroll
+  , zoom
   , cancel
   , yes
   , no
@@ -49,6 +52,7 @@ struct command {
 
 static_assert(sizeof(command) == 16, "");
 static_assert(alignof(command) >= alignof(double), "");
+static_assert(std::is_pod<command>::value, "");
 
 namespace detail { class command_translator_impl; }
 

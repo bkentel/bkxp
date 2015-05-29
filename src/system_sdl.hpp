@@ -81,6 +81,14 @@ public:
     SDL_Renderer* handle()       noexcept { return handle_.get(); }
     SDL_Renderer* handle() const noexcept { return handle_.get(); }
 
+    void set_scale(double sx, double sy);
+    void set_scale(double scale);
+
+    void set_translation(double dx, double dy);
+
+    bklib::point_t<2, double> get_scale() const;
+    bklib::point_t<2, double> get_translation() const;
+
     void clear();
     void present();
 
@@ -91,14 +99,17 @@ public:
     void render_fill_rect(int x, int y, int w, int h);
 
     void draw_cell(int cell_x, int cell_y, int tile_index);
-
-    
 private:
     using handle_t = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
 
     static handle_t create_(sdl_window const& w);
 
     handle_t handle_;
+
+    double sx_ = 1.0;
+    double sy_ = 1.0;
+    double tx_ = 0.0;
+    double ty_ = 0.0;
 
     sdl_texture tile_texture_; //TODO move in the future
     tilemap     tile_tilemap_;  //TODO move in the future
@@ -110,6 +121,10 @@ class detail::system_impl {
 public:
     explicit system_impl(system* sys);
 
+    bklib::ipoint2 client_size() const;
+    int client_width() const;
+    int client_height() const;
+    
     void quit();
 
     bool is_running() const noexcept {
@@ -121,11 +136,13 @@ public:
     void delay(std::chrono::nanoseconds ns);
 private:
     void handle_keyboard_(SDL_KeyboardEvent const& event);
+    void handle_mouse_motion_(SDL_MouseMotionEvent const& event);
+    void handle_window_(SDL_WindowEvent const& event);
 
-    system*       sys_ = nullptr;
-    sdl_state     sdl_;
-    sdl_window    window_;
-    bool          is_running_ = true;
+    system*    sys_ = nullptr;
+    sdl_state  sdl_;
+    sdl_window window_;
+    bool       is_running_ = true;
 };
 
 } // namespace bkrl

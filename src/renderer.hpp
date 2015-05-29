@@ -75,11 +75,18 @@ public:
     explicit renderer(system& sys);
     ~renderer();
 
+    void set_scale(double sx, double sy);
+    void set_scale(double scale);
+
+    void set_translation(double dx, double dy);
+
+    bklib::point_t<2, double> get_scale() const;
+    bklib::point_t<2, double> get_translation() const;
+
     void clear();
     void present();
 
     void set_active_texture(texture tex);
-    
 
     void draw_filled_rect(rect_t r);
     void draw_cell(int cell_x, int cell_y, int tile_index);

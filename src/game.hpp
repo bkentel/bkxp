@@ -6,6 +6,7 @@
 #include "creature.hpp"
 #include "map.hpp"
 #include "random.hpp"
+#include "view.hpp"
 
 #include "bklib/string.hpp"
 #include "bklib/math.hpp"
@@ -25,6 +26,12 @@ public:
 
     void display_message(bklib::utf8_string_view msg);
 
+    void on_zoom(double zx, double zy);
+    void do_zoom(double zx, double zy);
+
+    void on_scroll(double dx, double dy);
+    void do_scroll(double dx, double dy);
+
     void do_quit();
     void on_quit();
 
@@ -39,6 +46,7 @@ private:
     random_state       random_;
     system             system_;
     renderer           renderer_;
+    view               view_;
     command_translator command_translator_;
     creature_factory   creature_factory_;
     map                current_map_;

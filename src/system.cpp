@@ -9,6 +9,18 @@ bkrl::system::system()
 bkrl::system::~system() = default;
 
 //----------------------------------------------------------------------------------------------
+int bkrl::system::client_width() const
+{
+    return impl_->client_width();
+}
+
+//----------------------------------------------------------------------------------------------
+int bkrl::system::client_height() const
+{
+    return impl_->client_height();
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::system::quit() {
     impl_->quit();
 }

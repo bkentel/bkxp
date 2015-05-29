@@ -26,6 +26,14 @@ public:
         switch (key) {
         default :
             return;
+        case SDLK_KP_PLUS:
+            cmd.type  = command_type::zoom;
+            cmd.data0 = 1;
+            break;
+        case SDLK_KP_MINUS:
+            cmd.type  = command_type::zoom;
+            cmd.data0 = -1;
+            break;
         case SDLK_KP_1:   cmd.type = command_type::dir_s_west; break;
         case SDLK_KP_2:   cmd.type = command_type::dir_south;  break;
         case SDLK_KP_3:   cmd.type = command_type::dir_s_east; break;
