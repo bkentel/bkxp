@@ -6,6 +6,7 @@
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 #include "bklib/hash.hpp"
+#include "bklib/spatial_map.hpp"
 
 #include <vector>
 
@@ -19,7 +20,6 @@ class map;
 struct creature_def;
 class creature;
 class creature_factory;
-class creature_map;
 class creature_dictionary;
 
 //--------------------------------------------------------------------------------------------------
@@ -97,29 +97,24 @@ private:
     creature_instance_id::value_type next_id_;
 };
 
-//--------------------------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------------------------
-class creature_map {
-public:
-    void emplace(creature&& c) {
-        data_.emplace_back(std::move(c));
+namespace detail {
+
+struct compare_creature_key {
+    bool operator()(creature_instance_id const key, creature const& c) const noexcept {
+        return key == c.id();
     }
-
-    creature*       operator[](creature_instance_id id);
-    creature const* operator[](creature_instance_id id) const;
-
-    creature*       at(int x, int y);
-    creature const* at(int x, int y) const;
-
-    decltype(auto) begin() { return std::begin(data_); }
-    decltype(auto) end()   { return std::end(data_); }
-
-    decltype(auto) begin() const { return std::begin(data_); }
-    decltype(auto) end()   const { return std::end(data_); }
-private:
-    std::vector<creature> data_;
 };
+
+struct compare_creature_pos {
+    bool operator()(creature const& c, int const xx, int const yy) const noexcept {
+        auto const p = c.position();
+        return x(p) == xx && y(p) == yy;
+    }
+};
+
+} //namespace detail
+
+using creature_map = bklib::spatial_map<creature, creature_instance_id, detail::compare_creature_key, detail::compare_creature_pos>;
 
 //--------------------------------------------------------------------------------------------------
 //

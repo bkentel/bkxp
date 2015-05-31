@@ -81,24 +81,3 @@ bkrl::creature bkrl::creature_factory::create(
 ) {
     return creature {creature_instance_id {++next_id_}, def, p};
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// bkrl::creature_map
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature* bkrl::creature_map::operator[](creature_instance_id const id)
-{
-    auto const last = end();
-    auto const it = std::find_if(begin(), last, [&](creature const& c) {
-        return c.id() == id;
-    });
-
-    return (it != last) ? std::addressof(*it) : nullptr;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature const* bkrl::creature_map::operator[](creature_instance_id const id) const
-{
-    return (*const_cast<creature_map*>(this))[id];
-}

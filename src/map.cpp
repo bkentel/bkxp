@@ -80,7 +80,23 @@ void bkrl::map::generate_creature(
       , random_range(rnd, 0, 50)
     };
 
-    creatures_.emplace(factory.create(random, def, p));
+    creatures_.insert(factory.create(random, def, p));
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::generate_item(
+    random_state& random
+  , item_factory& factory
+  , item_def const& def
+) {
+    auto& rnd = random[random_stream::item];
+
+    bklib::ipoint2 const p {
+        random_range(rnd, 0, 50)
+      , random_range(rnd, 0, 50)
+    };
+
+    items_.insert(factory.create(random, def, p));
 }
 
 //--------------------------------------------------------------------------------------------------

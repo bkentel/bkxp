@@ -57,6 +57,7 @@ void bkrl::game::generate_map()
 
     for (int i = 0; i < 10; ++i) {
         m.generate_creature(random_, creature_factory_, creature_def {});
+        m.generate_item(random_, item_factory_, item_def {});
     }
 }
 
@@ -83,15 +84,18 @@ void bkrl::game::advance()
     current_map_.advance(random_);
 }
 
-inline void bkrl::game::display_message(bklib::utf8_string_view const msg) {
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::display_message(bklib::utf8_string_view const msg) {
     printf("%s\n", msg.data());
 }
 
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::on_zoom(double const zx, double const zy)
 {
     do_zoom(zy, zy);
 }
 
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::do_zoom(double const zx, double const zy)
 {
     if (zx > 0) {
@@ -107,11 +111,13 @@ void bkrl::game::do_zoom(double const zx, double const zy)
     }
 }
 
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::on_scroll(double const dx, double const dy)
 {
     do_scroll(dx, dy);
 }
 
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::do_scroll(double const dx, double const dy)
 {
     view_.scroll_by_screen(dx, dy);
@@ -178,8 +184,9 @@ void bkrl::game::on_open()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    current_map_.move_creature_by(player_, bklib::truncate<2>(v));
-    advance();
+    if (current_map_.move_creature_by(player_, bklib::truncate<2>(v))) {
+        advance();
+    }
 }
 
 //--------------------------------------------------------------------------------------------------

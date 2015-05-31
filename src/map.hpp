@@ -4,6 +4,7 @@
 
 #include "terrain.hpp"
 #include "creature.hpp"
+#include "item.hpp"
 #include "identifier.hpp"
 #include "random.hpp"
 
@@ -79,7 +80,6 @@ void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
     block.for_each_cell(std::forward<Function>(f), x, y);
 }
 
-
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
@@ -94,6 +94,7 @@ public:
     bool move_creature_to(creature_instance_id id, bklib::ipoint2 p);
 
     void generate_creature(random_state& random, creature_factory& factory, creature_def const& def);
+    void generate_item(random_state& random, item_factory& factory, item_def const& def);
 
     void update_render_data(int x, int y);
     void update_render_data();
@@ -120,6 +121,7 @@ private:
     chunk_t<terrain_render_data> terrain_render_data_;
 
     creature_map creatures_;
+    item_map     items_;
 };
 
 

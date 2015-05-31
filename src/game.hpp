@@ -49,6 +49,7 @@ private:
     view               view_;
     command_translator command_translator_;
     creature_factory   creature_factory_;
+    item_factory       item_factory_;
     map                current_map_;
     creature           player_;
 };

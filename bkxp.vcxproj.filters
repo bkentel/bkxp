@@ -79,6 +79,9 @@
     <ClInclude Include="src\view.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\spatial_map.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -127,6 +130,9 @@
     </ClCompile>
     <ClCompile Include="test\view_test.cpp">
       <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\spatial_map_test.cpp">
+      <Filter>test\bklib</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
