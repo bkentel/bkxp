@@ -22,13 +22,22 @@ class creature;
 class creature_factory;
 class creature_dictionary;
 
+namespace detail { class creature_dictionary_impl; }
+
 //--------------------------------------------------------------------------------------------------
 //! The "template" to create an instance of a creature.
 //--------------------------------------------------------------------------------------------------
 struct creature_def {
     using id_t = creature_def_id;
 
-    bklib::utf8_string id;
+    explicit creature_def(bklib::utf8_string id_string)
+      : id {bklib::djb2_hash(id_string)}
+      , id_string {std::move(id_string)}
+    {
+    }
+
+    creature_def_id    id;
+    bklib::utf8_string id_string;
     bklib::utf8_string name;
     bklib::utf8_string description;
 };
@@ -119,12 +128,12 @@ using creature_map = bklib::spatial_map<creature, creature_instance_id, detail::
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
-namespace detail { class creature_dictionary_impl; }
-
 class creature_dictionary {
 public:
     ~creature_dictionary();
     explicit creature_dictionary(bklib::utf8_string_view filename);
+
+    creature_def const* operator[](creature_def_id id) const;
 private:
     std::unique_ptr<detail::creature_dictionary_impl> impl_;
 };
@@ -133,10 +142,10 @@ private:
 } //namespace bkrl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace std {
-template <> struct hash<bkrl::creature_def> {
-    inline size_t operator()(bkrl::creature_def const& k) const noexcept {
-        return bklib::hash_value(k.id);
-    }
-};
-} //namespace std
+//namespace std {
+//template <> struct hash<bkrl::creature_def> {
+//    inline size_t operator()(bkrl::creature_def const& k) const noexcept {
+//        return bklib::hash_value(k.id);
+//    }
+//};
+//} //namespace std

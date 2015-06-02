@@ -30,7 +30,7 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    bklib::ipoint2 screen_to_world(int const x, int const y) noexcept {
+    bklib::ipoint2 screen_to_world(int const x, int const y) const noexcept {
         return {
             bklib::floor_to<int>((x - scroll_x_) / zoom_x_ / tile_w_)
           , bklib::floor_to<int>((y - scroll_y_) / zoom_y_ / tile_h_)
@@ -38,7 +38,7 @@ public:
     }
     
     //----------------------------------------------------------------------------------------------
-    bklib::irect screen_to_world(bklib::irect const r) noexcept {
+    bklib::irect screen_to_world(bklib::irect const r) const noexcept {
         auto const tl = screen_to_world(r.left,  r.top);
         auto const br = screen_to_world(r.right, r.bottom);
 
@@ -46,7 +46,12 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    bklib::ipoint2 world_to_screen(int const x, int const y) noexcept {
+    bklib::irect screen_to_world() const noexcept {
+        return screen_to_world(bklib::irect {0, 0, window_w_, window_h_});
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bklib::ipoint2 world_to_screen(int const x, int const y) const noexcept {
         return {
             bklib::round_to<int>((x + 0.5) * tile_w_ * zoom_x_ - scroll_x_)
           , bklib::round_to<int>((y + 0.5) * tile_h_ * zoom_y_ - scroll_y_)

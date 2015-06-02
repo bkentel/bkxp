@@ -64,7 +64,7 @@ bkrl::creature::creature(
   , creature_def         const& def
   , bklib::ipoint2       const  p
 ) : id_  {id}
-  , def_ {idof(def)}
+  , def_ {def.id}
   , pos_ {p}
 {
 }
@@ -81,3 +81,34 @@ bkrl::creature bkrl::creature_factory::create(
 ) {
     return creature {creature_instance_id {++next_id_}, def, p};
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// bkrl::creature_dictionary
+////////////////////////////////////////////////////////////////////////////////////////////////////
+class bkrl::detail::creature_dictionary_impl {
+public:
+    creature_def const* operator[](creature_def_id id) const;
+private:
+    std::vector<creature_def> defs_;
+};
+
+bkrl::creature_def const*
+bkrl::detail::creature_dictionary_impl::operator[](creature_def_id const id) const
+{
+    return bklib::find_maybe(defs_, [&](creature_def const& def) {
+        return def.id == id;
+    });
+}
+
+bkrl::creature_dictionary::~creature_dictionary() = default;
+
+bkrl::creature_dictionary::creature_dictionary(bklib::utf8_string_view const)
+{
+}
+
+bkrl::creature_def const*
+bkrl::creature_dictionary::operator[](creature_def_id const id) const
+{
+    return (*impl_)[id];
+}
+

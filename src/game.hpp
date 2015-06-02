@@ -26,6 +26,9 @@ public:
 
     void display_message(bklib::utf8_string_view msg);
 
+    void on_mouse_over(int x, int y);
+    void do_mouse_over(int x, int y);
+
     void on_zoom(double zx, double zy);
     void do_zoom(double zx, double zy);
 
@@ -43,15 +46,19 @@ public:
 
     void on_command(command const& cmd);
 private:
-    random_state       random_;
-    system             system_;
-    renderer           renderer_;
-    view               view_;
-    command_translator command_translator_;
-    creature_factory   creature_factory_;
-    item_factory       item_factory_;
-    map                current_map_;
-    creature           player_;
+    random_state        random_;
+    system              system_;
+    renderer            renderer_;
+    view                view_;
+    command_translator  command_translator_;
+    creature_dictionary creature_dictionary_;
+    item_dictionary     item_dictionary_;
+    creature_factory    creature_factory_;
+    item_factory        item_factory_;
+    map                 current_map_;
+    creature            player_;
+
+    bklib::ipoint2 mouse_last_pos_ {0, 0};
 };
 
 } //namespace bkrl

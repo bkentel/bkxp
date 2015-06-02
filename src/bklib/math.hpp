@@ -172,6 +172,33 @@ inline point_t<D, T>& operator+=(point_t<D, T>& p, vector_t<D, T> const v) noexc
 }
 
 template <unsigned D, typename T>
+inline bool operator==(point_t<D, T> const p, point_t<D, T> const q) noexcept {
+    for (int i = 0; i < D; ++i) {
+        if (p.data[i] != q.data[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <unsigned D, typename T>
+inline bool operator!=(point_t<D, T> const p, point_t<D, T> const q) noexcept {
+    return !(p == q);
+}
+
+template <unsigned D, typename T>
+inline bool operator<(point_t<D, T> const p, point_t<D, T> const q) noexcept {
+    for (int i = 0; i < D; ++i) {
+        if (p.data[i] != q.data[i]) {
+            return p.data[0] < q.data[0];
+        }
+    }
+
+    return false;
+}
+
+template <unsigned D, typename T>
 inline point_t<D, T>& operator+(point_t<D, T> const p, vector_t<D, T> const v) noexcept {
     auto q = p;
     return q += v;   

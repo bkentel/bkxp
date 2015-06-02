@@ -30,3 +30,11 @@ constexpr T value_cast(tagged_value<T, Tag> const& n) noexcept {
 
 } // namespace bklib
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace std {
+template <typename T, typename Tag> struct hash<bklib::tagged_value<T, Tag>> {
+    inline size_t operator()(bklib::tagged_value<T, Tag> const& k) const noexcept {
+        return k.value;
+    }
+};
+} //namespace std

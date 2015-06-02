@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bklib/string.hpp"
 #include <cstddef>
 
 namespace bklib {
@@ -19,6 +20,16 @@ inline void hash_combine(std::size_t& seed, T const& val, Args const&... args) n
 template <typename T>
 inline size_t hash_value(T const& val) noexcept {
     return std::hash<T>()(val);
+}
+
+template <>
+inline size_t hash_value(bklib::utf8_string_view const& s) noexcept {
+    return bklib::djb2_hash(s);
+}
+
+template <>
+inline size_t hash_value(bklib::utf8_string const& s) noexcept {
+    return bklib::djb2_hash(s);
 }
 
 template <typename T, typename... Args>

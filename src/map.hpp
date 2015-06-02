@@ -16,6 +16,7 @@ namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class renderer;
+class view;
 
 constexpr size_t size_block = 16;
 constexpr size_t size_chunk = size_block * size_block;
@@ -56,6 +57,19 @@ struct chunk_t {
         return data[yi * size_block + xi];
     }
 
+    T& cell_at(int const x, int const y) noexcept {
+        auto const yb = y / size_block;
+        auto const yi = y % size_block;
+        auto const xb = x / size_block;
+        auto const xi = x % size_block;
+
+        return data[yb * size_block + xb].data[yi * size_block + xi];
+    }
+
+    T const& cell_at(int const x, int const y) const noexcept {
+        return const_cast<chunk_t*>(this)->cell_at(x, y);
+    }
+
     block_t<T> const& block_at(int const x, int const y) const noexcept {
         return const_cast<chunk_t*>(this)->block_at(x, y);
     }
@@ -85,7 +99,7 @@ void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
 //--------------------------------------------------------------------------------------------------
 class map {
 public:
-    void draw(renderer& render) const;
+    void draw(renderer& render, view const& v) const;
     void advance(random_state& random);
 
     bool move_creature_by(creature& c, bklib::ivec2 v);
@@ -116,6 +130,8 @@ public:
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
+
+    void debug_print(int x, int y) const;
 private:
     chunk_t<terrain_entry>       terrain_entries_;
     chunk_t<terrain_render_data> terrain_render_data_;

@@ -9,9 +9,11 @@ bkrl::game::game()
   , renderer_(system_)
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
+  , creature_dictionary_ {"creatures.def"}
+  , item_dictionary_ {"items.def"}
   , creature_factory_()
   , current_map_()
-  , player_(creature_factory_.create(random_, creature_def {}, bklib::ipoint2 {0, 0}))
+  , player_(creature_factory_.create(random_, creature_def {"player"}, bklib::ipoint2 {0, 0}))
 {
     command_translator_.push_handler([&](command const& cmd) {
         on_command(cmd);
@@ -35,6 +37,8 @@ bkrl::game::game()
     system_.on_mouse_motion = [&](mouse_state const m) {
         if (m.is_down(mouse_button::right)) {
             on_scroll(m.dx, m.dy);
+        } else {
+            on_mouse_over(m.x, m.y);
         }
     };
 
@@ -56,8 +60,8 @@ void bkrl::game::generate_map()
     m.update_render_data();
 
     for (int i = 0; i < 10; ++i) {
-        m.generate_creature(random_, creature_factory_, creature_def {});
-        m.generate_item(random_, item_factory_, item_def {});
+        m.generate_creature(random_, creature_factory_, creature_def {"monster"});
+        m.generate_item(random_, item_factory_, item_def {"item"});
     }
 }
 
@@ -72,7 +76,7 @@ void bkrl::game::render()
     renderer_.set_scale(x(scale), y(scale));
     renderer_.set_translation(x(trans), y(trans));
 
-    current_map_.draw(renderer_);
+    current_map_.draw(renderer_, view_);
     player_.draw(renderer_);   
 
     renderer_.present();
@@ -87,6 +91,22 @@ void bkrl::game::advance()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::display_message(bklib::utf8_string_view const msg) {
     printf("%s\n", msg.data());
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::on_mouse_over(int const x, int const y)
+{
+    do_mouse_over(x, y);
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_mouse_over(int const mx, int const my)
+{
+    auto const p = view_.screen_to_world(mx, my);
+    if (p != mouse_last_pos_) {
+        current_map_.debug_print(x(p), y(p));
+        mouse_last_pos_ = p;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------

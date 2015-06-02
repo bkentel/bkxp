@@ -1,13 +1,26 @@
 #include "map.hpp"
 #include "renderer.hpp"
+#include "view.hpp"
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::draw(renderer& render) const
+void bkrl::map::draw(renderer& render, view const& v) const
 {
+    auto const r = v.screen_to_world();
 
-    for_each_cell(terrain_render_data_, [&](int const x, int const y, terrain_render_data const& cell) {
-        if (cell.index) {
-            render.draw_cell(x, y, cell.index);
+    for (auto y = r.top; y < r.bottom; ++y) {
+        for (auto x = r.left; x < r.right; ++x) {
+            auto const& cell = terrain_render_data_.cell_at(x, y);
+
+            if (cell.index) {
+                render.draw_cell(x, y, cell.index);
+            }
+
+        }
+    }
+
+    items_.for_each_at(r, [&](bklib::ipoint2 const& p, item_pile const& pile) {
+        if (!pile.empty()) {
+            pile.begin()->draw(render, p);
         }
     });
 
@@ -96,7 +109,15 @@ void bkrl::map::generate_item(
       , random_range(rnd, 0, 50)
     };
 
-    items_.insert(factory.create(random, def, p));
+    auto& pile = [&]() -> decltype(auto) {
+        if (auto const existing = items_.at(p)) {
+            return *existing;
+        }
+
+        return items_.insert(p, item_pile {});
+    }();
+
+    pile.insert(factory.create(random, def));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -129,6 +150,27 @@ void bkrl::map::fill(bklib::irect r, terrain_type const value, terrain_type cons
             cell.variant = 0;
         }
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::debug_print(int const x, int const y) const
+{
+    bklib::ipoint2 const p {x, y};
+
+    auto const& cell = at(p);
+    printf("cell (%d, %d)\n", x, y);
+    printf("  type = %d::%d\n", cell.type, cell.variant);
+    
+    if (auto const c = creatures_.at(x, y)) {
+        printf("  creature present\n");
+    }
+
+    if (auto const is = items_.at(p)) {
+        if (!is->empty()) {
+            printf("  item(s) present\n");
+        }
+    }
+
 }
 
 //--------------------------------------------------------------------------------------------------
