@@ -135,4 +135,7 @@
       <Filter>test\bklib</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="bklib.natvis" />
+  </ItemGroup>
 </Project>

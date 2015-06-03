@@ -64,6 +64,9 @@
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="bklib.natvis" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{658B5DF2-C9CC-4844-85C5-E42ADE59C37B}</ProjectGuid>
     <RootNamespace>bkxp</RootNamespace>

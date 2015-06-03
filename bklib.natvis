@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="bklib::tagged_value&lt;*,*&gt;">
+		<DisplayString>{value, x}</DisplayString>
+	</Type>
+
+	<Type Name="bklib::tuple_base_t&lt;*,*,*&gt;">
+		<DisplayString Condition="$T2 == 2">{{x={data._Elems[0]}, y={data._Elems[1]}}}</DisplayString>
+		<DisplayString Condition="$T2 == 3">{{x={data._Elems[0]}, y={data._Elems[1]}, z={data._Elems[1]}}}</DisplayString>
+	</Type>
+
+</AutoVisualizer>

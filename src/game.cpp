@@ -60,8 +60,8 @@ void bkrl::game::generate_map()
     m.update_render_data();
 
     for (int i = 0; i < 10; ++i) {
-        m.generate_creature(random_, creature_factory_, creature_def {"monster"});
-        m.generate_item(random_, item_factory_, item_def {"item"});
+        m.generate_creature(random_, creature_factory_, creature_def {"skeleton"});
+        m.generate_item(random_, item_factory_, item_def {"item0"});
     }
 }
 
@@ -104,7 +104,7 @@ void bkrl::game::do_mouse_over(int const mx, int const my)
 {
     auto const p = view_.screen_to_world(mx, my);
     if (p != mouse_last_pos_) {
-        current_map_.debug_print(x(p), y(p));
+        debug_print(x(p), y(p));
         mouse_last_pos_ = p;
     }
 }
@@ -202,6 +202,26 @@ void bkrl::game::on_open()
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::game::on_get()
+{
+    do_get();
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_get()
+{
+    auto const p = player_.position();
+
+    if (item_pile* const pile = current_map_.items_at(p)) {
+        if (!player_.can_get_items(*pile)) {
+            return;
+        }
+
+        player_.get_items(current_map_.remove_items_at(p));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
     if (current_map_.move_creature_by(player_, bklib::truncate<2>(v))) {
@@ -242,7 +262,41 @@ void bkrl::game::on_command(command const& cmd)
     case command_type::quit:
         on_quit();
         break;
+    case command_type::get:
+        on_get();
+        break;
     default:
         break;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::debug_print(int const mx, int const my) const
+{
+    bklib::ipoint2 const p {mx, my};
+
+    auto const& ter = current_map_.at(p);
+    printf("cell (%d, %d)\n", x(p), y(p));
+    printf("  type = %d::%d\n", ter.type, ter.variant);
+
+    if (auto const& c = current_map_.creature_at(p)) {
+        printf("  creature present\n");
+
+        if (auto const& cdef = creature_dictionary_[c->def()]) {
+            printf("  %s\n", cdef->id_string.c_str());
+        } else {
+            printf("  !!unknown creature!!\n");
+        }
+    }
+
+    if (auto const& ip = current_map_.items_at(p)) {
+        printf("  item(s) present\n");
+        for (auto const& i : *ip) {
+            if (auto const& idef = item_dictionary_[i.def()]) {
+                printf("  %s\n", idef->id_string.c_str());
+            } else {
+                printf("  !!unknown item!!\n");
+            }
+        }
     }
 }

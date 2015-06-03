@@ -56,7 +56,8 @@ public:
     item(item const&) = delete;
     item& operator=(item const&) = delete;
 
-    item_instance_id id() const noexcept { return id_; }
+    item_instance_id id()  const noexcept { return id_; }
+    item_def_id      def() const noexcept { return def_; }
 
     void draw(renderer& render, bklib::ipoint2 p) const;
     void update();
@@ -74,11 +75,14 @@ class item_pile {
 public:
     item_pile(item_pile const&) = delete;
     item_pile& operator=(item_pile const&) = delete;
-
     item_pile(item_pile&&) = default;
     item_pile& operator=(item_pile&&) = default;
 
     item_pile() = default;
+
+    void insert(item_pile&& ip) {
+        ip.move_items_to(*this);
+    }
 
     void insert(item&& itm) {
         items_.push_front(std::move(itm));
@@ -88,9 +92,26 @@ public:
 
     decltype(auto) begin() const { return std::begin(items_); }
     decltype(auto) end()   const { return std::end(items_); }
+
+    void move_items_to(item_pile& dst) {
+        dst.items_.splice_after(dst.items_.before_begin(), items_);
+    }
+
+    void move_item_to(item_pile& dst, int const index) {
+        BK_PRECONDITION(index >= 0);
+        dst.items_.splice_after(dst.items_.before_begin(), items_, std::next(items_.begin(), index));
+    }
 private:
     std::forward_list<item> items_;
 };
+
+inline void move_items(item_pile& src, item_pile& dst) {
+    src.move_items_to(dst);
+}
+
+inline void move_item(item_pile& src, item_pile& dst, int const index) {
+    src.move_item_to(dst, index);
+}
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -116,26 +137,6 @@ public:
 private:
     std::unique_ptr<detail::item_dictionary_impl> impl_;
 };
-
-//--------------------------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------------------------
-//namespace detail {
-//
-//struct compare_item_key {
-//    bool operator()(item_instance_id const key, item const& i) const noexcept {
-//        return key == i.id();
-//    }
-//};
-//
-//struct compare_item_pos {
-//    bool operator()(item const& i, int const xx, int const yy) const noexcept {
-//        auto const p = i.position();
-//        return x(p) == xx && y(p) == yy;
-//    }
-//};
-//
-//} //namespace detail
 
 using item_map = bklib::spatial_map_2d<item_pile>;
 

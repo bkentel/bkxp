@@ -30,7 +30,7 @@ void bkrl::creature::advance(random_state& random, map& m)
 //--------------------------------------------------------------------------------------------------
 bool bkrl::creature::is_player() const noexcept
 {
-    return true;
+    return flags_.test(creature_flag::is_player);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -56,6 +56,36 @@ bklib::ipoint2 bkrl::creature::position() const noexcept
 bkrl::creature_instance_id bkrl::creature::id() const noexcept
 {
     return id_;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature_def_id bkrl::creature::def() const noexcept
+{
+    return def_;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::creature::can_get_items(item_pile const& ip) const
+{
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::creature::can_get_item(item const& i) const
+{
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::creature::get_item(item&& i)
+{
+    items_.insert(std::move(i));
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::creature::get_items(item_pile&& ip)
+{
+    items_.insert(std::move(ip));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -87,11 +117,28 @@ bkrl::creature bkrl::creature_factory::create(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class bkrl::detail::creature_dictionary_impl {
 public:
+    explicit creature_dictionary_impl(bklib::utf8_string_view const filename);
     creature_def const* operator[](creature_def_id id) const;
 private:
     std::vector<creature_def> defs_;
 };
 
+//--------------------------------------------------------------------------------------------------
+bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
+    bklib::utf8_string_view const filename
+)
+{
+    defs_.insert(defs_.begin(), {
+        creature_def {"player"}
+      , creature_def {"skeleton"}
+      , creature_def {"zombie"}
+      , creature_def {"rat"}
+    });
+
+    auto& player = defs_.front();
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature_def const*
 bkrl::detail::creature_dictionary_impl::operator[](creature_def_id const id) const
 {
@@ -100,15 +147,18 @@ bkrl::detail::creature_dictionary_impl::operator[](creature_def_id const id) con
     });
 }
 
+//--------------------------------------------------------------------------------------------------
 bkrl::creature_dictionary::~creature_dictionary() = default;
 
-bkrl::creature_dictionary::creature_dictionary(bklib::utf8_string_view const)
+//--------------------------------------------------------------------------------------------------
+bkrl::creature_dictionary::creature_dictionary(bklib::utf8_string_view const filename)
+  : impl_ {std::make_unique<detail::creature_dictionary_impl>(filename)}
 {
 }
 
+//--------------------------------------------------------------------------------------------------
 bkrl::creature_def const*
 bkrl::creature_dictionary::operator[](creature_def_id const id) const
 {
     return (*impl_)[id];
 }
-

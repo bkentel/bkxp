@@ -41,10 +41,15 @@ public:
     void do_open();
     void on_open();
 
+    void on_get();
+    void do_get();
+
     void do_move(bklib::ivec3 v);
     void on_move(bklib::ivec3 v);
 
     void on_command(command const& cmd);
+
+    void debug_print(int x, int y) const;
 private:
     random_state        random_;
     system              system_;

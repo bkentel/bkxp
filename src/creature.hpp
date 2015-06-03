@@ -2,6 +2,7 @@
 
 #include "identifier.hpp"
 #include "random.hpp"
+#include "item.hpp"
 
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
@@ -9,6 +10,7 @@
 #include "bklib/spatial_map.hpp"
 
 #include <vector>
+#include <bitset>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
@@ -23,6 +25,44 @@ class creature_factory;
 class creature_dictionary;
 
 namespace detail { class creature_dictionary_impl; }
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+enum class creature_flag : unsigned {
+    is_player
+  , is_aggressive
+
+  , enum_size
+};
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+class creature_flags {
+public:
+    creature_flags() = default;
+
+    void set(creature_flag const flag) noexcept {
+        flags_.set(value_of_(flag));
+    }
+
+    bool test(creature_flag const flag) const noexcept{
+        return flags_.test(value_of_(flag));
+    }
+
+    void clear(creature_flag const flag) noexcept {
+        flags_.reset(value_of_(flag));
+    }
+private:
+    static size_t value_of_(creature_flag const flag) noexcept {
+        auto const result = static_cast<size_t>(flag);
+        BK_PRECONDITION(result < static_cast<size_t>(creature_flag::enum_size));
+        return result;
+    }
+
+    std::bitset<static_cast<size_t>(creature_flag::enum_size)> flags_;
+};
 
 //--------------------------------------------------------------------------------------------------
 //! The "template" to create an instance of a creature.
@@ -40,6 +80,7 @@ struct creature_def {
     bklib::utf8_string id_string;
     bklib::utf8_string name;
     bklib::utf8_string description;
+    creature_flags     flags;
 };
 
 template <typename T>
@@ -87,6 +128,13 @@ public:
     bklib::ipoint2 position() const noexcept;
 
     creature_instance_id id() const noexcept;
+    creature_def_id def() const noexcept;
+
+    bool can_get_items(item_pile const& ip) const;
+    bool can_get_item(item const& i) const;
+
+    void get_item(item&& i);
+    void get_items(item_pile&& ip);
 private:
     creature(creature_instance_id id, creature_def const& def, bklib::ipoint2 p);
 
@@ -94,6 +142,8 @@ private:
     creature_def_id      def_;
     bklib::ipoint2       pos_;
     creature_stats       stats_;
+    item_pile            items_;
+    creature_flags       flags_;
 };
 
 //--------------------------------------------------------------------------------------------------

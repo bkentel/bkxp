@@ -113,6 +113,26 @@ public:
     void update_render_data(int x, int y);
     void update_render_data();
 
+    item_pile remove_items_at(bklib::ipoint2 const p) {
+        return items_.remove(p);
+    }
+
+    item_pile* items_at(bklib::ipoint2 const p) {
+        return items_.at(p);
+    }
+
+    item_pile const* items_at(bklib::ipoint2 const p) const {
+        return items_.at(p);
+    }
+
+    creature const* creature_at(bklib::ipoint2 const p) const {
+        return creatures_.at(p);
+    }
+
+    creature* creature_at(bklib::ipoint2 const p) {
+        return creatures_.at(p);
+    }
+
     bklib::irect bounds() const noexcept {
         return {0, 0, size_chunk, size_chunk};
     }
@@ -130,8 +150,6 @@ public:
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
-
-    void debug_print(int x, int y) const;
 private:
     chunk_t<terrain_entry>       terrain_entries_;
     chunk_t<terrain_render_data> terrain_render_data_;

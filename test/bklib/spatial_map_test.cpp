@@ -66,6 +66,32 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
             REQUIRE(y(p) == index_to_point_y(i));
         }
     }
+
+    SECTION("relocate invalid") {
+        auto const& data = *map.at(index_to_point(0));
+        REQUIRE(!map.relocate(point_t {-1, -1}, point_t {0, 0}, data));
+    }
+
+    SECTION("relocate valid") {
+        auto& data = *map.at(index_to_point(0));
+        point_t const to {0, 0};
+
+        REQUIRE(map.relocate(data.pos, to, data));
+        data.pos = to;
+
+        REQUIRE(map.at(to)->id.value == 0);
+        REQUIRE(!map.at(index_to_point(0)));
+    }
+
+    SECTION("remove") {
+        auto const i = iterations / 2;
+        auto const p = index_to_point(i);
+        auto const result = map.remove(p);
+
+        REQUIRE(result.id.value == i);
+        REQUIRE(result.pos == p);
+        REQUIRE(!map.at(p));
+    }
 }
 
 #endif // BK_NO_UNIT_TESTS

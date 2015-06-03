@@ -43,6 +43,7 @@ public:
         case SDLK_KP_7:   cmd.type = command_type::dir_n_west; break;
         case SDLK_KP_8:   cmd.type = command_type::dir_north;  break;
         case SDLK_KP_9:   cmd.type = command_type::dir_n_east; break;
+        case SDLK_g:      cmd.type = command_type::get;        break;
         case SDLK_o:      cmd.type = command_type::open;       break;
         case SDLK_n:      cmd.type = command_type::no;         break;
         case SDLK_y:      cmd.type = command_type::yes;        break;
