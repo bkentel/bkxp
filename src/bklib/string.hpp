@@ -103,3 +103,11 @@ inline bool operator!=(string_id<Tag> const& lhs, string_id<Tag> const& rhs) noe
 
 } //namespace bklib
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace std {
+template <> struct hash<bklib::utf8_string_view> {
+    inline size_t operator()(bklib::utf8_string_view const& k) const noexcept {
+        return bklib::djb2_hash(k);
+    }
+};
+} //namespace std
