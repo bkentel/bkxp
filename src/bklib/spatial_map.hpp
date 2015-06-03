@@ -44,11 +44,14 @@ public:
         return data_.back();
     }
 
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
     bool relocate(point_t const from, point_t to, T const& data) {
         auto const last = end(sorted_);
         auto const it = std::find_if(begin(sorted_), last, [&](auto const& pair) {
-            return (std::addressof(pair.second) == std::addressof(data))
-                && (pair.first == from);
+            return (pair.first == from)
+                && (std::addressof(data_[pair.second]) == std::addressof(data));
         });
 
         bool const found = (it != last);
@@ -60,20 +63,21 @@ public:
         return found;
     }
 
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
     void remove(point_t p) {
     }
 
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
     void remove(point_t p, T const& data) {
     }
 
-    //int count(point_t const& p) const {
-    //    auto const n = std::count_if(begin(sorted_), end(sorted_), [&](auto const& pair) {
-    //        return pair.first == p;
-    //    });
-
-    //    return static_cast<int>(n);
-    //}
-
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
     T* at(point_t const& p) {
         auto const i = find_maybe(sorted_, [&](auto const& pair) {
             return pair.first == p;
@@ -82,10 +86,33 @@ public:
         return i ? std::addressof(data_[i->second]) : nullptr;
     }
 
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
     T const* at(point_t const& p) const {
         return const_cast<spatial_map_2d*>(this)->at(p);
     }
 
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
+    template <typename F>
+    void for_each_data(F&& func) const {
+        for (auto const& d : data_) {
+            func(d);
+        }
+    }
+
+    template <typename F>
+    void for_each_data(F&& func) {
+        for (auto& d : data_) {
+            func(d);
+        }
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
     template <typename F>
     void for_each_at(rect_t const& r, F&& func) const {
         using bklib::intersects;
@@ -95,6 +122,19 @@ public:
                 func(pair.first, data_[pair.second]);
             }
         }
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    //!
+    //--------------------------------------------------------------------------------------------------
+    template <typename Predicate>
+    T const* find(Predicate&& pred) const {
+        return find_maybe(data_, std::forward<Predicate>(pred));
+    }
+
+    template <typename Predicate>
+    T* find(Predicate&& pred) {
+        return find_maybe(data_, std::forward<Predicate>(pred));
     }
 private:
     void sort_() {
@@ -107,40 +147,40 @@ private:
     std::vector<std::pair<point_t, int>> sorted_;
 };
 
-template <typename T, typename Key, typename KeyCompare, typename PosCompare>
-class spatial_map {
-public:
-    void insert(T&& data) {
-        data_.emplace_back(std::move(data));
-    }
-
-    T* operator[](Key const& id) {
-        return find_maybe(data_, [&](T const& data) {
-            return KeyCompare {}(id, data);
-        });
-    }
-
-    T const* operator[](Key const& id) const {
-        return (*const_cast<spatial_map*>(this))[id];
-    }
-
-    T* at(int const x, int const y) {
-        return find_maybe(data_, [&](T const& data) {
-            return PosCompare {}(data, x, y);
-        });
-    }
-
-    T const* at(int const x, int const y) const {
-        return const_cast<spatial_map*>(this)->at(x, y);
-    }
-
-    decltype(auto) begin() { return std::begin(data_); }
-    decltype(auto) end()   { return std::end(data_); }
-
-    decltype(auto) begin() const { return std::begin(data_); }
-    decltype(auto) end()   const { return std::end(data_); }
-private:
-    std::vector<T> data_;
-};
+//template <typename T, typename Key, typename KeyCompare, typename PosCompare>
+//class spatial_map {
+//public:
+//    void insert(T&& data) {
+//        data_.emplace_back(std::move(data));
+//    }
+//
+//    T* operator[](Key const& id) {
+//        return find_maybe(data_, [&](T const& data) {
+//            return KeyCompare {}(id, data);
+//        });
+//    }
+//
+//    T const* operator[](Key const& id) const {
+//        return (*const_cast<spatial_map*>(this))[id];
+//    }
+//
+//    T* at(int const x, int const y) {
+//        return find_maybe(data_, [&](T const& data) {
+//            return PosCompare {}(data, x, y);
+//        });
+//    }
+//
+//    T const* at(int const x, int const y) const {
+//        return const_cast<spatial_map*>(this)->at(x, y);
+//    }
+//
+//    decltype(auto) begin() { return std::begin(data_); }
+//    decltype(auto) end()   { return std::end(data_); }
+//
+//    decltype(auto) begin() const { return std::begin(data_); }
+//    decltype(auto) end()   const { return std::end(data_); }
+//private:
+//    std::vector<T> data_;
+//};
 
 } //namespace bklib

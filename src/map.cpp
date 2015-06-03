@@ -2,6 +2,16 @@
 #include "renderer.hpp"
 #include "view.hpp"
 
+namespace {
+
+inline decltype(auto) find_creature_by_id(bkrl::creature_instance_id const id) {
+    return [id](bkrl::creature const& c) {
+        return c.id() == id;
+    };
+}
+
+} // namespace
+
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::draw(renderer& render, view const& v) const
 {
@@ -24,17 +34,17 @@ void bkrl::map::draw(renderer& render, view const& v) const
         }
     });
 
-    for (auto const& c : creatures_) {
+    creatures_.for_each_at(r, [&](bklib::ipoint2 const& p, creature const& c) {
         c.draw(render);
-    }
+    });
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::advance(random_state& random)
 {
-    for (auto& c : creatures_) {
+    creatures_.for_each_data([&](creature& c) {
         c.advance(random, *this);
-    }
+    });
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -43,21 +53,29 @@ bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
     BK_ASSERT(std::abs(x(v)) <= 1);
     BK_ASSERT(std::abs(y(v)) <= 1);
 
-    auto const p = c.position() + v;
-    if (!intersects(bounds(), p)) {
+    auto const p = c.position();
+    auto const q = c.position() + v;
+    if (!intersects(bounds(), q)) {
         return false;
     }
 
-    auto const& ter = at(p);
+    auto const& ter = at(q);
     if (ter.type != terrain_type::empty && ter.type != terrain_type::floor) {
         return false;
     }
 
-    if (creatures_.at(x(p), y(p))) {
+    if (creatures_.at(q)) {
         return false;
     }
 
-    return c.move_by(v);
+    if (!c.move_by(v)) {
+        return false;
+    }
+
+    // TODO update this to take the player into consideration
+    creatures_.relocate(p, q, c);
+
+    return true;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -71,8 +89,8 @@ bool bkrl::map::move_creature_by(
     creature_instance_id const id
   , bklib::ivec2         const v
 ) {
-    auto const c = creatures_[id];
-    return c ? move_creature_by(*c, v) : false;
+    auto const ptr = creatures_.find(find_creature_by_id(id));
+    return ptr ? move_creature_by(*ptr, v) : false;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -80,8 +98,8 @@ bool bkrl::map::move_creature_to(
     creature_instance_id const id
   , bklib::ipoint2       const p
 ) {
-    auto const c = creatures_[id];
-    return c ? move_creature_to(*c, p) : false;
+    auto const ptr = creatures_.find(find_creature_by_id(id));
+    return ptr ? move_creature_to(*ptr, p) : false;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -97,7 +115,7 @@ void bkrl::map::generate_creature(
       , random_range(rnd, 0, 50)
     };
 
-    creatures_.insert(factory.create(random, def, p));
+    creatures_.insert(p, factory.create(random, def, p));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -165,7 +183,7 @@ void bkrl::map::debug_print(int const x, int const y) const
     printf("cell (%d, %d)\n", x, y);
     printf("  type = %d::%d\n", cell.type, cell.variant);
     
-    if (auto const c = creatures_.at(x, y)) {
+    if (auto const c = creatures_.at(p)) {
         printf("  creature present\n");
     }
 

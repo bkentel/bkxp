@@ -106,24 +106,7 @@ private:
     creature_instance_id::value_type next_id_;
 };
 
-namespace detail {
-
-struct compare_creature_key {
-    bool operator()(creature_instance_id const key, creature const& c) const noexcept {
-        return key == c.id();
-    }
-};
-
-struct compare_creature_pos {
-    bool operator()(creature const& c, int const xx, int const yy) const noexcept {
-        auto const p = c.position();
-        return x(p) == xx && y(p) == yy;
-    }
-};
-
-} //namespace detail
-
-using creature_map = bklib::spatial_map<creature, creature_instance_id, detail::compare_creature_key, detail::compare_creature_pos>;
+using creature_map = bklib::spatial_map_2d<creature>;
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -141,11 +124,3 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//namespace std {
-//template <> struct hash<bkrl::creature_def> {
-//    inline size_t operator()(bkrl::creature_def const& k) const noexcept {
-//        return bklib::hash_value(k.id);
-//    }
-//};
-//} //namespace std
