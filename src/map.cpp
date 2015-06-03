@@ -175,27 +175,6 @@ void bkrl::map::fill(bklib::irect r, terrain_type const value, terrain_type cons
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::debug_print(int const x, int const y) const
-{
-    bklib::ipoint2 const p {x, y};
-
-    auto const& cell = at(p);
-    printf("cell (%d, %d)\n", x, y);
-    printf("  type = %d::%d\n", cell.type, cell.variant);
-    
-    if (auto const c = creatures_.at(p)) {
-        printf("  creature present\n");
-    }
-
-    if (auto const is = items_.at(p)) {
-        if (!is->empty()) {
-            printf("  item(s) present\n");
-        }
-    }
-
-}
-
-//--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data(int const x, int const y)
 {
     auto& index = terrain_render_data_.block_at(x, y).cell_at(x, y).index;
