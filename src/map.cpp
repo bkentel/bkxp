@@ -53,6 +53,10 @@ bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
         return false;
     }
 
+    if (creatures_.at(x(p), y(p))) {
+        return false;
+    }
+
     return c.move_by(v);
 }
 
