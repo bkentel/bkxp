@@ -14,6 +14,7 @@
     <ClInclude Include="src\bklib\assert.hpp" />
     <ClInclude Include="src\bklib\exception.hpp" />
     <ClInclude Include="src\bklib\hash.hpp" />
+    <ClInclude Include="src\bklib\json.hpp" />
     <ClInclude Include="src\bklib\math.hpp" />
     <ClInclude Include="src\bklib\spatial_map.hpp" />
     <ClInclude Include="src\bklib\string.hpp" />

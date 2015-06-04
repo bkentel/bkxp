@@ -2,92 +2,14 @@
 #include "renderer.hpp"
 #include "map.hpp"
 
-#include <rapidjson/reader.h>
+#include "bklib/json.hpp"
 
 #include <unordered_map>
 #include <fstream>
+#include <functional>
 
-
-struct parser_base {
-    using size_type = rapidjson::SizeType;
-
-    bool Null() {
-        return handler->on_null();
-    }
-    
-    bool Bool(bool const b) {
-        return handler->on_bool(b);
-    }
-    
-    bool Int(int const i) {
-        return handler->on_int(i);
-    }
-    
-    bool Uint(unsigned const u) {
-        return handler->on_uint(u);
-    }
-    
-    bool Int64(int64_t const i) {
-        return handler->on_int64(i);
-    }
-
-    bool Uint64(uint64_t const u) {
-        return handler->on_uint64(u);
-    }
-
-    bool Double(double const d) {
-        return handler->on_double(d);
-    }
-
-    bool String(const char* const str, size_type const len, bool const copy) {
-        return handler->on_string(str, len, copy);
-    }
-
-    bool StartObject() {
-        return handler->on_start_object();
-    }
-
-    bool Key(const char* const str, size_type const len, bool const copy) {
-        return handler->on_key(str, len, copy);
-    }
-
-    bool EndObject(size_type const size) {
-        return handler->on_end_object(size);
-    }
-
-    bool StartArray() {
-        return handler->on_start_array();
-    }
-
-    bool EndArray(size_type const size) {
-        return handler->on_end_array(size);
-    }
-
-    virtual bool on_null()                               { return false; }
-    virtual bool on_bool(bool)                           { return false; }
-    virtual bool on_int(int)                             { return false; }
-    virtual bool on_uint(unsigned)                       { return false; }
-    virtual bool on_int64(int64_t)                       { return false; }
-    virtual bool on_uint64(uint64_t)                     { return false; }
-    virtual bool on_double(double)                       { return false; }
-    virtual bool on_string(const char*, size_type, bool) { return false; }
-    virtual bool on_start_object()                       { return false; }
-    virtual bool on_key(const char*, size_type, bool)    { return false; }
-    virtual bool on_end_object(size_type)                { return false; }
-    virtual bool on_start_array()                        { return false; }
-    virtual bool on_end_array(size_type)                 { return false; }
-
-    explicit parser_base(parser_base* const parent = nullptr)
-      : parent {parent}
-    {
-    }
-
-    parser_base* handler = this;
-    parser_base* parent  = nullptr;
-};
-
-struct creature_def_parser : parser_base {
-    using parser_base::parser_base;
+struct creature_def_parser : bklib::json_parser_base {
+    using json_parser_base::json_parser_base;
 
     enum class state_type {
         begin, id, name, description, end
@@ -150,9 +72,9 @@ struct creature_def_parser : parser_base {
     bklib::utf8_string description;
 };
 
-struct creature_defs_parser : parser_base {
+struct creature_defs_parser : bklib::json_parser_base {
     enum class state_type {
-        begin, file_type, definitions, definitions_parse
+        begin, file_type, definitions, definitions_parse, end
     };
 
     bool on_string(const char* const str, size_type const len, bool const copy) override {
@@ -212,6 +134,7 @@ struct creature_defs_parser : parser_base {
     
     bool on_end_array(size_type const size) override {
         if (state == state_type::definitions_parse) {
+            state = state_type::end;
             handler = this;
             return true;
         }
@@ -220,87 +143,26 @@ struct creature_defs_parser : parser_base {
     }
 
     bool on_end_object(size_type const size) override {
-        if (state == state_type::definitions_parse) {
+        if (state == state_type::end) {
             return true;
+        } else if (state != state_type::definitions_parse) {
+            return false;
         }
 
-        return false;
+        bkrl::creature_def def {std::move(def_parser.id)};
+        def.name        = std::move(def_parser.name);
+        def.description = std::move(def_parser.description);
+
+        on_finish(std::move(def));
+
+        return true;
     }
+
+    std::function<void (bkrl::creature_def&&)> on_finish;
 
     state_type state = state_type::begin;
     creature_def_parser def_parser {this};
 };
-
-//struct creature_def_parser {
-//    using size_type = rapidjson::SizeType;
-//
-//    enum class state_type {
-//        begin
-//      , file_type
-//      , definitions
-//      , def_id
-//      , def_name
-//      , def_desc
-//    };
-//
-//    bool Null() { return false; }
-//    bool Bool(bool const b) { return false; }
-//    bool Int(int const i) { return false; }
-//    bool Uint(unsigned const u) { return false; }
-//    bool Int64(int64_t i) { return false; }
-//    bool Uint64(uint64_t u) { return false; }
-//    bool Double(double d) { return false; }
-//
-//    bool String(const char* const str, size_type const length, bool const copy) {
-//        bklib::utf8_string_view const value {str, length};
-//
-//        switch (state) {
-//        case state_type::file_type:
-//            if (value == "creatures") {
-//                state = state_type::definitions;
-//                return true;
-//            }
-//            break;
-//        }
-//
-//        return false;
-//    }
-//    
-//    bool StartObject() {
-//        switch (state) {
-//        case state_type::begin:
-//            state = state_type::file_type;
-//            return true;
-//        }
-//
-//        return false;
-//    }
-//    
-//    bool Key(const char* const str, size_type const length, bool const copy) {
-//        bklib::utf8_string_view const key {str, length};
-//        
-//        switch (state) {
-//        case state_type::file_type:
-//            if (key == "file_type") {
-//                return true;
-//            }
-//            break;
-//        case state_type::definitions:
-//            if (key == "definitions") {
-//                return true;
-//            }
-//        }
-//
-//        return false;
-//    }
-//    
-//    bool EndObject(size_type memberCount) { return true; }
-//    
-//    bool StartArray() { return true; }
-//    bool EndArray(size_type elementCount) { return true; }
-//
-//    state_type state = state_type::begin;
-//};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::creature
@@ -449,20 +311,14 @@ bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
 )
 {
     auto const buffer = read_file_to_buffer("./data/creatures.def");
-
-    creature_defs_parser handler;
-
     rapidjson::Reader reader;
+    creature_defs_parser handler;
+    
+    handler.on_finish = [&](creature_def&& cdef) {
+        defs_.push_back(std::move(cdef));
+    };
+
     reader.Parse(rapidjson::StringStream(buffer.data()), handler);   
-
-    defs_.insert(defs_.begin(), {
-        creature_def {"player"}
-      , creature_def {"skeleton"}
-      , creature_def {"zombie"}
-      , creature_def {"rat"}
-    });
-
-    auto& player = defs_.front();
 }
 
 //--------------------------------------------------------------------------------------------------

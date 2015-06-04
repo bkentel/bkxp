@@ -82,6 +82,9 @@
     <ClInclude Include="src\bklib\spatial_map.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\json.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

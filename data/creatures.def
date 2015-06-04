@@ -1,6 +1,10 @@
 { "file_type": "creatures"
 , "definitions": [
-    { "id": "skeleton"
+    { "id": "adventurer"
+    , "name": "adventurer"
+    , "description": "A seeker of fame and fortune."
+    }
+  , { "id": "skeleton"
     , "name": "skeleton"
     , "description": "A magically animated pile of bones."
     }
