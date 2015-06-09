@@ -57,3 +57,8 @@ void bkrl::renderer::draw_cell(int const cell_x, int const cell_y, int const til
 {
     impl_->draw_cell(cell_x, cell_y, tile_index);
 }
+
+void bkrl::renderer::draw_rect(rect_t const src, rect_t const dst)
+{
+    impl_->draw_rect(src, dst);
+}

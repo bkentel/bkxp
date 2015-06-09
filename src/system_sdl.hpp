@@ -74,6 +74,8 @@ private:
 //----------------------------------------------------------------------------------------------
 class detail::renderer_impl {
 public:
+    using rect_t = renderer::rect_t;
+
     explicit renderer_impl(system& sys);
 
     ~renderer_impl() = default;
@@ -99,6 +101,7 @@ public:
     void render_fill_rect(int x, int y, int w, int h);
 
     void draw_cell(int cell_x, int cell_y, int tile_index);
+    void draw_rect(rect_t src, rect_t dst);
 private:
     using handle_t = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
 

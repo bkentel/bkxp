@@ -90,6 +90,8 @@ public:
 
     void draw_filled_rect(rect_t r);
     void draw_cell(int cell_x, int cell_y, int tile_index);
+
+    void draw_rect(rect_t src, rect_t dst);
 private:
     std::unique_ptr<detail::renderer_impl> impl_;
 };

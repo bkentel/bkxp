@@ -85,6 +85,9 @@
     <ClInclude Include="src\bklib\json.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\text.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -136,6 +139,12 @@
     </ClCompile>
     <ClCompile Include="test\bklib\spatial_map_test.cpp">
       <Filter>test\bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\text.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\text_test.cpp">
+      <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

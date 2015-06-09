@@ -143,6 +143,7 @@ void bkrl::detail::renderer_impl::render_fill_rect(
     }
 }
 
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::draw_cell(
     int const cell_x, int const cell_y, int const tile_index
 ) {
@@ -154,6 +155,18 @@ void bkrl::detail::renderer_impl::draw_cell(
     SDL_Rect const dst {cell_x * w, cell_y * h, r.width(), r.height()};
 
     render_copy(tile_texture_, src, dst);
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::detail::renderer_impl::draw_rect(rect_t const src, rect_t const dst)
+{
+    static_assert(sizeof(rect_t) == sizeof(SDL_Rect), "");
+    static_assert(alignof(rect_t) == alignof(SDL_Rect), "");
+
+    render_copy(tile_texture_
+        , reinterpret_cast<SDL_Rect const&>(src)
+        , reinterpret_cast<SDL_Rect const&>(dst)
+    );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -33,6 +33,7 @@
     <ClInclude Include="src\system.hpp" />
     <ClInclude Include="src\system_sdl.hpp" />
     <ClInclude Include="src\terrain.hpp" />
+    <ClInclude Include="src\text.hpp" />
     <ClInclude Include="src\view.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -60,9 +61,11 @@
     <ClCompile Include="src\system.cpp" />
     <ClCompile Include="src\system_sdl.cpp" />
     <ClCompile Include="src\terrain.cpp" />
+    <ClCompile Include="src\text.cpp" />
     <ClCompile Include="src\view.cpp" />
     <ClCompile Include="test\bklib\spatial_map_test.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
+    <ClCompile Include="test\text_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>
   <ItemGroup>
