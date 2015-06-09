@@ -52,6 +52,7 @@ public:
     void clear(clear_type type = clear_type::no_shrink);
 
     void set_text(text_renderer& render, bklib::utf8_string_view text);
+    void set_position(int x, int y);
 
     void draw(renderer& render) const;
     void draw(renderer& render, int x, int y) const;

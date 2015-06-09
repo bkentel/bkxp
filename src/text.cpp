@@ -105,20 +105,20 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
         auto const w = glyph_info.width();
         auto const h = glyph_info.height();
         
-        x += w;
-
         // Wrap the line
-        if (x > max_x) {           
+        if (x + w > max_x) {           
+            size_type const next_y = y + line_h;
+
             // No vertical space left
-            if (y + line_h > max_y) {
+            if (next_y > max_y) {
                 break;
             }
 
-            actual_w_ = std::max(actual_w_, size_type {x - w});
-            actual_h_ = std::max(actual_h_, size_type {y + line_h});
+            actual_w_ = std::max(actual_w_, x);
+            actual_h_ = std::max(actual_h_, next_y);
 
             x = 0;
-            y += line_h;
+            y = next_y;
         }
         
         data_.push_back(render_info {
@@ -126,7 +126,16 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
           , x, y
           , 0xFFFFFFFF
         });
+
+        x += w;
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::text_layout::set_position(int const x, int const y)
+{
+    x_ = static_cast<size_type>(x);
+    y_ = static_cast<size_type>(y);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -146,6 +155,9 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
 
     renderer::rect_t src {};
     renderer::rect_t dst {};
+
+    dst.h = 18;
+    dst.w = 18;
 
     for (auto const& glyph : data_) {
         src.x = glyph.src_x;

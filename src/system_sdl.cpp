@@ -291,6 +291,7 @@ void bkrl::detail::system_impl::handle_mouse_motion_(SDL_MouseMotionEvent const&
         event.x, event.y
       , event.xrel, event.yrel
       , event.state
+      , event.timestamp
     };
 
     sys_->on_mouse_motion(state);

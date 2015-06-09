@@ -35,12 +35,16 @@ public:
             cmd.data0 = -1;
             break;
         case SDLK_KP_1:   cmd.type = command_type::dir_s_west; break;
+        case SDLK_DOWN:
         case SDLK_KP_2:   cmd.type = command_type::dir_south;  break;
         case SDLK_KP_3:   cmd.type = command_type::dir_s_east; break;
+        case SDLK_LEFT:
         case SDLK_KP_4:   cmd.type = command_type::dir_west;   break;
         case SDLK_KP_5:   cmd.type = command_type::dir_here;   break;
+        case SDLK_RIGHT:
         case SDLK_KP_6:   cmd.type = command_type::dir_east;   break;
         case SDLK_KP_7:   cmd.type = command_type::dir_n_west; break;
+        case SDLK_UP:
         case SDLK_KP_8:   cmd.type = command_type::dir_north;  break;
         case SDLK_KP_9:   cmd.type = command_type::dir_n_east; break;
         case SDLK_g:      cmd.type = command_type::get;        break;

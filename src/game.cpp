@@ -14,6 +14,8 @@ bkrl::game::game()
   , creature_factory_()
   , current_map_()
   , player_(creature_factory_.create(random_, creature_def {"player"}, bklib::ipoint2 {0, 0}))
+
+  , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
 {
     command_translator_.push_handler([&](command const& cmd) {
         on_command(cmd);
@@ -56,6 +58,8 @@ void bkrl::game::generate_map()
     auto& m = current_map_;
 
     m.fill(bklib::irect {5, 5, 15, 20}, terrain_type::floor, terrain_type::wall);
+    m.at(5, 10).type = terrain_type::door;
+    m.update_render_data(5, 10);
 
     m.update_render_data();
 
@@ -78,6 +82,8 @@ void bkrl::game::render()
 
     current_map_.draw(renderer_, view_);
     player_.draw(renderer_);   
+
+    test_layout_.draw(renderer_);
 
     renderer_.present();
 }
@@ -102,6 +108,8 @@ void bkrl::game::on_mouse_over(int const x, int const y)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_mouse_over(int const mx, int const my)
 {
+    test_layout_.set_position(mx, my);
+
     auto const p = view_.screen_to_world(mx, my);
     if (p != mouse_last_pos_) {
         debug_print(x(p), y(p));

@@ -186,6 +186,7 @@ void bkrl::map::update_render_data(int const x, int const y)
     case terrain_type::stair : index = '>'; break;
     case terrain_type::floor : index = '.'; break;
     case terrain_type::wall  : index = '#'; break;
+    case terrain_type::door  : index = '+'; break;
     }
 }
 

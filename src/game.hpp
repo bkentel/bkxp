@@ -2,6 +2,7 @@
 
 #include "system.hpp"
 #include "renderer.hpp"
+#include "text.hpp"
 #include "commands.hpp"
 #include "creature.hpp"
 #include "map.hpp"
@@ -54,6 +55,7 @@ private:
     random_state        random_;
     system              system_;
     renderer            renderer_;
+    text_renderer       text_renderer_;
     view                view_;
     command_translator  command_translator_;
     creature_dictionary creature_dictionary_;
@@ -64,6 +66,8 @@ private:
     creature            player_;
 
     bklib::ipoint2 mouse_last_pos_ {0, 0};
+
+    text_layout test_layout_;
 };
 
 } //namespace bkrl

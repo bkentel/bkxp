@@ -32,6 +32,7 @@ struct mouse_state {
     int dy;
 
     uint32_t state;
+    uint32_t timestamp;
 };
 
 class system {
@@ -69,6 +70,8 @@ public:
     void delay(std::chrono::duration<Rep, Period> dur) {
         delay(std::chrono::duration_cast<std::chrono::nanoseconds>(dur));
     }
+
+    mouse_state const& mouse_history(int i) const;
 public:
     //! Window resize (w, h)
     std::function<void (int, int)> on_window_resize;
