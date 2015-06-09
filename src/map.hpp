@@ -9,6 +9,7 @@
 #include "random.hpp"
 
 #include <array>
+#include <bitset>
 #include <cstdint>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,6 +151,43 @@ public:
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
+
+    struct find_around_result {
+        int count;
+        int x;
+        int y;
+        std::bitset<9> valid;
+    };
+    
+    template <typename Predicate>
+    find_around_result find_around(bklib::ipoint2 const& p, Predicate&& pred) const {
+        constexpr int const dx[] = {-1,  0,  1, -1,  0,  1, -1,  0,  1};
+        constexpr int const dy[] = {-1, -1, -1,  0,  0,  0,  1,  1,  1};
+        
+        find_around_result result {};
+
+        auto const x0 = x(p);
+        auto const y0 = y(p);
+
+        for (int i = 0; i < 9; ++i) {
+            auto const x1 = x0 + dx[i];
+            auto const y1 = y0 + dy[i];
+
+            if (x1 < 0 || x1 > size_chunk
+             || y1 < 0 || y1 > size_chunk
+             || !pred(at(x1, y1))
+            ) {
+                continue;
+            }
+
+            ++result.count;
+            result.x = x1;
+            result.y = y1;
+            result.valid.set(i);
+        }
+
+        return result;
+    }
 private:
     chunk_t<terrain_entry>       terrain_entries_;
     chunk_t<terrain_render_data> terrain_render_data_;

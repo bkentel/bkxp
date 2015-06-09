@@ -39,7 +39,7 @@ public:
     void do_quit();
     void on_quit();
 
-    void do_open();
+    void do_open(bklib::ipoint2 p);
     void on_open();
 
     void on_get();

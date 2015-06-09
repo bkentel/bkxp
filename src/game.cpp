@@ -184,14 +184,29 @@ void bkrl::game::on_quit()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_open()
+void bkrl::game::do_open(bklib::ipoint2 const p)
 {
+    current_map_.at(p).type = terrain_type::floor;
+    current_map_.update_render_data(x(p), y(p));
+
     advance();
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_open()
 {
+    auto const candidates = current_map_.find_around(player_.position(), [](terrain_entry const& ter) {
+        return ter.type == terrain_type::door;
+    });
+
+    if (!candidates.count) {
+        display_message("There is nothing here to open.");
+        return;
+    } else if (candidates.count == 1) {
+        do_open(bklib::ipoint2 {candidates.x, candidates.y});
+        return;
+    }
+
     display_message("Open in which direction?");
 
     query_dir(command_translator_, [this](command_type const cmd) {
