@@ -18,6 +18,7 @@
       <PrecompiledHeaderFile>pch.hpp</PrecompiledHeaderFile>
       <ForcedIncludeFiles>pch.hpp</ForcedIncludeFiles>
       <AdditionalIncludeDirectories>$(ProjectDir)src</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4373;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />
