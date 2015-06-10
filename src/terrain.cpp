@@ -7,7 +7,7 @@ class bkrl::detail::terrain_dictionary_impl {
 public:
     explicit terrain_dictionary_impl(bklib::utf8_string_view const filename)
     {
-        values_[terrain_entry {terrain_type::empty, 0}] =
+        values_[terrain_entry {0, terrain_flags::none, terrain_type::empty, 0}] =
             terrain_def {"empty", "empty space", " "};
     }
 

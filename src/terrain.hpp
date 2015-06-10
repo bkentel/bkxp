@@ -8,7 +8,7 @@
 namespace bkrl {
 
 //--------------------------------------------------------------------------------------------------
-//
+//! Basic terrain type.
 //--------------------------------------------------------------------------------------------------
 enum class terrain_type : int16_t {
     empty
@@ -20,7 +20,7 @@ enum class terrain_type : int16_t {
 };
 
 //--------------------------------------------------------------------------------------------------
-//
+//! Detailed definition for a given terrain type.
 //--------------------------------------------------------------------------------------------------
 struct terrain_def {
     bklib::utf8_string name;
@@ -28,13 +28,33 @@ struct terrain_def {
     bklib::utf8_string symbol;
 };
 
+enum class terrain_flags : uint32_t {
+    none
+};
+
+struct terrain_data_base { };
+
 //--------------------------------------------------------------------------------------------------
-//
+//!
 //--------------------------------------------------------------------------------------------------
 struct terrain_entry {
-    terrain_type type;
-    uint16_t     variant;
+    //!< Terrain specific data. e.g. the data needed to track the state of a door.
+    uint64_t data;
+    
+    //!<
+    terrain_flags flags;   //!< Current flags
+    terrain_type  type;
+    uint16_t      variant; //!< Terrain specific variant
+
+    template <typename T
+        , std::enable_if_t<std::is_base_of<terrain_data_base, T>::value>* = nullptr>
+    terrain_entry& operator=(T const& other) {
+        data = other.to_data();
+        return *this;
+    }
 };
+
+static_assert(std::is_pod<terrain_entry>::value, "");
 
 inline bool operator==(terrain_entry const lhs, terrain_entry const rhs) noexcept {
     return (lhs.type == rhs.type) && (lhs.variant == rhs.variant);
@@ -64,6 +84,48 @@ public:
 private:
     std::unique_ptr<detail::terrain_dictionary_impl> impl_;
 };
+
+struct door : terrain_data_base {
+    explicit door(terrain_entry const& entry)
+      : data {entry.data}
+    {
+        //BK_PRECONDITION(entry.type == terrain_type::door);
+    }
+
+    bool open() noexcept {
+        if (data != 1) {
+            data = 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool is_open() const noexcept {
+        return data == 1;
+    }
+
+    bool close() noexcept {
+        if (data != 0) {
+            data = 0;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool is_closed() const noexcept {
+        return !is_open();
+    }
+
+    uint64_t to_data() const noexcept {
+        return data;
+    }
+
+    uint64_t data;
+};
+
+
 
 } //namespace bkrl
 

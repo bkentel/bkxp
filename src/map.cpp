@@ -60,7 +60,17 @@ bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
     }
 
     auto const& ter = at(q);
-    if (ter.type != terrain_type::empty && ter.type != terrain_type::floor) {
+    
+    switch (ter.type) {
+    case terrain_type::empty:
+    case terrain_type::floor:
+        break;
+    case terrain_type::door:
+        if (!door {ter}.is_open()) {
+            return false;
+        }
+        break;
+    default:
         return false;
     }
 

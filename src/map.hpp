@@ -52,6 +52,10 @@ struct block_t {
 //--------------------------------------------------------------------------------------------------
 template <typename T>
 struct chunk_t {
+    chunk_t() {
+        data.resize(size_block * size_block);
+    }
+
     block_t<T>& block_at(int const x, int const y) noexcept {
         auto const yi = y / size_block;
         auto const xi = x / size_block;
@@ -84,7 +88,7 @@ struct chunk_t {
         }
     }
 
-    std::array<block_t<T>, size_block * size_block> data;
+    std::vector<block_t<T>> data;
 };
 
 //--------------------------------------------------------------------------------------------------
