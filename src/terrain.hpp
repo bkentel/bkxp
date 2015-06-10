@@ -93,6 +93,7 @@ struct door : terrain_data_base {
         closed, open
     };
 
+    door() noexcept;
     explicit door(terrain_entry const& entry) noexcept;
 
     bool set_open_close(state s) noexcept;

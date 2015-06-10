@@ -68,6 +68,7 @@
     <ClCompile Include="test\bklib\math_test.cpp" />
     <ClCompile Include="test\bklib\spatial_map_test.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
+    <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\text_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>

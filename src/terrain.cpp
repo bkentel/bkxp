@@ -45,6 +45,13 @@ bkrl::terrain_def const* bkrl::terrain_dictionary::find(terrain_entry const entr
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
+bkrl::door::door() noexcept
+{
+    uint64_t const value = 0;
+    bklib::pseudo_cast(value, data);
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::door::door(terrain_entry const& entry) noexcept
 {
     bklib::pseudo_cast(entry.data, data);
