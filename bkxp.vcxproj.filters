@@ -152,6 +152,9 @@
     <ClCompile Include="test\bklib\flag_set_test.cpp">
       <Filter>test\bklib</Filter>
     </ClCompile>
+    <ClCompile Include="test\bklib\math_test.cpp">
+      <Filter>test\bklib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bklib.natvis" />

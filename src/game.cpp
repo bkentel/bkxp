@@ -111,7 +111,7 @@ void bkrl::game::do_mouse_over(int const mx, int const my)
     test_layout_.set_position(mx, my);
 
     auto const p = view_.screen_to_world(mx, my);
-    if (p != mouse_last_pos_) {
+    if (p != mouse_last_pos_ && intersects(p, current_map_.bounds())) {
         debug_print(x(p), y(p));
         mouse_last_pos_ = p;
     }

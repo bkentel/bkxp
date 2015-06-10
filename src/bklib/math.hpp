@@ -242,6 +242,26 @@ struct rect_t {
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>
+constexpr inline bool operator==(rect_t<T> const lhs, rect_t<T> const rhs) noexcept {
+    return (lhs.left   == rhs.left)
+        && (lhs.top    == rhs.top)
+        && (lhs.right  == rhs.right)
+        && (lhs.bottom == rhs.bottom);
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline rect_t<T> intersection(rect_t<T> const a, rect_t<T> const b) noexcept {
+    return {
+        std::max(a.left,   b.left)
+      , std::max(a.top,    b.top)
+      , std::min(a.right,  b.right)
+      , std::min(a.bottom, b.bottom)
+    };
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
 inline bool intersects(rect_t<T> const r, point_t<2, T> const p) noexcept {
     auto const x = bklib::x(p);
     auto const y = bklib::y(p);

@@ -15,7 +15,10 @@ inline decltype(auto) find_creature_by_id(bkrl::creature_instance_id const id) {
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::draw(renderer& render, view const& v) const
 {
-    auto const r = v.screen_to_world();
+    auto const r = intersection(bounds(), v.screen_to_world());
+    if (!r) {
+        return;
+    }
 
     for (auto y = r.top; y < r.bottom; ++y) {
         for (auto x = r.left; x < r.right; ++x) {
