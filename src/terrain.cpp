@@ -1,5 +1,6 @@
 #include "terrain.hpp"
 
+#include "bklib/utility.hpp"
 #include <unordered_map>
 
 //--------------------------------------------------------------------------------------------------
@@ -37,4 +38,63 @@ bkrl::terrain_dictionary::terrain_dictionary(bklib::utf8_string_view const filen
 bkrl::terrain_def const* bkrl::terrain_dictionary::find(terrain_entry const entry) const
 {
     return impl_->find(entry);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// bkrl::door
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------
+bkrl::door::door(terrain_entry const& entry) noexcept
+{
+    bklib::pseudo_cast(entry.data, data);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::door::set_open_close(state const s) noexcept
+{
+    return (s == state::open)
+      ? open()
+      : close();
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::door::open() noexcept
+{
+    if (!is_open()) {
+        data.flags = 1;
+        return true;
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::door::close() noexcept
+{
+    if (!is_closed()) {
+        data.flags = 0;
+        return true;
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::door::is_open() const noexcept
+{
+    return data.flags == 1;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::door::is_closed() const noexcept
+{
+    return !is_open();
+}
+
+//--------------------------------------------------------------------------------------------------
+uint64_t bkrl::door::to_data() const noexcept
+{
+    uint64_t result;
+    return bklib::pseudo_cast(data, result);
 }

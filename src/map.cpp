@@ -187,19 +187,30 @@ void bkrl::map::fill(bklib::irect r, terrain_type const value, terrain_type cons
     }
 }
 
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::update_render_data(bklib::ipoint2 const p)
+{
+    update_render_data(x(p), y(p));
+}
+
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data(int const x, int const y)
 {
     auto& index = terrain_render_data_.block_at(x, y).cell_at(x, y).index;
 
-    switch (terrain_entries_.block_at(x, y).cell_at(x, y).type) {
+    auto const& ter = terrain_entries_.block_at(x, y).cell_at(x, y);
+
+    switch (ter.type) {
     default :
     case terrain_type::empty : index = 0;   break;
     case terrain_type::rock  : index = '*'; break;
     case terrain_type::stair : index = '>'; break;
     case terrain_type::floor : index = '.'; break;
     case terrain_type::wall  : index = '#'; break;
-    case terrain_type::door  : index = '+'; break;
+    case terrain_type::door:
+        index = (door {ter}.is_open()) ? '\\' : '+';
+        break;
     }
 }
 

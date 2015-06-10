@@ -39,8 +39,8 @@ public:
     void do_quit();
     void on_quit();
 
-    void do_open(bklib::ipoint2 p);
-    void on_open();
+    void on_open_close(command_type type);
+    void do_open_close(bklib::ipoint2 p, command_type type);
 
     void on_get();
     void do_get();

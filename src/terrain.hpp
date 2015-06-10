@@ -85,47 +85,30 @@ private:
     std::unique_ptr<detail::terrain_dictionary_impl> impl_;
 };
 
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
 struct door : terrain_data_base {
-    explicit door(terrain_entry const& entry)
-      : data {entry.data}
-    {
-        //BK_PRECONDITION(entry.type == terrain_type::door);
-    }
+    enum class state {
+        closed, open
+    };
 
-    bool open() noexcept {
-        if (data != 1) {
-            data = 1;
-            return true;
-        }
+    explicit door(terrain_entry const& entry) noexcept;
 
-        return false;
-    }
+    bool set_open_close(state s) noexcept;
+    bool open() noexcept;
+    bool close() noexcept;
 
-    bool is_open() const noexcept {
-        return data == 1;
-    }
+    bool is_open() const noexcept;
+    bool is_closed() const noexcept;
 
-    bool close() noexcept {
-        if (data != 0) {
-            data = 0;
-            return true;
-        }
+    uint64_t to_data() const noexcept;
 
-        return false;
-    }
-
-    bool is_closed() const noexcept {
-        return !is_open();
-    }
-
-    uint64_t to_data() const noexcept {
-        return data;
-    }
-
-    uint64_t data;
+    struct data_t {
+        uint8_t flags;
+        uint8_t unused[7];       
+    } data;
 };
-
-
 
 } //namespace bkrl
 

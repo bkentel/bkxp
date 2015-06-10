@@ -39,6 +39,20 @@ enum class command_type : int32_t {
   , get
 };
 
+constexpr inline bool is_direction(command_type const cmd) noexcept {
+  return (cmd == command_type::dir_here)
+      || (cmd == command_type::dir_north)
+      || (cmd == command_type::dir_south)
+      || (cmd == command_type::dir_east)
+      || (cmd == command_type::dir_west)
+      || (cmd == command_type::dir_n_west)
+      || (cmd == command_type::dir_n_east)
+      || (cmd == command_type::dir_s_west)
+      || (cmd == command_type::dir_s_east)
+      || (cmd == command_type::dir_up)
+      || (cmd == command_type::dir_down);
+}
+
 //----------------------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------------------

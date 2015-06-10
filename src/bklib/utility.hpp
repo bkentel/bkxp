@@ -1,8 +1,35 @@
 #pragma once
 
+#include <type_traits>
+#include <cstring>
+
 namespace bklib {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//--------------------------------------------------------------------------------------------------
+//! Used for strict-aliasing-safe type punning.
+//! @pre sizeof(from) and sizeof(to) must match.
+//! @pre from and to must be trivially copyable.
+//--------------------------------------------------------------------------------------------------
+template <typename From, typename To>
+inline decltype(auto) pseudo_cast(From const& from, To&& to) noexcept {
+    using from_base_t = std::remove_reference_t<From>;
+    using to_base_t   = std::remove_reference_t<To>;
+
+    constexpr size_t const size_from = sizeof(from_base_t);
+    constexpr size_t const size_to   = sizeof(to_base_t);
+
+    static_assert(std::is_trivially_copyable<from_base_t>::value, "invalid from type");
+    static_assert(std::is_trivially_copyable<to_base_t>::value, "invalid to type");
+    static_assert(size_from == size_to, "size mismatch");
+
+    std::memcpy(std::addressof(to), std::addressof(from), size_from);
+    return std::forward<To>(to);
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
 template <typename T, typename Tag>
 struct tagged_value {
     using value_type = T;

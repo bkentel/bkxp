@@ -115,6 +115,7 @@ public:
     void generate_creature(random_state& random, creature_factory& factory, creature_def const& def);
     void generate_item(random_state& random, item_factory& factory, item_def const& def);
 
+    void update_render_data(bklib::ipoint2 p);
     void update_render_data(int x, int y);
     void update_render_data();
 

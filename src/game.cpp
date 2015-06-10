@@ -58,8 +58,11 @@ void bkrl::game::generate_map()
     auto& m = current_map_;
 
     m.fill(bklib::irect {5, 5, 15, 20}, terrain_type::floor, terrain_type::wall);
+
     m.at(5, 10).type = terrain_type::door;
+    m.at(5, 12).type = terrain_type::door;
     m.update_render_data(5, 10);
+    m.update_render_data(5, 12);
 
     m.update_render_data();
 
@@ -184,51 +187,135 @@ void bkrl::game::on_quit()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_open(bklib::ipoint2 const p)
-{
-    auto& ter_door = current_map_.at(p);
+namespace bkrl {
 
-    door d {ter_door};
-    if (!d.open()) {
-        display_message("Couldn't open the door.");
-    } else {
-        ter_door = d;
-        current_map_.update_render_data(x(p), y(p));
+//--------------------------------------------------------------------------------------------------
+//! Update the state of a door at p.
+//! TODO add tests
+//--------------------------------------------------------------------------------------------------
+bool set_door_state(map& m, bklib::ipoint2 const p, door::state const state) {
+    auto& ter = m.at(p);
+    door d {ter};
+
+    if (!d.set_open_close(state)) {
+        return false;
+    }
+
+    ter = d;
+    m.update_render_data(p);
+
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+//! Return a predicate which tests for doors matching state
+//! TODO add tests
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_door(door::state const state) noexcept {
+    return [state](terrain_entry const& ter) noexcept {
+        if (ter.type != terrain_type::door) {
+            return false;
+        }
+
+        door const d {ter};
+
+        switch (state) {
+        case door::state::open :   return d.is_open();
+        case door::state::closed : return d.is_closed();
+        }
+
+        return false;
+    };
+}
+
+} //namespace bkrl
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_open_close(bklib::ipoint2 const p, command_type const type)
+{
+    BK_PRECONDITION(type == command_type::open || type == command_type::close);
+
+    auto const state = (type == command_type::open)
+        ? door::state::open : door::state::closed;
+
+    if (!set_door_state(current_map_, p, state)) {
+        if (state == door::state::open) {
+            display_message("Couldn't open the door.");
+        } else if (state == door::state::closed) {
+            display_message("Couldn't close the door.");
+        }
     }
 
     advance();
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::on_open()
+void bkrl::game::on_open_close(command_type const type)
 {
-    auto const candidates = current_map_.find_around(player_.position(), [](terrain_entry const& ter) {
-        if (ter.type != terrain_type::door) {
-            return false;
-        }
+    BK_PRECONDITION(type == command_type::open || type == command_type::close);
 
-        return door {ter}.is_closed();
-    });
+    auto const p = player_.position();
+    auto const state = (type == command_type::open)
+        ? door::state::closed : door::state::open;
 
+    auto const candidates = current_map_.find_around(p, find_door(state));   
+
+    //
+    // Nothing to do.
+    //
     if (!candidates.count) {
-        display_message("There is nothing here to open.");
+        if (type == command_type::open) {
+            display_message("There is nothing here to open.");
+        } else if (type == command_type::close) {
+            display_message("There is nothing here to close.");
+        }
+        
         return;
-    } else if (candidates.count == 1) {
-        do_open(bklib::ipoint2 {candidates.x, candidates.y});
+    }
+    
+    //
+    // Ok.
+    //
+    if (candidates.count == 1) {
+        do_open_close(bklib::ipoint2 {candidates.x, candidates.y}, type);
         return;
     }
 
-    display_message("Open in which direction?");
+    //
+    // Have to choose a target.
+    //
+    if (type == command_type::open) {
+        display_message("Open in which direction?");
+    } else if (type == command_type::close) {
+        display_message("Close in which direction?");
+    }
 
-    query_dir(command_translator_, [this](command_type const cmd) {
+    query_dir(command_translator_, [this, p, type](command_type const cmd) {
         switch (cmd) {
         case command_type::cancel:
             display_message("Nevermind.");
             return query_result::done;
         case command_type::invalid:
             display_message("Invalid choice.");
-        default:
             break;
+        default:
+            if (!is_direction(cmd)) {
+                break;
+            }
+
+            auto const q = p + bklib::truncate<2>(direction_vector(cmd));
+            if (current_map_.at(q).type != terrain_type::door) {
+                if (type == command_type::open) {
+                    display_message("There is nothing there to open.");
+                } else if (type == command_type::close) {
+                    display_message("There is nothing there to close.");
+                }
+
+                break;
+            }
+
+            do_open_close(q, type);
+            return query_result::done;
         }
 
         return query_result::more;
@@ -291,7 +378,8 @@ void bkrl::game::on_command(command const& cmd)
         on_move(direction_vector(cmd.type));
         break;
     case command_type::open:
-        on_open();
+    case command_type::close:
+        on_open_close(cmd.type);
         break;
     case command_type::quit:
         on_quit();
