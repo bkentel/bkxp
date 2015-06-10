@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="src\bklib\assert.hpp" />
     <ClInclude Include="src\bklib\exception.hpp" />
+    <ClInclude Include="src\bklib\flag_set.hpp" />
     <ClInclude Include="src\bklib\hash.hpp" />
     <ClInclude Include="src\bklib\json.hpp" />
     <ClInclude Include="src\bklib\math.hpp" />
@@ -63,6 +64,7 @@
     <ClCompile Include="src\terrain.cpp" />
     <ClCompile Include="src\text.cpp" />
     <ClCompile Include="src\view.cpp" />
+    <ClCompile Include="test\bklib\flag_set_test.cpp" />
     <ClCompile Include="test\bklib\spatial_map_test.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\text_test.cpp" />
