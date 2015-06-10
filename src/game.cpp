@@ -22,7 +22,7 @@ bkrl::game::game()
     });
 
     system_.on_window_resize = [&](int const w, int const h) {
-        printf("resize %d %d\n", w, h);
+        view_.set_window_size(w, h);
     };
 
     system_.on_text_input = [&](bklib::utf8_string_view s) {
