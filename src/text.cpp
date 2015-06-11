@@ -91,8 +91,8 @@ void bkrl::text_layout::clear(clear_type const type)
 void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view const text)
 {    
     auto const line_h = render.line_spacing();
-    auto const max_x  = w_;
-    auto const max_y  = h_;
+    auto const max_x  = (w_ == unlimited) ? std::numeric_limits<size_type>::max() : w_;
+    auto const max_y  = (h_ == unlimited) ? std::numeric_limits<size_type>::max() : h_;
 
     size_type x = 0;
     size_type y = 0;
@@ -129,6 +129,9 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
 
         x += w;
     }
+
+    actual_w_ = std::max(actual_w_, x);
+    actual_h_ = std::max(actual_h_, line_h);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -173,4 +176,10 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
 
     render.set_scale(x(scale));
     render.set_translation(x(trans), y(trans));
+}
+
+//--------------------------------------------------------------------------------------------------
+bklib::irect bkrl::text_layout::extent() const noexcept
+{
+    return {x_, y_, x_ + actual_w_, y_ + actual_h_};
 }

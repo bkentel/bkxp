@@ -3,6 +3,7 @@
 #include "system.hpp"
 #include "renderer.hpp"
 #include "text.hpp"
+#include "message_log.hpp"
 #include "commands.hpp"
 #include "creature.hpp"
 #include "map.hpp"
@@ -68,6 +69,7 @@ private:
     bklib::ipoint2 mouse_last_pos_ {0, 0};
 
     text_layout test_layout_;
+    message_log message_log_;
 };
 
 } //namespace bkrl

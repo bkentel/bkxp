@@ -16,6 +16,7 @@ bkrl::game::game()
   , player_(creature_factory_.create(random_, creature_def {"player"}, bklib::ipoint2 {0, 0}))
 
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
+  , message_log_ {text_renderer_}
 {
     command_translator_.push_handler([&](command const& cmd) {
         on_command(cmd);
@@ -87,6 +88,7 @@ void bkrl::game::render()
     player_.draw(renderer_);   
 
     test_layout_.draw(renderer_);
+    message_log_.draw(renderer_);
 
     renderer_.present();
 }
@@ -100,6 +102,7 @@ void bkrl::game::advance()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::display_message(bklib::utf8_string_view const msg) {
     printf("%s\n", msg.data());
+    message_log_.println(msg);
 }
 
 //--------------------------------------------------------------------------------------------------
