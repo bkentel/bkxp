@@ -94,6 +94,12 @@
     <ClInclude Include="src\message_log.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\algorithm.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bklib\timer.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -163,6 +169,15 @@
     </ClCompile>
     <ClCompile Include="src\message_log.cpp">
       <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\algorithm_test.cpp">
+      <Filter>test\bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\bklib\timer.cpp">
+      <Filter>bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\timer_test.cpp">
+      <Filter>test\bklib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
