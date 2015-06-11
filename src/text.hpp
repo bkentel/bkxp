@@ -56,6 +56,8 @@ public:
 
     void draw(renderer& render) const;
     void draw(renderer& render, int x, int y) const;
+
+    bklib::irect extent() const noexcept;
 private:
     struct render_info {
         size_type src_x;

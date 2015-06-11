@@ -91,6 +91,9 @@
     <ClInclude Include="src\bklib\flag_set.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\message_log.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -157,6 +160,9 @@
     </ClCompile>
     <ClCompile Include="test\door_test.cpp">
       <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\message_log.cpp">
+      <Filter>bkrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

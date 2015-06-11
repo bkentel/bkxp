@@ -28,6 +28,7 @@
     <ClInclude Include="src\identifier.hpp" />
     <ClInclude Include="src\item.hpp" />
     <ClInclude Include="src\map.hpp" />
+    <ClInclude Include="src\message_log.hpp" />
     <ClInclude Include="src\pch.hpp" />
     <ClInclude Include="src\random.hpp" />
     <ClInclude Include="src\renderer.hpp" />
@@ -54,6 +55,7 @@
     <ClCompile Include="src\item.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\map.cpp" />
+    <ClCompile Include="src\message_log.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
