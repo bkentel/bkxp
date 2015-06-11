@@ -2,29 +2,13 @@
 
 #include "bklib/math.hpp"
 #include "bklib/assert.hpp"
+#include "bklib/algorithm.hpp"
 
 #include <vector>
 #include <iterator>
 #include <algorithm>
 
 namespace bklib {
-
-//--------------------------------------------------------------------------------------------------
-//! @return a pointer to the first item matching the predicate @p p in the container @p c.
-//! Otherwise, return nullptr.
-//--------------------------------------------------------------------------------------------------
-template <typename Container, typename Predicate>
-inline decltype(auto) find_maybe(Container&& c, Predicate&& p) {
-    static_assert(!std::is_rvalue_reference<Container&&>::value, "bad reference type");
-
-    using std::begin;
-    using std::end;
-
-    auto const last = end(c);
-    auto const it = std::find_if(begin(c), last, p);
-
-    return (it != last) ? std::addressof(*it) : nullptr;
-}
 
 //--------------------------------------------------------------------------------------------------
 //! 2D spatial index
