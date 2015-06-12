@@ -22,6 +22,12 @@ public:
     void draw(renderer& render);
 
     void set_bounds(bklib::irect bounds);
+
+    enum class show_type {
+        none, less, more, all
+    };
+
+    void show(show_type type, int n = 1);
 private:
     std::unique_ptr<detail::message_log_impl> impl_;
 };

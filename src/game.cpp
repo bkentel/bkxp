@@ -5,13 +5,17 @@
 
 //--------------------------------------------------------------------------------------------------
 bkrl::game::game()
-  : system_()
+  : timer_()
+  , random_()
+  , system_()
   , renderer_(system_)
+  , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
   , creature_dictionary_ {"creatures.def"}
   , item_dictionary_ {"items.def"}
   , creature_factory_()
+  , item_factory_()
   , current_map_()
   , player_(creature_factory_.create(random_, creature_def {"player"}, bklib::ipoint2 {0, 0}))
 
@@ -45,10 +49,18 @@ bkrl::game::game()
         }
     };
 
+    ////
+
+    using namespace std::chrono_literals;
+    timer_message_log_ = timer_.add(5s, [&](auto& timer_record) {
+        message_log_.show(message_log::show_type::less);
+    });
+
     generate_map();
 
     while (system_.is_running()) {
         system_.do_events_wait();
+        timer_.update();
         render();
     }
 }
@@ -102,6 +114,8 @@ void bkrl::game::advance()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::display_message(bklib::utf8_string_view const msg) {
     printf("%s\n", msg.data());
+    
+    timer_.reset(timer_message_log_);
     message_log_.println(msg);
 }
 

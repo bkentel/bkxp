@@ -26,8 +26,15 @@ public:
     void update();
     bool remove(id_t id);
 
-    template <typename T, typename Callback>
-    id_t add(T const duration, Callback&& callback, bool const repeat = true) {
+    bool reset(id_t id);
+
+    template <typename Duration>
+    bool reset(id_t const id, Duration const duration) {
+        return reset_(id, std::chrono::duration_cast<duration_t>(duration));
+    }
+
+    template <typename Duration, typename Callback>
+    id_t add(Duration const duration, Callback&& callback, bool const repeat = true) {
         return add_(record_t {
             id_t {++next_id_}
           , std::chrono::duration_cast<duration_t>(duration)
@@ -41,6 +48,8 @@ private:
 
     id_t add_(record_t&& rec);
     id_t add_(time_point_t now, record_t&& rec);
+
+    bool reset_(id_t id, duration_t duration, bool use_new_duration = true);
 
     int                next_id_ = 0;
     std::deque<pair_t> records_;
