@@ -12,6 +12,7 @@
 
 #include "bklib/string.hpp"
 #include "bklib/math.hpp"
+#include "bklib/timer.hpp"
 
 namespace bkrl {
 //--------------------------------------------------------------------------------------------------
@@ -53,6 +54,7 @@ public:
 
     void debug_print(int x, int y) const;
 private:
+    bklib::timer        timer_;
     random_state        random_;
     system              system_;
     renderer            renderer_;
@@ -70,6 +72,8 @@ private:
 
     text_layout test_layout_;
     message_log message_log_;
+
+    bklib::timer::id_t timer_message_log_ {0};
 };
 
 } //namespace bkrl
