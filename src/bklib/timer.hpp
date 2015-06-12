@@ -8,6 +8,9 @@
 
 namespace bklib {
 
+//--------------------------------------------------------------------------------------------------
+//! 
+//--------------------------------------------------------------------------------------------------
 class timer {
 public:
     struct record_t;
@@ -23,7 +26,10 @@ public:
         bool       repeat;
     };
 
-    void update();
+    bool empty() const noexcept;
+    int size() const noexcept;
+
+    int update();
     bool remove(id_t id);
 
     bool reset(id_t id);
@@ -53,6 +59,7 @@ private:
 
     int                next_id_ = 0;
     std::deque<pair_t> records_;
+    bool updating_ = false;
 };
 
 } //namespace bklib

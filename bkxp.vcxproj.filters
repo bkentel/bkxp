@@ -100,6 +100,9 @@
     <ClInclude Include="src\bklib\timer.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\scope_guard.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -177,6 +180,9 @@
       <Filter>bklib</Filter>
     </ClCompile>
     <ClCompile Include="test\bklib\timer_test.cpp">
+      <Filter>test\bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\scope_guard_test.cpp">
       <Filter>test\bklib</Filter>
     </ClCompile>
   </ItemGroup>

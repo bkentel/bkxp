@@ -1,6 +1,8 @@
 #include "timer.hpp"
 
 #include "bklib/algorithm.hpp"
+#include "bklib/assert.hpp"
+#include "bklib/scope_guard.hpp"
 #include <iterator>
 
 namespace {
@@ -19,13 +21,15 @@ inline decltype(auto) find_timer_pos(TimePoint const when) noexcept {
 //--------------------------------------------------------------------------------------------------
 bool bklib::timer::remove(id_t const id)
 {
+    BK_PRECONDITION(!updating_);
+
     auto const it = find_if(records_, find_timer_id(id));
-    if (it != end(records_)) {
-        records_.erase(it);
-        return true;
+    if (it == end(records_)) {
+        return false;
     }
 
-    return false;
+    records_.erase(it);
+    return true;
 }
 
 bool bklib::timer::reset(id_t const id)
@@ -34,8 +38,26 @@ bool bklib::timer::reset(id_t const id)
 }
 
 //--------------------------------------------------------------------------------------------------
-void bklib::timer::update()
+bool bklib::timer::empty() const noexcept
 {
+    return records_.empty();
+}
+
+//--------------------------------------------------------------------------------------------------
+int bklib::timer::size() const noexcept
+{
+    return static_cast<int>(records_.size());
+}
+
+//--------------------------------------------------------------------------------------------------
+int bklib::timer::update()
+{
+    BK_PRECONDITION(!updating_);
+    
+    int result = 0;
+    updating_ = true;
+    BK_SCOPE_EXIT {updating_ = false; };
+
     auto const now = std::chrono::high_resolution_clock::now();
 
     do {
@@ -51,6 +73,7 @@ void bklib::timer::update()
             break;
         }
 
+        ++result;
         data.callback(data);
 
         if (!data.repeat) {
@@ -58,9 +81,14 @@ void bklib::timer::update()
         } else {
             auto old = std::move(data);
             records_.erase(it);
+            
+            updating_ = false;
             add_(now, std::move(old));
+            updating_ = true;
         }
     } while (!records_.empty());
+
+    return result;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -73,6 +101,8 @@ bklib::timer::id_t bklib::timer::add_(record_t&& rec)
 bklib::timer::id_t
 bklib::timer::add_(time_point_t const now, record_t&& rec)
 {
+    BK_PRECONDITION(!updating_);
+
     id_t const result = rec.id;
     auto const when = now + rec.duration;
 
@@ -87,6 +117,8 @@ bklib::timer::add_(time_point_t const now, record_t&& rec)
 //--------------------------------------------------------------------------------------------------
 bool bklib::timer::reset_(id_t const id, duration_t const duration, bool const use_new_duration)
 {
+    BK_PRECONDITION(!updating_);
+
     auto const where = find_if(records_, find_timer_id(id));
     if (where == end(records_)) {
         return false;
@@ -95,20 +127,13 @@ bool bklib::timer::reset_(id_t const id, duration_t const duration, bool const u
     auto tmp = std::move(*where);
     records_.erase(where);
 
-    auto& deadline = tmp.first;
     auto& record = tmp.second;
 
     if (use_new_duration) {
         record.duration = duration;
     }
 
-    auto const new_deadline = record.duration + std::chrono::high_resolution_clock::now();
-    deadline = new_deadline;
-
-    records_.insert(
-        find_if(records_, find_timer_pos(new_deadline))
-      , std::move(tmp)
-    );
+    add_(std::move(record));
 
     return true;
 }

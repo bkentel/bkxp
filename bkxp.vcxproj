@@ -18,6 +18,7 @@
     <ClInclude Include="src\bklib\hash.hpp" />
     <ClInclude Include="src\bklib\json.hpp" />
     <ClInclude Include="src\bklib\math.hpp" />
+    <ClInclude Include="src\bklib\scope_guard.hpp" />
     <ClInclude Include="src\bklib\spatial_map.hpp" />
     <ClInclude Include="src\bklib\string.hpp" />
     <ClInclude Include="src\bklib\timer.hpp" />
@@ -72,6 +73,7 @@
     <ClCompile Include="test\bklib\algorithm_test.cpp" />
     <ClCompile Include="test\bklib\flag_set_test.cpp" />
     <ClCompile Include="test\bklib\math_test.cpp" />
+    <ClCompile Include="test\bklib\scope_guard_test.cpp" />
     <ClCompile Include="test\bklib\spatial_map_test.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\bklib\timer_test.cpp" />
