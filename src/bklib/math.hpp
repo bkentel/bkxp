@@ -7,6 +7,46 @@
 namespace bklib {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct transform_float_none  {};
+struct transform_float_floor {};
+struct transform_float_ceil  {};
+struct transform_float_round {};
+
+namespace detail {
+
+template <typename Transform, typename T>
+inline T transform_float(T const n, Transform, std::false_type) noexcept {
+    return n;
+}
+
+template <typename T>
+inline T transform_float(T const n, transform_float_none, std::true_type) noexcept {
+    return n;
+}
+
+template <typename T>
+inline T transform_float(T const n, transform_float_floor, std::true_type) noexcept {
+    return std::floor(n);
+}
+
+template <typename T>
+inline T transform_float(T const n, transform_float_ceil, std::true_type) noexcept {
+    return std::ceil(n);
+}
+
+template <typename T>
+inline T transform_float(T const n, transform_float_round, std::true_type) noexcept {
+    return std::round(n);
+}
+
+} //namespace detail
+
+template <typename Transform, typename T>
+inline T transform_float(T const n) noexcept {
+    static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type.");
+    return detail::transform_float(n, Transform {}, std::is_floating_point<T> {});
+}
+
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
