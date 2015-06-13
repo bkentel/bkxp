@@ -8,76 +8,96 @@
 #include <fstream>
 #include <functional>
 
-struct creature_def_parser : bklib::json_parser_base {
+struct creature_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class state_type {
-        begin, id, name, description, end
+        begin_def, in_def, end_def
     };
 
-    bool on_string(const char* const str, size_type const len, bool const copy) override {
-        bklib::utf8_string_view const value {str, len};
-
-        switch (state) {
-        case state_type::id:
-            id.assign(value.data(), value.size());
-            return true;
-        case state_type::name:
-            name.assign(value.data(), value.size());
-            return true;
-        case state_type::description:
-            description.assign(value.data(), value.size());
-            return true;
+    //----------------------------------------------------------------------------------------------
+    bool on_string(const char* const str, size_type const len, bool) override final {       
+        if (!string_out) {
+            return false;
         }
 
-        return false;
+        (this->*string_out).assign(str, len);
+        return true;
     }
 
-    bool on_start_object() override {
-        state = state_type::begin;
+    //----------------------------------------------------------------------------------------------
+    bool on_start_object() override final {
+        if (state != state_type::begin_def) {
+            return false;
+        }
+        
+        state = state_type::in_def;
         return true;
     }
     
-    bool on_key(const char* const str, size_type const len, bool const copy) override {
-        static std::unordered_map<bklib::utf8_string_view, state_type> const keys {
-            std::make_pair(bklib::utf8_string_view {"id"},          state_type::id)
-          , std::make_pair(bklib::utf8_string_view {"name"},        state_type::name)
-          , std::make_pair(bklib::utf8_string_view {"description"}, state_type::description)
+    //----------------------------------------------------------------------------------------------
+    bool on_key(const char* const str, size_type const len, bool) override final {               
+        using key_t   = decltype(bklib::static_djb2_hash(""));
+        using value_t = bklib::utf8_string creature_def_parser::*;
+
+        static auto const make_pair = [](auto const str, auto const out) {
+            return std::make_pair(bklib::static_djb2_hash(str), out);
         };
 
-        bklib::utf8_string_view const key {str, len};
-        auto const it = keys.find(key);
+        static std::unordered_map<key_t, value_t> const keys {
+            make_pair("id",           &creature_def_parser::id)
+          , make_pair("name",         &creature_def_parser::name)
+          , make_pair("description",  &creature_def_parser::description)
+          , make_pair("symbol",       &creature_def_parser::symbol)
+          , make_pair("symbol_color", &creature_def_parser::symbol_color)
+        };
+
+        if (state != state_type::in_def) {
+            return false;
+        }              
+
+        auto const key_hash = bklib::djb2_hash(str, str + len);
+        auto const it = keys.find(key_hash);
         if (it == end(keys)) {
             return false;
         }
 
-        state = it->second;
+        string_out = it->second;
         return true;
     }
     
-    bool on_end_object(size_type const size) override {
-        state = state_type::begin;
+    //----------------------------------------------------------------------------------------------
+    bool on_end_object(size_type const size) override final {
+        state = state_type::begin_def;
         return parent->on_end_object(size);
     }
 
-    bool on_end_array(size_type const size) override {
-        state = state_type::end;
+    //----------------------------------------------------------------------------------------------
+    bool on_end_array(size_type const size) override final {
+        state = state_type::end_def;
         return parent->on_end_array(size);
     }
 
-    state_type state = state_type::begin;
+    //----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+    state_type state = state_type::begin_def;
     
+    bklib::utf8_string creature_def_parser::* string_out = nullptr;
+
     bklib::utf8_string id;
     bklib::utf8_string name;
     bklib::utf8_string description;
+    bklib::utf8_string symbol;
+    bklib::utf8_string symbol_color;
 };
 
-struct creature_defs_parser : bklib::json_parser_base {
+struct creature_defs_parser final : bklib::json_parser_base {
     enum class state_type {
         begin, file_type, definitions, definitions_parse, end
     };
 
-    bool on_string(const char* const str, size_type const len, bool const copy) override {
+    //----------------------------------------------------------------------------------------------
+    bool on_string(const char* const str, size_type const len, bool const copy) override final {
         bklib::utf8_string_view const value {str, len};
 
         switch (state) {
@@ -92,6 +112,7 @@ struct creature_defs_parser : bklib::json_parser_base {
         return false;
     }
 
+    //----------------------------------------------------------------------------------------------
     bool on_start_object() override {
         switch (state) {
         case state_type::begin:
@@ -102,7 +123,8 @@ struct creature_defs_parser : bklib::json_parser_base {
         return false;
     }
     
-    bool on_key(const char* const str, size_type const len, bool const copy) override {
+    //----------------------------------------------------------------------------------------------
+    bool on_key(const char* const str, size_type const len, bool) override final {
         bklib::utf8_string_view const key {str, len};
 
         switch (state) {
@@ -121,7 +143,8 @@ struct creature_defs_parser : bklib::json_parser_base {
         return false;
     }
     
-    bool on_start_array() override {
+    //----------------------------------------------------------------------------------------------
+    bool on_start_array() override final {
         if (state != state_type::definitions) {
             return false;
         }
@@ -132,7 +155,8 @@ struct creature_defs_parser : bklib::json_parser_base {
         return true;
     }
     
-    bool on_end_array(size_type const size) override {
+    //----------------------------------------------------------------------------------------------
+    bool on_end_array(size_type const size) override final {
         if (state == state_type::definitions_parse) {
             state = state_type::end;
             handler = this;
@@ -142,7 +166,8 @@ struct creature_defs_parser : bklib::json_parser_base {
         return false;
     }
 
-    bool on_end_object(size_type const size) override {
+    //----------------------------------------------------------------------------------------------
+    bool on_end_object(size_type const size) override final {
         if (state == state_type::end) {
             return true;
         } else if (state != state_type::definitions_parse) {
@@ -150,14 +175,18 @@ struct creature_defs_parser : bklib::json_parser_base {
         }
 
         bkrl::creature_def def {std::move(def_parser.id)};
-        def.name        = std::move(def_parser.name);
-        def.description = std::move(def_parser.description);
+        def.name         = std::move(def_parser.name);
+        def.description  = std::move(def_parser.description);
+        def.symbol       = std::move(def_parser.symbol);
+        def.symbol_color = std::move(def_parser.symbol_color);
 
         on_finish(std::move(def));
 
         return true;
     }
 
+    //----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
     std::function<void (bkrl::creature_def&&)> on_finish;
 
     state_type state = state_type::begin;
@@ -280,7 +309,9 @@ bkrl::creature bkrl::creature_factory::create(
 class bkrl::detail::creature_dictionary_impl {
 public:
     explicit creature_dictionary_impl(bklib::utf8_string_view const filename);
+    
     creature_def const* operator[](creature_def_id id) const;
+    creature_def const* operator[](uint32_t hash) const;
 private:
     std::vector<creature_def> defs_;
 };
@@ -305,7 +336,7 @@ std::vector<char> read_file_to_buffer(bklib::utf8_string_view const filename)
     return result;
 }
 
-
+//--------------------------------------------------------------------------------------------------
 bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
     bklib::utf8_string_view const filename
 )
@@ -318,7 +349,8 @@ bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
         defs_.push_back(std::move(cdef));
     };
 
-    reader.Parse(rapidjson::StringStream(buffer.data()), handler);   
+    rapidjson::StringStream ss(buffer.data());
+    reader.Parse(ss, handler);   
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -328,6 +360,13 @@ bkrl::detail::creature_dictionary_impl::operator[](creature_def_id const id) con
     return bklib::find_maybe(defs_, [&](creature_def const& def) {
         return def.id == id;
     });
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature_def const*
+bkrl::detail::creature_dictionary_impl::operator[](uint32_t const id) const
+{
+    return (*this)[creature_def_id {id}];
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -346,3 +385,9 @@ bkrl::creature_dictionary::operator[](creature_def_id const id) const
     return (*impl_)[id];
 }
 
+//--------------------------------------------------------------------------------------------------
+bkrl::creature_def const*
+bkrl::creature_dictionary::operator[](uint32_t const hash) const
+{
+    return (*impl_)[hash];
+}

@@ -80,6 +80,8 @@ struct creature_def {
     bklib::utf8_string id_string;
     bklib::utf8_string name;
     bklib::utf8_string description;
+    bklib::utf8_string symbol;
+    bklib::utf8_string symbol_color;
     creature_flags     flags;
 };
 
@@ -167,6 +169,7 @@ public:
     explicit creature_dictionary(bklib::utf8_string_view filename);
 
     creature_def const* operator[](creature_def_id id) const;
+    creature_def const* operator[](uint32_t hash) const;
 private:
     std::unique_ptr<detail::creature_dictionary_impl> impl_;
 };

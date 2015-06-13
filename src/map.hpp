@@ -194,11 +194,26 @@ public:
         return result;
     }
 private:
-    chunk_t<terrain_entry>       terrain_entries_;
-    chunk_t<terrain_render_data> terrain_render_data_;
+    struct terrain_render_data_t {
+        uint16_t base_index;
+        uint16_t unused0;
+        uint16_t unused1;
+        uint16_t unused2;
+    };
+
+    struct creature_render_data_t {
+        int16_t x, y;
+        uint16_t base_index;
+        std::array<uint8_t, 4> color;
+    };
+
+    chunk_t<terrain_entry> terrain_entries_;
+    chunk_t<terrain_render_data_t> terrain_render_data_;
 
     creature_map creatures_;
     item_map     items_;
+
+    std::vector<creature_render_data_t> creature_render_data_;
 };
 
 
