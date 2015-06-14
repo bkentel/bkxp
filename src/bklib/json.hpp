@@ -1,5 +1,6 @@
 #pragma once
 
+#include "string.hpp"
 #include <rapidjson/reader.h>
 
 namespace bklib {
@@ -9,55 +10,55 @@ struct json_parser_base {
 
     //----------------------------------------------------------------------------------------------
     bool Null() {
-        return handler->on_null();
+        return get_handler()->on_null();
     }
     
     bool Bool(bool const b) {
-        return handler->on_bool(b);
+        return get_handler()->on_bool(b);
     }
     
     bool Int(int const i) {
-        return handler->on_int(i);
+        return get_handler()->on_int(i);
     }
     
     bool Uint(unsigned const u) {
-        return handler->on_uint(u);
+        return get_handler()->on_uint(u);
     }
     
     bool Int64(int64_t const i) {
-        return handler->on_int64(i);
+        return get_handler()->on_int64(i);
     }
 
     bool Uint64(uint64_t const u) {
-        return handler->on_uint64(u);
+        return get_handler()->on_uint64(u);
     }
 
     bool Double(double const d) {
-        return handler->on_double(d);
+        return get_handler()->on_double(d);
     }
 
     bool String(const char* const str, size_type const len, bool const copy) {
-        return handler->on_string(str, len, copy);
+        return get_handler()->on_string(str, len, copy);
     }
 
     bool StartObject() {
-        return handler->on_start_object();
+        return get_handler()->on_start_object();
     }
 
     bool Key(const char* const str, size_type const len, bool const copy) {
-        return handler->on_key(str, len, copy);
+        return get_handler()->on_key(str, len, copy);
     }
 
     bool EndObject(size_type const size) {
-        return handler->on_end_object(size);
+        return get_handler()->on_end_object(size);
     }
 
     bool StartArray() {
-        return handler->on_start_array();
+        return get_handler()->on_start_array();
     }
 
     bool EndArray(size_type const size) {
-        return handler->on_end_array(size);
+        return get_handler()->on_end_array(size);
     }
 
     //----------------------------------------------------------------------------------------------
@@ -74,7 +75,18 @@ struct json_parser_base {
     virtual bool on_end_object(size_type)                { return false; }
     virtual bool on_start_array()                        { return false; }
     virtual bool on_end_array(size_type)                 { return false; }
+    //----------------------------------------------------------------------------------------------
+    virtual bool on_finished() { return true; }
+    //----------------------------------------------------------------------------------------------
+    json_parser_base* get_handler() const {
+        auto result = handler;
+        while (result && result != result->handler) {
+            result = result->handler;
+        }
 
+        return result;
+    }
+    
     //----------------------------------------------------------------------------------------------
     explicit json_parser_base(json_parser_base* const parent = nullptr)
       : parent {parent}
@@ -83,6 +95,25 @@ struct json_parser_base {
 
     json_parser_base* handler = this;
     json_parser_base* parent  = nullptr;
+};
+
+struct json_string_parser final : json_parser_base {
+    using json_parser_base::json_parser_base;
+
+    //----------------------------------------------------------------------------------------------
+    bool on_string(const char* const str, size_type const len, bool) override final {       
+        if (out) {
+            out->assign(str, len);
+        }
+        
+        if (parent) {
+            return parent->on_finished();
+        }
+
+        return true;
+    }
+
+    utf8_string* out = nullptr;
 };
 
 } //namespace bklib

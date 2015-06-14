@@ -103,6 +103,9 @@
     <ClInclude Include="src\bklib\scope_guard.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\json.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -184,6 +187,12 @@
     </ClCompile>
     <ClCompile Include="test\bklib\scope_guard_test.cpp">
       <Filter>test\bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\json.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\bklib\utility.cpp">
+      <Filter>bklib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

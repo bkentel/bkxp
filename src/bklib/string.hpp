@@ -51,7 +51,10 @@ inline uint32_t djb2_hash(utf8_string_view const& str) noexcept {
 //--------------------------------------------------------------------------------------------------
 inline constexpr uint32_t
 static_djb2_hash(uint32_t const hash, char const* const str, size_t const i) noexcept {
-    return (str[i]) ? static_djb2_hash((hash * 33) ^ str[i], str, i + 1) : hash;
+    //return (str[i]) ? static_djb2_hash((hash * 33) ^ str[i], str, i + 1) : hash;
+    return (str[i]) ? static_djb2_hash(
+        static_cast<uint32_t>(uint64_t {0xFFFFFFFF} & (uint64_t {hash} * uint64_t {33}))
+      ^ str[i], str, i + 1) : hash;
 }
 
 //--------------------------------------------------------------------------------------------------

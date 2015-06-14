@@ -1,5 +1,8 @@
 #pragma once
 
+#include "string.hpp"
+
+#include <vector>
 #include <type_traits>
 #include <cstring>
 
@@ -54,6 +57,11 @@ template <typename T, typename Tag>
 constexpr T value_cast(tagged_value<T, Tag> const& n) noexcept {
     return n.value;
 }
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
+std::vector<char> read_file_to_buffer(utf8_string_view filename);
 
 } // namespace bklib
 ////////////////////////////////////////////////////////////////////////////////////////////////////
