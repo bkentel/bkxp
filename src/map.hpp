@@ -112,8 +112,9 @@ public:
     bool move_creature_by(creature_instance_id id, bklib::ivec2 v);
     bool move_creature_to(creature_instance_id id, bklib::ipoint2 p);
 
-    void generate_creature(random_state& random, creature_factory& factory, creature_def const& def);
-    void generate_item(random_state& random, item_factory& factory, item_def const& def);
+    bool generate_creature(random_state& random, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
+    bool generate_creature(random_state& random, creature_factory& factory, creature_def const& def);
+    bool generate_item(random_state& random, item_factory& factory, item_def const& def);
 
     void update_render_data(bklib::ipoint2 p);
     void update_render_data(int x, int y);
