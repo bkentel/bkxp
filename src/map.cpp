@@ -134,17 +134,19 @@ bool bkrl::map::move_creature_to(
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::generate_creature(
-    random_state&       random
-  , creature_factory&   factory
-  , creature_def const& def
+bool bkrl::map::generate_creature(
+    random_state&        random
+  , creature_factory&    factory
+  , creature_def const&  def
+  , bklib::ipoint2 const p
 ) {
-    auto& rnd = random[random_stream::creature];
-
-    bklib::ipoint2 const p {
-        random_range(rnd, 0, 50)
-      , random_range(rnd, 0, 50)
-    };
+    if (!intersects(p, bounds())) {
+        return false;
+    }
+    
+    if (creatures_.at(p)) {
+        return false;
+    }
 
     creatures_.insert(p, factory.create(random, def, p));
 
@@ -154,10 +156,34 @@ void bkrl::map::generate_creature(
       , static_cast<uint16_t>(def.symbol[0])
       , {255, 255, 255, 255}
     });
+
+    return true;
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::generate_item(
+bool bkrl::map::generate_creature(
+    random_state&       random
+  , creature_factory&   factory
+  , creature_def const& def
+) {
+    auto& rnd = random[random_stream::creature];
+
+    for (int i = 0; i < 10; ++i) {
+        bklib::ipoint2 const p {
+            random_range(rnd, 0, 50)
+          , random_range(rnd, 0, 50)
+        };
+
+        if (generate_creature(random, factory, def, p)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::map::generate_item(
     random_state& random
   , item_factory& factory
   , item_def const& def
@@ -178,6 +204,8 @@ void bkrl::map::generate_item(
     }();
 
     pile.insert(factory.create(random, def));
+
+    return true;
 }
 
 //--------------------------------------------------------------------------------------------------

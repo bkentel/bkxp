@@ -195,7 +195,10 @@
       <Filter>bklib</Filter>
     </ClCompile>
     <ClCompile Include="test\json_test.cpp">
-      <Filter>test\bklib</Filter>
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\map_test.cpp">
+      <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
