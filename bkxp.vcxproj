@@ -81,6 +81,7 @@
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\bklib\timer_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
+    <ClCompile Include="test\json_test.cpp" />
     <ClCompile Include="test\text_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>

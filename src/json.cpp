@@ -59,10 +59,6 @@ struct def_parser final : bklib::json_parser_base {
             return default;
         }
 
-        if (!def_handler_) {
-            return default;
-        }
-
         state_ = state::expect_object;
         return true;
     }
@@ -150,14 +146,14 @@ struct def_parser final : bklib::json_parser_base {
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::json_parse_definitions(
-    bklib::utf8_string_view const  json_data
-  , json_select_handler_t   const& select_handler
-  , json_on_finish_def_t    const& on_finish
+    bklib::utf8_string_view const json_data
+  , json_select_handler_t         select_handler
+  , json_on_finish_def_t          on_finish
 ) {
     rapidjson::Reader reader;
     rapidjson::StringStream ss {json_data.data()};
 
-    def_parser parser {on_finish, select_handler};
+    def_parser parser {std::move(on_finish), std::move(select_handler)};
     if (reader.Parse(ss, parser)) {
         return;
     }

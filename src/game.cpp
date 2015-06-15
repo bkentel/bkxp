@@ -12,7 +12,7 @@ bkrl::game::game()
   , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
-  , creature_dictionary_ {"./data/creatures.def"}
+  , creature_dictionary_ {"./data/creatures.def", creature_dictionary::load_from_file}
   , item_dictionary_ {"./data/items.def"}
   , creature_factory_()
   , item_factory_()

@@ -15,8 +15,8 @@ using json_on_finish_def_t  = std::function<bool ()>;
 //--------------------------------------------------------------------------------------------------
 void json_parse_definitions(
     bklib::utf8_string_view json_data
-  , json_select_handler_t const& select_handler
-  , json_on_finish_def_t const& on_finish
+  , json_select_handler_t select_handler
+  , json_on_finish_def_t on_finish
 );
 
 } //namespace bkrl
