@@ -5,8 +5,6 @@
 #include "json.hpp"
 #include "bklib/json.hpp"
 
-#include <unordered_map>
-#include <fstream>
 #include <functional>
 
 namespace {
@@ -18,17 +16,12 @@ struct creature_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class field : uint32_t {
-        id = bklib::static_djb2_hash("id")
-        , name = bklib::static_djb2_hash("name")
-        , description = bklib::static_djb2_hash("description")
-        , symbol = bklib::static_djb2_hash("symbol")
-        , symbol_color = bklib::static_djb2_hash("symbol_color")
+        id           = bklib::static_djb2_hash("id")
+      , name         = bklib::static_djb2_hash("name")
+      , description  = bklib::static_djb2_hash("description")
+      , symbol       = bklib::static_djb2_hash("symbol")
+      , symbol_color = bklib::static_djb2_hash("symbol_color")
     };
-
-    //----------------------------------------------------------------------------------------------
-    bool on_start_object() override final {
-        return true;
-    }
 
     //----------------------------------------------------------------------------------------------
     bool on_key(const char* const str, size_type const len, bool const) override final {
@@ -41,10 +34,10 @@ struct creature_def_parser final : bklib::json_parser_base {
         switch (key_hash) {
         default:
             return false;
-        case field::id: get_string(id);           break;
-        case field::name: get_string(name);         break;
-        case field::description: get_string(description);  break;
-        case field::symbol: get_string(symbol);       break;
+        case field::id:           get_string(id);           break;
+        case field::name:         get_string(name);         break;
+        case field::description:  get_string(description);  break;
+        case field::symbol:       get_string(symbol);       break;
         case field::symbol_color: get_string(symbol_color); break;
         }
 
@@ -205,17 +198,30 @@ private:
 bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
     bklib::utf8_string_view const filename
 ) {
-    creature_def_parser handler;
+    creature_def_parser creature_handler;
 
-    json_parse_definitions("./data/creatures.def", "creatures", handler, [&] {
-        creature_def def {std::move(handler.id)};
+    auto json_data = bklib::read_file_to_buffer(filename);
+    auto json_data_string = bklib::utf8_string_view {json_data.data(), json_data.size()};
 
-        def.name         = std::move(handler.name);
-        def.description  = std::move(handler.description);
-        def.symbol       = std::move(handler.symbol);
-        def.symbol_color = std::move(handler.symbol_color);
+    auto const select_handler = [&](auto const& string) -> bklib::json_parser_base* {
+        if (string == "creatures") {
+            return &creature_handler;
+        }
 
-        defs_.push_back(std::move(def));        
+        return nullptr;
+    };
+
+    json_parse_definitions(json_data_string, select_handler, [&] {
+        creature_def def {std::move(creature_handler.id)};
+
+        def.name         = std::move(creature_handler.name);
+        def.description  = std::move(creature_handler.description);
+        def.symbol       = std::move(creature_handler.symbol);
+        def.symbol_color = std::move(creature_handler.symbol_color);
+
+        defs_.push_back(std::move(def));
+
+        return true;
     });
 }
 

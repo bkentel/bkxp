@@ -5,8 +5,19 @@
 
 namespace bklib {
 
+//--------------------------------------------------------------------------------------------------
+//! Base class for rapidjson parsers.
+//--------------------------------------------------------------------------------------------------
 struct json_parser_base {
     using size_type = rapidjson::SizeType;
+
+    //----------------------------------------------------------------------------------------------
+    explicit json_parser_base(json_parser_base* const parent = nullptr)
+      : parent {parent}
+    {
+    }
+
+    virtual ~json_parser_base() = default;
 
     //----------------------------------------------------------------------------------------------
     bool Null() {
@@ -61,22 +72,29 @@ struct json_parser_base {
         return get_handler()->on_end_array(size);
     }
 
-    //----------------------------------------------------------------------------------------------
-    virtual bool on_null()                               { return false; }
-    virtual bool on_bool(bool)                           { return false; }
-    virtual bool on_int(int)                             { return false; }
-    virtual bool on_uint(unsigned)                       { return false; }
-    virtual bool on_int64(int64_t)                       { return false; }
-    virtual bool on_uint64(uint64_t)                     { return false; }
-    virtual bool on_double(double)                       { return false; }
-    virtual bool on_string(const char*, size_type, bool) { return false; }
-    virtual bool on_start_object()                       { return false; }
-    virtual bool on_key(const char*, size_type, bool)    { return false; }
-    virtual bool on_end_object(size_type)                { return false; }
-    virtual bool on_start_array()                        { return false; }
-    virtual bool on_end_array(size_type)                 { return false; }
-    //----------------------------------------------------------------------------------------------
     virtual bool on_finished() { return true; }
+
+    json_parser_base* handler {this};  //!< handler to use
+    json_parser_base* parent  {};      //!< parser that owns / uses this; used by on_finished.
+    bool              default {false}; //!< the default value to use for unhandled data / state.
+private: 
+    //----------------------------------------------------------------------------------------------
+    virtual bool on_null()                               { return default; }
+    virtual bool on_bool(bool)                           { return default; }
+    virtual bool on_int(int)                             { return default; }
+    virtual bool on_uint(unsigned)                       { return default; }
+    virtual bool on_int64(int64_t)                       { return default; }
+    virtual bool on_uint64(uint64_t)                     { return default; }
+    virtual bool on_double(double)                       { return default; }
+    virtual bool on_string(const char*, size_type, bool) { return default; }
+    virtual bool on_start_object()                       { return default; }
+    virtual bool on_key(const char*, size_type, bool)    { return default; }
+    virtual bool on_end_object(size_type)                { return default; }
+    virtual bool on_start_array()                        { return default; }
+    virtual bool on_end_array(size_type)                 { return default; }
+    
+    //----------------------------------------------------------------------------------------------
+    //! Find the deepest handler type.
     //----------------------------------------------------------------------------------------------
     json_parser_base* get_handler() const {
         auto result = handler;
@@ -86,18 +104,12 @@ struct json_parser_base {
 
         return result;
     }
-    
-    //----------------------------------------------------------------------------------------------
-    explicit json_parser_base(json_parser_base* const parent = nullptr)
-      : parent {parent}
-    {
-    }
-
-    json_parser_base* handler = this;
-    json_parser_base* parent  = nullptr;
 };
 
-struct json_string_parser final : json_parser_base {
+//--------------------------------------------------------------------------------------------------
+//! Simple parser that expects to read one string only.
+//--------------------------------------------------------------------------------------------------
+struct json_string_parser final : public json_parser_base {
     using json_parser_base::json_parser_base;
 
     //----------------------------------------------------------------------------------------------
@@ -113,7 +125,7 @@ struct json_string_parser final : json_parser_base {
         return true;
     }
 
-    utf8_string* out = nullptr;
+    utf8_string* out {}; //!< output destination for the read string.
 };
 
 } //namespace bklib

@@ -7,11 +7,16 @@ namespace bklib { struct json_parser_base; }
 
 namespace bkrl {
 
+using json_select_handler_t = std::function<bklib::json_parser_base* (bklib::utf8_string_view)>;
+using json_on_finish_def_t  = std::function<bool ()>;
+
+//--------------------------------------------------------------------------------------------------
+//! 
+//--------------------------------------------------------------------------------------------------
 void json_parse_definitions(
-    bklib::utf8_string_view file_name
-  , bklib::utf8_string_view file_type
-  , bklib::json_parser_base& handler
-  , std::function<void ()> const& on_finish
+    bklib::utf8_string_view json_data
+  , json_select_handler_t const& select_handler
+  , json_on_finish_def_t const& on_finish
 );
 
 } //namespace bkrl

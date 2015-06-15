@@ -12,8 +12,8 @@ bkrl::game::game()
   , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
-  , creature_dictionary_ {"creatures.def"}
-  , item_dictionary_ {"items.def"}
+  , creature_dictionary_ {"./data/creatures.def"}
+  , item_dictionary_ {"./data/items.def"}
   , creature_factory_()
   , item_factory_()
   , current_map_()
