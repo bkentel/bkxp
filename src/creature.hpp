@@ -80,6 +80,8 @@ struct creature_def {
     bklib::utf8_string id_string;
     bklib::utf8_string name;
     bklib::utf8_string description;
+    bklib::utf8_string symbol;
+    bklib::utf8_string symbol_color;
     creature_flags     flags;
 };
 
@@ -163,10 +165,17 @@ using creature_map = bklib::spatial_map_2d<creature>;
 //--------------------------------------------------------------------------------------------------
 class creature_dictionary {
 public:
+    enum class load_from_file_t   {} static constexpr const load_from_file   {};
+    enum class load_from_string_t {} static constexpr const load_from_string {};
+
     ~creature_dictionary();
-    explicit creature_dictionary(bklib::utf8_string_view filename);
+    creature_dictionary(bklib::utf8_string_view filename, load_from_file_t);
+    creature_dictionary(bklib::utf8_string_view string, load_from_string_t);
+
+    int size() const noexcept;
 
     creature_def const* operator[](creature_def_id id) const;
+    creature_def const* operator[](uint32_t hash) const;
 private:
     std::unique_ptr<detail::creature_dictionary_impl> impl_;
 };

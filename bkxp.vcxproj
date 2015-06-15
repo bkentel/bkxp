@@ -30,6 +30,7 @@
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\identifier.hpp" />
     <ClInclude Include="src\item.hpp" />
+    <ClInclude Include="src\json.hpp" />
     <ClInclude Include="src\map.hpp" />
     <ClInclude Include="src\message_log.hpp" />
     <ClInclude Include="src\pch.hpp" />
@@ -43,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bklib\timer.cpp" />
+    <ClCompile Include="src\bklib\utility.cpp" />
     <ClCompile Include="src\bsp_layout.cpp" />
     <ClCompile Include="src\catch.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -57,6 +59,7 @@
     <ClCompile Include="src\direction.cpp" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\item.cpp" />
+    <ClCompile Include="src\json.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\message_log.cpp" />
@@ -78,6 +81,7 @@
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\bklib\timer_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
+    <ClCompile Include="test\json_test.cpp" />
     <ClCompile Include="test\text_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>
@@ -121,9 +125,7 @@
   <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -131,7 +133,6 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>

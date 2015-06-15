@@ -12,8 +12,8 @@ bkrl::game::game()
   , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
-  , creature_dictionary_ {"creatures.def"}
-  , item_dictionary_ {"items.def"}
+  , creature_dictionary_ {"./data/creatures.def", creature_dictionary::load_from_file}
+  , item_dictionary_ {"./data/items.def"}
   , creature_factory_()
   , item_factory_()
   , current_map_()
@@ -30,7 +30,7 @@ bkrl::game::game()
         view_.set_window_size(w, h);
     };
 
-    system_.on_text_input = [&](bklib::utf8_string_view s) {
+    system_.on_text_input = [&](bklib::utf8_string_view) {
     };
 
     system_.on_key_up = [&](int const key) {
@@ -79,8 +79,18 @@ void bkrl::game::generate_map()
 
     m.update_render_data();
 
+    constexpr auto const skeleton_id = bklib::static_djb2_hash("skeleton");
+    constexpr auto const zombie_id = bklib::static_djb2_hash("zombie");
+    auto const skeleton_def = creature_dictionary_[skeleton_id];
+    auto const zombie_def = creature_dictionary_[zombie_id];
+
     for (int i = 0; i < 10; ++i) {
-        m.generate_creature(random_, creature_factory_, creature_def {"skeleton"});
+        if (i % 2) {
+            m.generate_creature(random_, creature_factory_, *skeleton_def);
+        } else {
+            m.generate_creature(random_, creature_factory_, *zombie_def);
+        }
+        
         m.generate_item(random_, item_factory_, item_def {"item0"});
     }
 }
@@ -140,7 +150,7 @@ void bkrl::game::do_mouse_over(int const mx, int const my)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_zoom(double const zx, double const zy)
 {
-    do_zoom(zy, zy);
+    do_zoom(zx, zy);
 }
 
 //--------------------------------------------------------------------------------------------------

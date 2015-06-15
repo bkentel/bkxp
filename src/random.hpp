@@ -8,8 +8,11 @@
 #   define PCG_LITTLE_ENDIAN 1
 #endif
 
+#pragma warning( push )
+#pragma warning( disable : 4127 ) //condition is constant
 #include <pcg_random.hpp>
 #include <pcg_extras.hpp>
+#pragma warning( pop )
 
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/normal_distribution.hpp>

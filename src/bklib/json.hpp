@@ -1,79 +1,15 @@
 #pragma once
 
+#include "string.hpp"
 #include <rapidjson/reader.h>
 
 namespace bklib {
 
+//--------------------------------------------------------------------------------------------------
+//! Base class for rapidjson parsers.
+//--------------------------------------------------------------------------------------------------
 struct json_parser_base {
     using size_type = rapidjson::SizeType;
-
-    //----------------------------------------------------------------------------------------------
-    bool Null() {
-        return handler->on_null();
-    }
-    
-    bool Bool(bool const b) {
-        return handler->on_bool(b);
-    }
-    
-    bool Int(int const i) {
-        return handler->on_int(i);
-    }
-    
-    bool Uint(unsigned const u) {
-        return handler->on_uint(u);
-    }
-    
-    bool Int64(int64_t const i) {
-        return handler->on_int64(i);
-    }
-
-    bool Uint64(uint64_t const u) {
-        return handler->on_uint64(u);
-    }
-
-    bool Double(double const d) {
-        return handler->on_double(d);
-    }
-
-    bool String(const char* const str, size_type const len, bool const copy) {
-        return handler->on_string(str, len, copy);
-    }
-
-    bool StartObject() {
-        return handler->on_start_object();
-    }
-
-    bool Key(const char* const str, size_type const len, bool const copy) {
-        return handler->on_key(str, len, copy);
-    }
-
-    bool EndObject(size_type const size) {
-        return handler->on_end_object(size);
-    }
-
-    bool StartArray() {
-        return handler->on_start_array();
-    }
-
-    bool EndArray(size_type const size) {
-        return handler->on_end_array(size);
-    }
-
-    //----------------------------------------------------------------------------------------------
-    virtual bool on_null()                               { return false; }
-    virtual bool on_bool(bool)                           { return false; }
-    virtual bool on_int(int)                             { return false; }
-    virtual bool on_uint(unsigned)                       { return false; }
-    virtual bool on_int64(int64_t)                       { return false; }
-    virtual bool on_uint64(uint64_t)                     { return false; }
-    virtual bool on_double(double)                       { return false; }
-    virtual bool on_string(const char*, size_type, bool) { return false; }
-    virtual bool on_start_object()                       { return false; }
-    virtual bool on_key(const char*, size_type, bool)    { return false; }
-    virtual bool on_end_object(size_type)                { return false; }
-    virtual bool on_start_array()                        { return false; }
-    virtual bool on_end_array(size_type)                 { return false; }
 
     //----------------------------------------------------------------------------------------------
     explicit json_parser_base(json_parser_base* const parent = nullptr)
@@ -81,8 +17,115 @@ struct json_parser_base {
     {
     }
 
-    json_parser_base* handler = this;
-    json_parser_base* parent  = nullptr;
+    virtual ~json_parser_base() = default;
+
+    //----------------------------------------------------------------------------------------------
+    bool Null() {
+        return get_handler()->on_null();
+    }
+    
+    bool Bool(bool const b) {
+        return get_handler()->on_bool(b);
+    }
+    
+    bool Int(int const i) {
+        return get_handler()->on_int(i);
+    }
+    
+    bool Uint(unsigned const u) {
+        return get_handler()->on_uint(u);
+    }
+    
+    bool Int64(int64_t const i) {
+        return get_handler()->on_int64(i);
+    }
+
+    bool Uint64(uint64_t const u) {
+        return get_handler()->on_uint64(u);
+    }
+
+    bool Double(double const d) {
+        return get_handler()->on_double(d);
+    }
+
+    bool String(const char* const str, size_type const len, bool const copy) {
+        return get_handler()->on_string(str, len, copy);
+    }
+
+    bool StartObject() {
+        return get_handler()->on_start_object();
+    }
+
+    bool Key(const char* const str, size_type const len, bool const copy) {
+        return get_handler()->on_key(str, len, copy);
+    }
+
+    bool EndObject(size_type const size) {
+        return get_handler()->on_end_object(size);
+    }
+
+    bool StartArray() {
+        return get_handler()->on_start_array();
+    }
+
+    bool EndArray(size_type const size) {
+        return get_handler()->on_end_array(size);
+    }
+
+    virtual bool on_finished() { return true; }
+
+    json_parser_base* handler {this};  //!< handler to use
+    json_parser_base* parent  {};      //!< parser that owns / uses this; used by on_finished.
+    bool              default {false}; //!< the default value to use for unhandled data / state.
+private: 
+    //----------------------------------------------------------------------------------------------
+    virtual bool on_null()                               { return default; }
+    virtual bool on_bool(bool)                           { return default; }
+    virtual bool on_int(int)                             { return default; }
+    virtual bool on_uint(unsigned)                       { return default; }
+    virtual bool on_int64(int64_t)                       { return default; }
+    virtual bool on_uint64(uint64_t)                     { return default; }
+    virtual bool on_double(double)                       { return default; }
+    virtual bool on_string(const char*, size_type, bool) { return default; }
+    virtual bool on_start_object()                       { return default; }
+    virtual bool on_key(const char*, size_type, bool)    { return default; }
+    virtual bool on_end_object(size_type)                { return default; }
+    virtual bool on_start_array()                        { return default; }
+    virtual bool on_end_array(size_type)                 { return default; }
+    
+    //----------------------------------------------------------------------------------------------
+    //! Find the deepest handler type.
+    //----------------------------------------------------------------------------------------------
+    json_parser_base* get_handler() const {
+        auto result = handler;
+        while (result && result != result->handler) {
+            result = result->handler;
+        }
+
+        return result;
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+//! Simple parser that expects to read one string only.
+//--------------------------------------------------------------------------------------------------
+struct json_string_parser final : public json_parser_base {
+    using json_parser_base::json_parser_base;
+
+    //----------------------------------------------------------------------------------------------
+    bool on_string(const char* const str, size_type const len, bool) override final {       
+        if (out) {
+            out->assign(str, len);
+        }
+        
+        if (parent) {
+            return parent->on_finished();
+        }
+
+        return true;
+    }
+
+    utf8_string* out {}; //!< output destination for the read string.
 };
 
 } //namespace bklib

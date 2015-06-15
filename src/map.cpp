@@ -2,6 +2,8 @@
 #include "renderer.hpp"
 #include "view.hpp"
 
+#include "bklib/algorithm.hpp"
+
 namespace {
 
 inline decltype(auto) find_creature_by_id(bkrl::creature_instance_id const id) {
@@ -24,8 +26,8 @@ void bkrl::map::draw(renderer& render, view const& v) const
         for (auto x = r.left; x < r.right; ++x) {
             auto const& cell = terrain_render_data_.cell_at(x, y);
 
-            if (cell.index) {
-                render.draw_cell(x, y, cell.index);
+            if (cell.base_index) {
+                render.draw_cell(x, y, cell.base_index);
             }
 
         }
@@ -37,9 +39,13 @@ void bkrl::map::draw(renderer& render, view const& v) const
         }
     });
 
-    creatures_.for_each_at(r, [&](bklib::ipoint2 const& p, creature const& c) {
-        c.draw(render);
-    });
+    for (auto const& c : creature_render_data_) {
+        render.draw_cell(c.x, c.y, c.base_index);
+    }
+
+    //creatures_.for_each_at(r, [&](bklib::ipoint2 const& p, creature const& c) {
+    //    c.draw(render);
+    //});
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -88,6 +94,18 @@ bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
     // TODO update this to take the player into consideration
     creatures_.relocate(p, q, c);
 
+    auto const x_pos = x(p);
+    auto const y_pos = y(p);
+
+    if (auto const ptr = bklib::find_maybe(
+        creature_render_data_, [=](creature_render_data_t const& data) {
+            return (data.x == x_pos) && (data.y == y_pos);
+        }
+    )) {
+        ptr->x = static_cast<int16_t>(x(q));
+        ptr->y = static_cast<int16_t>(y(q));
+    }
+
     return true;
 }
 
@@ -129,6 +147,13 @@ void bkrl::map::generate_creature(
     };
 
     creatures_.insert(p, factory.create(random, def, p));
+
+    creature_render_data_.push_back (creature_render_data_t {
+        static_cast<int16_t>(x(p))
+      , static_cast<int16_t>(y(p))
+      , static_cast<uint16_t>(def.symbol[0])
+      , {255, 255, 255, 255}
+    });
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -197,7 +222,7 @@ void bkrl::map::update_render_data(bklib::ipoint2 const p)
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data(int const x, int const y)
 {
-    auto& index = terrain_render_data_.block_at(x, y).cell_at(x, y).index;
+    auto& index = terrain_render_data_.block_at(x, y).cell_at(x, y).base_index;
 
     auto const& ter = terrain_entries_.block_at(x, y).cell_at(x, y);
 
