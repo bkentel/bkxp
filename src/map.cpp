@@ -33,19 +33,13 @@ void bkrl::map::draw(renderer& render, view const& v) const
         }
     }
 
-    items_.for_each_at(r, [&](bklib::ipoint2 const& p, item_pile const& pile) {
-        if (!pile.empty()) {
-            pile.begin()->draw(render, p);
-        }
-    });
+    for (auto const& i : item_render_data_) {
+        render.draw_cell(i.x, i.y, i.base_index);
+    }
 
     for (auto const& c : creature_render_data_) {
         render.draw_cell(c.x, c.y, c.base_index);
     }
-
-    //creatures_.for_each_at(r, [&](bklib::ipoint2 const& p, creature const& c) {
-    //    c.draw(render);
-    //});
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -134,66 +128,12 @@ bool bkrl::map::move_creature_to(
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::map::generate_creature(
-    random_state&        random
-  , creature_factory&    factory
-  , creature_def const&  def
+void bkrl::map::place_item_at(
+    item&&               itm
+  , item_def const&      def
   , bklib::ipoint2 const p
 ) {
-    if (!intersects(p, bounds())) {
-        return false;
-    }
-    
-    if (creatures_.at(p)) {
-        return false;
-    }
-
-    creatures_.insert(p, factory.create(random, def, p));
-
-    creature_render_data_.push_back (creature_render_data_t {
-        static_cast<int16_t>(x(p))
-      , static_cast<int16_t>(y(p))
-      , static_cast<uint16_t>(def.symbol[0])
-      , {255, 255, 255, 255}
-    });
-
-    return true;
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::map::generate_creature(
-    random_state&       random
-  , creature_factory&   factory
-  , creature_def const& def
-) {
-    auto& rnd = random[random_stream::creature];
-
-    for (int i = 0; i < 10; ++i) {
-        bklib::ipoint2 const p {
-            random_range(rnd, 0, 50)
-          , random_range(rnd, 0, 50)
-        };
-
-        if (generate_creature(random, factory, def, p)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::map::generate_item(
-    random_state& random
-  , item_factory& factory
-  , item_def const& def
-) {
-    auto& rnd = random[random_stream::item];
-
-    bklib::ipoint2 const p {
-        random_range(rnd, 0, 50)
-      , random_range(rnd, 0, 50)
-    };
+    BK_PRECONDITION(intersects(p, bounds()));
 
     auto& pile = [&]() -> decltype(auto) {
         if (auto const existing = items_.at(p)) {
@@ -203,9 +143,73 @@ bool bkrl::map::generate_item(
         return items_.insert(p, item_pile {});
     }();
 
-    pile.insert(factory.create(random, def));
+    pile.insert(std::move(itm));
 
-    return true;
+    auto const pos_x = static_cast<int16_t>(x(p));
+    auto const pos_y = static_cast<int16_t>(y(p));
+    auto const sym   = static_cast<uint16_t>('*');
+
+    item_render_data_t const data {
+        pos_x, pos_y, sym
+      , {255, 255, 255, 255}
+    };
+
+    auto const ptr = bklib::find_maybe(item_render_data_, [&](item_render_data_t const& i) {
+        return (i.x == pos_x) && (i.y == pos_y);
+    });
+
+    if (ptr) {
+        *ptr = data;
+    } else {
+        item_render_data_.push_back(data);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::place_item_at(
+    random_state& random
+  , item_def const& def
+  , item_factory& factory
+  , bklib::ipoint2 const p
+) {
+    place_item_at(factory.create(random, def), def, p);
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::place_creature_at(
+    creature&&           c
+  , creature_def const&  def
+  , bklib::ipoint2 const p
+) {
+    BK_PRECONDITION(intersects(p, bounds()));
+    BK_PRECONDITION(!creature_at(p));
+
+    auto const x_pos = static_cast<int16_t>(x(p));
+    auto const y_pos = static_cast<int16_t>(y(p));
+    auto const sym   = static_cast<uint16_t>(def.symbol[0]);
+
+    creature_render_data_.push_back(creature_render_data_t {
+        x_pos, y_pos, sym
+      , {255, 255, 255, 255}
+    });
+
+    creatures_.insert(p, std::move(c));
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::place_creature_at(
+    random_state& random
+  , creature_def const& def
+  , creature_factory& factory
+  , bklib::ipoint2 p
+) {
+    place_creature_at(factory.create(random, def, p), def, p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature* bkrl::map::creature_at(bklib::ipoint2 const p)
+{
+    return creatures_.at(p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -239,7 +243,6 @@ void bkrl::map::fill(bklib::irect r, terrain_type const value, terrain_type cons
         }
     }
 }
-
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data(bklib::ipoint2 const p)
@@ -275,4 +278,154 @@ void bkrl::map::update_render_data()
             update_render_data(x, y);
         }
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::item_pile bkrl::map::remove_items_at(bklib::ipoint2 const p)
+{
+    auto const pos_x = x(p);
+    auto const pos_y = y(p);
+
+    auto const it = bklib::find_if(item_render_data_, [&](item_render_data_t const& i) {
+        return i.x == pos_x && i.y == pos_y;
+    });
+
+    BK_PRECONDITION(it != std::end(item_render_data_));
+
+    item_render_data_.erase(it);
+
+    return items_.remove(p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature bkrl::map::remove_creature_at(bklib::ipoint2 const p)
+{
+    auto const pos_x = x(p);
+    auto const pos_y = y(p);
+
+    auto const it = bklib::find_if(creature_render_data_, [&](creature_render_data_t const& c) {
+        return c.x == pos_x && c.y == pos_y;
+    });
+
+    BK_PRECONDITION(it != std::end(creature_render_data_));
+
+    creature_render_data_.erase(it);
+
+    return creatures_.remove(p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::item_pile* bkrl::map::items_at(bklib::ipoint2 const p)
+{
+    return items_.at(p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::item_pile const* bkrl::map::items_at(bklib::ipoint2 const p) const
+{
+    return items_.at(p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature const* bkrl::map::creature_at(bklib::ipoint2 const p) const
+{
+    return creatures_.at(p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::generate_creature(
+    random_state&        random
+  , map&                 m
+  , creature_factory&    factory
+  , creature_def const&  def
+  , bklib::ipoint2 const p
+) {
+    if (m.creature_at(p)) {
+        return false;
+    }
+
+    m.place_creature_at(random, def, factory, p);
+
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::generate_creature(
+    random_state&       random
+  , map&                m
+  , creature_factory&   factory
+  , creature_def const& def
+) {
+    auto& rnd = random[random_stream::creature];
+
+    for (int i = 0; i < 10; ++i) {
+        bklib::ipoint2 const p {
+            random_range(rnd, 0, 50)
+          , random_range(rnd, 0, 50)
+        };
+
+        if (generate_creature(random, m, factory, def, p)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::generate_creature(
+    random_state&         random
+  , map&                  m
+  , creature_factory&     factory
+  , creature_def_id const def
+  , bklib::ipoint2 const  p
+) {
+    if (auto const maybe_def = factory.dictionary()[def]) {
+        return generate_creature(random, m, factory, *maybe_def, p);
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::generate_creature(
+    random_state&         random
+  , map&                  m
+  , creature_factory&     factory
+  , creature_def_id const def
+) {
+    if (auto const maybe_def = factory.dictionary()[def]) {
+        return generate_creature(random, m, factory, *maybe_def);
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::generate_item(
+    random_state&        random
+  , map&                 m
+  , item_factory&        factory
+  , item_def const&      def
+  , bklib::ipoint2 const p
+) {
+    m.place_item_at(random, def, factory, p);
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::generate_item(
+    random_state&   random
+  , map&            m
+  , item_factory&   factory
+  , item_def const& def
+) {
+    auto& rnd = random[random_stream::item];
+
+    bklib::ipoint2 const p {
+        random_range(rnd, 0, 50)
+      , random_range(rnd, 0, 50)
+    };
+
+    return generate_item(random, m, factory, def, p);
 }

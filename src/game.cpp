@@ -14,7 +14,7 @@ bkrl::game::game()
   , command_translator_()
   , creature_dictionary_ {"./data/creatures.def", creature_dictionary::load_from_file}
   , item_dictionary_ {"./data/items.def"}
-  , creature_factory_()
+  , creature_factory_(creature_dictionary_)
   , item_factory_()
   , current_map_()
   , player_(creature_factory_.create(random_, creature_def {"player"}, bklib::ipoint2 {0, 0}))
@@ -79,19 +79,17 @@ void bkrl::game::generate_map()
 
     m.update_render_data();
 
-    constexpr auto const skeleton_id = bklib::static_djb2_hash("skeleton");
-    constexpr auto const zombie_id = bklib::static_djb2_hash("zombie");
-    auto const skeleton_def = creature_dictionary_[skeleton_id];
-    auto const zombie_def = creature_dictionary_[zombie_id];
+    constexpr auto const skeleton_id = creature_def_id {bklib::static_djb2_hash("skeleton")};
+    constexpr auto const zombie_id   = creature_def_id {bklib::static_djb2_hash("zombie")};
 
     for (int i = 0; i < 10; ++i) {
         if (i % 2) {
-            m.generate_creature(random_, creature_factory_, *skeleton_def);
+            generate_creature(random_, m, creature_factory_, skeleton_id);
         } else {
-            m.generate_creature(random_, creature_factory_, *zombie_def);
+            generate_creature(random_, m, creature_factory_, zombie_id);
         }
         
-        m.generate_item(random_, item_factory_, item_def {"item0"});
+        generate_item(random_, m, item_factory_, item_def {"item0"});
     }
 }
 

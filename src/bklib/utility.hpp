@@ -38,7 +38,7 @@ struct tagged_value {
     using value_type = T;
     using tag_type   = Tag;
 
-    explicit tagged_value(T const value) : value {value} { }
+    constexpr explicit tagged_value(T const value) : value {value} { }
 
     T value;
 };

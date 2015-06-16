@@ -151,24 +151,13 @@ private:
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
-class creature_factory {
-public:
-    creature create(random_state& random, creature_def const& def, bklib::ipoint2 p);
-private:
-    creature_instance_id::value_type next_id_;
-};
-
-using creature_map = bklib::spatial_map_2d<creature>;
-
-//--------------------------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------------------------
 class creature_dictionary {
 public:
     enum class load_from_file_t   {} static constexpr const load_from_file   {};
     enum class load_from_string_t {} static constexpr const load_from_string {};
 
     ~creature_dictionary();
+    creature_dictionary();
     creature_dictionary(bklib::utf8_string_view filename, load_from_file_t);
     creature_dictionary(bklib::utf8_string_view string, load_from_string_t);
 
@@ -176,9 +165,37 @@ public:
 
     creature_def const* operator[](creature_def_id id) const;
     creature_def const* operator[](uint32_t hash) const;
+
+    bool insert(creature_def def);
 private:
     std::unique_ptr<detail::creature_dictionary_impl> impl_;
 };
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
+class creature_factory {
+public:
+    creature_factory(creature_factory const&) = delete;
+    creature_factory& operator=(creature_factory const&) = delete;
+    creature_factory(creature_factory&&) = default;
+    creature_factory& operator=(creature_factory&&) = default;
+
+    explicit creature_factory(creature_dictionary& dic);
+    ~creature_factory();
+
+    creature create(random_state& random, creature_def_id def, bklib::ipoint2 p);
+    creature create(random_state& random, creature_def const& def, bklib::ipoint2 p);
+
+    creature_dictionary const& dictionary() const noexcept {
+        return dic_.get();
+    }
+private:
+    creature_instance_id::value_type next_id_;
+    std::reference_wrapper<creature_dictionary const> dic_;
+};
+
+using creature_map = bklib::spatial_map_2d<creature>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl

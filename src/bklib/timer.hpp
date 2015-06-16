@@ -20,6 +20,8 @@ public:
     using duration_t = std::chrono::microseconds;
 
     struct record_t {
+        record_t() = delete;
+
         id_t       id;
         duration_t duration;
         callback_t callback;

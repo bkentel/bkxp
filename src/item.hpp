@@ -31,11 +31,9 @@ enum class item_type : int16_t {
 struct item_def {
     using id_t = item_def_id;
 
-    explicit item_def(bklib::utf8_string id)
-      : id {bklib::hash_value(id)}
-      , id_string {std::move(id)}
-      , name {}
-      , description {}
+    explicit item_def(bklib::utf8_string id_string)
+      : id {bklib::hash_value(id_string)}
+      , id_string {std::move(id_string)}
     {
     }
 
@@ -43,6 +41,8 @@ struct item_def {
     bklib::utf8_string id_string;
     bklib::utf8_string name;
     bklib::utf8_string description;
+    bklib::utf8_string symbol;
+    bklib::utf8_string symbol_color;
 };
 
 //--------------------------------------------------------------------------------------------------

@@ -112,33 +112,40 @@ public:
     bool move_creature_by(creature_instance_id id, bklib::ivec2 v);
     bool move_creature_to(creature_instance_id id, bklib::ipoint2 p);
 
-    bool generate_creature(random_state& random, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
-    bool generate_creature(random_state& random, creature_factory& factory, creature_def const& def);
-    bool generate_item(random_state& random, item_factory& factory, item_def const& def);
+    //----------------------------------------------------------------------------------------------
+    //! @pre @p p must be a valid map position.
+    //----------------------------------------------------------------------------------------------
+    void place_item_at(item&& itm, item_def const& def, bklib::ipoint2 p);
+    void place_item_at(random_state& random, item_def const& def, item_factory& factory, bklib::ipoint2 p);
+
+    //----------------------------------------------------------------------------------------------
+    //! @pre @p p must be a valid map position.
+    //! @pre a creature must not already exist at @p p.
+    //----------------------------------------------------------------------------------------------
+    void place_creature_at(creature&& c, creature_def const& def, bklib::ipoint2 p);
+    void place_creature_at(random_state& random, creature_def const& def, creature_factory& factory, bklib::ipoint2 p);
 
     void update_render_data(bklib::ipoint2 p);
     void update_render_data(int x, int y);
     void update_render_data();
 
-    item_pile remove_items_at(bklib::ipoint2 const p) {
-        return items_.remove(p);
-    }
+    //----------------------------------------------------------------------------------------------
+    //! @pre @p p must be a valid map position.
+    //! @pre an item must exist at @p p.
+    //----------------------------------------------------------------------------------------------
+    item_pile remove_items_at(bklib::ipoint2 p);
 
-    item_pile* items_at(bklib::ipoint2 const p) {
-        return items_.at(p);
-    }
+    //----------------------------------------------------------------------------------------------
+    //! @pre @p p must be a valid map position.
+    //! @pre a creature must exist at @p p.
+    //----------------------------------------------------------------------------------------------
+    creature remove_creature_at(bklib::ipoint2 p);
 
-    item_pile const* items_at(bklib::ipoint2 const p) const {
-        return items_.at(p);
-    }
+    item_pile*       items_at(bklib::ipoint2 p);
+    item_pile const* items_at(bklib::ipoint2 p) const;
 
-    creature const* creature_at(bklib::ipoint2 const p) const {
-        return creatures_.at(p);
-    }
-
-    creature* creature_at(bklib::ipoint2 const p) {
-        return creatures_.at(p);
-    }
+    creature*       creature_at(bklib::ipoint2 p);
+    creature const* creature_at(bklib::ipoint2 p) const;
 
     bklib::irect bounds() const noexcept {
         return {0, 0, size_chunk, size_chunk};
@@ -208,6 +215,12 @@ private:
         std::array<uint8_t, 4> color;
     };
 
+    struct item_render_data_t {
+        int16_t x, y;
+        uint16_t base_index;
+        std::array<uint8_t, 4> color;
+    };
+
     chunk_t<terrain_entry> terrain_entries_;
     chunk_t<terrain_render_data_t> terrain_render_data_;
 
@@ -215,8 +228,26 @@ private:
     item_map     items_;
 
     std::vector<creature_render_data_t> creature_render_data_;
+    std::vector<item_render_data_t>     item_render_data_;
 };
 
+//----------------------------------------------------------------------------------------------
+//! @pre @p p lies within the bounds of the map @p m
+//! @return true if generation succeeded, false otherwise. 
+//----------------------------------------------------------------------------------------------
+bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def_id def, bklib::ipoint2 p);
+bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def_id def);
+bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
+bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def const& def);
+
+//----------------------------------------------------------------------------------------------
+//! @pre @p p lies within the bounds of the map @p m.
+//! @return true if generation succeeded, false otherwise. 
+//----------------------------------------------------------------------------------------------
+bool generate_item(random_state& random, map& m, item_factory& factory, item_def_id def, bklib::ipoint2 p);
+bool generate_item(random_state& random, map& m, item_factory& factory, item_def_id def);
+bool generate_item(random_state& random, map& m, item_factory& factory, item_def const& def, bklib::ipoint2 p);
+bool generate_item(random_state& random, map& m, item_factory& factory, item_def const& def);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl
