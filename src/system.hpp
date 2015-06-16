@@ -26,10 +26,12 @@ struct mouse_state {
         return !!(state & (1 << shift));
     }
 
-    int x;
-    int y;
-    int dx;
-    int dy;
+    int x;  //!< Absolute x position
+    int y;  //!< Absolute y position
+    int dx; //!< Relative x motion
+    int dy; //!< Relative x motion
+    int sx; //!< Relative horizontal scroll
+    int sy; //!< Relative vertical scroll
 
     uint32_t state;
     uint32_t timestamp;
@@ -85,6 +87,8 @@ public:
     std::function<void (mouse_state)> on_mouse_motion;
     //! Mouse position update (x, y)
     std::function<void (mouse_state)> on_mouse_move;
+    //! Mouse position update (x, y)
+    std::function<void (mouse_state)> on_mouse_scroll;
 private:
     std::unique_ptr<detail::system_impl> impl_;
 };
