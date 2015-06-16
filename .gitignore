@@ -230,3 +230,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 SDL2.dll
+*.coverage
