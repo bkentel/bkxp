@@ -12,9 +12,7 @@ TEST_CASE("flag_set") {
     using flag_set = bklib::flag_set<test_enum>;
 
     static_assert(sizeof(flag_set) == 4, "");
-    static_assert(std::is_trivial<flag_set>::value, "");
     static_assert(std::is_standard_layout<flag_set>::value, "");
-    static_assert(std::is_pod<flag_set>::value, "");
 
     flag_set fs {};
     auto const all_flags = {

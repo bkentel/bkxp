@@ -10,6 +10,8 @@
 
 #include <array>
 #include <bitset>
+#include <vector>
+#include <functional>
 #include <cstdint>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,6 +113,9 @@ public:
     bool move_creature_to(creature& c, bklib::ipoint2 p);
     bool move_creature_by(creature_instance_id id, bklib::ivec2 v);
     bool move_creature_to(creature_instance_id id, bklib::ipoint2 p);
+
+    creature const* find_creature(std::function<bool (creature const&)> const& predicate) const;
+    creature* find_creature(std::function<bool (creature const&)> const& predicate);
 
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.

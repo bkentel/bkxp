@@ -27,6 +27,9 @@ public:
     void render();
     void advance();
 
+    creature& get_player();
+    creature const& get_player() const;
+
     void display_message(bklib::utf8_string_view msg);
 
     void on_mouse_over(int x, int y);
@@ -47,6 +50,8 @@ public:
     void on_get();
     void do_get();
 
+    void do_wait(int turns);
+
     void do_move(bklib::ivec3 v);
     void on_move(bklib::ivec3 v);
 
@@ -66,7 +71,6 @@ private:
     creature_factory    creature_factory_;
     item_factory        item_factory_;
     map                 current_map_;
-    creature            player_;
 
     bklib::ipoint2 mouse_last_pos_ {0, 0};
 

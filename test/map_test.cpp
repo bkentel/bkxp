@@ -3,7 +3,7 @@
 
 #include "map.hpp"
 
-TEST_CASE("map generate_creature", "[map][creature][bkrl]") {
+TEST_CASE("map creatures", "[map][creature][bkrl]") {
     bkrl::random_state random;
     bkrl::map map;
     bkrl::creature_dictionary dic;
@@ -11,11 +11,30 @@ TEST_CASE("map generate_creature", "[map][creature][bkrl]") {
     
     bkrl::creature_def const cdef {"test"};
     
+    bklib::ipoint2 const p {10, 10};
+
     REQUIRE(dic.insert(cdef));
 
-    SECTION("generate at same location") {
-        bklib::ipoint2 const p {10, 10};
+    SECTION("add, find and remove creature") {
+        REQUIRE(!map.creature_at(p));
+        REQUIRE(generate_creature(random, map, factory, cdef, p));
+        REQUIRE(map.creature_at(p));
 
+        auto const ptr = map.find_creature([&](bkrl::creature const& c) {
+            return c.position() == p;
+        });
+
+        REQUIRE(ptr);
+        REQUIRE(ptr->position() == p);
+        REQUIRE(ptr->def() == cdef.id);
+
+        auto const c = map.remove_creature_at(p);
+        REQUIRE(c.position() == p);
+        REQUIRE(ptr->def() == cdef.id);
+        REQUIRE(!map.creature_at(p));
+    }
+
+    SECTION("generate at same location") {
         REQUIRE(!map.creature_at(p));
         REQUIRE(generate_creature(random, map, factory, cdef, p));
         
@@ -26,7 +45,7 @@ TEST_CASE("map generate_creature", "[map][creature][bkrl]") {
     }
 }
 
-TEST_CASE("map generate_item", "[map][item][bkrl]") {
+TEST_CASE("map items", "[map][item][bkrl]") {
     bkrl::random_state random;
     bkrl::item_factory factory;
     bkrl::map map;
