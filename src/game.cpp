@@ -48,6 +48,14 @@ bkrl::game::game()
         }
     };
 
+    system_.on_mouse_scroll = [&](mouse_state const m) {
+        if (m.sy > 0) {
+            on_zoom(0.1, 0.1);
+        } else if (m.sy < 0) {
+            on_zoom(-0.1, -0.1);
+        }
+    };
+
     ////
 
     using namespace std::chrono_literals;

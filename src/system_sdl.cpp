@@ -185,6 +185,7 @@ bkrl::detail::system_impl::system_impl(system* const sys)
     sys_->on_key_down      = [](int) { };
     sys_->on_mouse_motion  = [](mouse_state) { };
     sys_->on_mouse_move    = [](mouse_state) { };
+    sys_->on_mouse_scroll  = [](mouse_state) { };
 }
 
 //----------------------------------------------------------------------------------------------
@@ -229,6 +230,9 @@ void bkrl::detail::system_impl::do_events(bool const wait)
             break;
         case SDL_WINDOWEVENT :
             handle_window_(event.window);
+            break;
+        case SDL_MOUSEWHEEL :
+            handle_mouse_wheel_(event.wheel);
             break;
         case SDL_MOUSEMOTION :
             handle_mouse_motion_(event.motion);
@@ -285,17 +289,33 @@ void bkrl::detail::system_impl::handle_keyboard_(SDL_KeyboardEvent const& event)
 }
 
 //----------------------------------------------------------------------------------------------
+void bkrl::detail::system_impl::handle_mouse_wheel_(SDL_MouseWheelEvent const& event)
+{
+    mouse_state const state {
+        last_mouse_.x, last_mouse_.y
+      , 0, 0
+      , event.x, event.y
+      , last_mouse_.state
+      , event.timestamp
+    };
+
+    sys_->on_mouse_scroll(state);
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::system_impl::handle_mouse_motion_(SDL_MouseMotionEvent const& event)
 {
     mouse_state const state {
         event.x, event.y
       , event.xrel, event.yrel
+      , 0, 0
       , event.state
       , event.timestamp
     };
 
     sys_->on_mouse_motion(state);
-    //sys_->on_mouse_move(event.x, event.y, state);
+    
+    last_mouse_ = state;
 }
 
 //----------------------------------------------------------------------------------------------

@@ -140,12 +140,14 @@ public:
 private:
     void handle_keyboard_(SDL_KeyboardEvent const& event);
     void handle_mouse_motion_(SDL_MouseMotionEvent const& event);
+    void handle_mouse_wheel_(SDL_MouseWheelEvent const& event);
     void handle_window_(SDL_WindowEvent const& event);
 
-    system*    sys_ = nullptr;
-    sdl_state  sdl_;
-    sdl_window window_;
-    bool       is_running_ = true;
+    system*     sys_ = nullptr;
+    sdl_state   sdl_;
+    sdl_window  window_;
+    mouse_state last_mouse_ {};
+    bool        is_running_ = true;
 };
 
 } // namespace bkrl
