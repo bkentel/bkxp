@@ -84,6 +84,10 @@ void bkrl::creature::draw(renderer& render) const
 //--------------------------------------------------------------------------------------------------
 void bkrl::creature::advance(random_state& random, map& m)
 {
+    if (is_player()) {
+        return;
+    }
+
     auto& rnd = random[random_stream::creature];
     
     if (!x_in_y_chance(rnd, 1, 3)) {
@@ -165,6 +169,9 @@ bkrl::creature::creature(
 ) : id_  {id}
   , def_ {def.id}
   , pos_ {p}
+  , stats_ {}
+  , items_ {}
+  , flags_ {def.flags}
 {
 }
 

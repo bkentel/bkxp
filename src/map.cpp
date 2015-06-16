@@ -128,6 +128,20 @@ bool bkrl::map::move_creature_to(
 }
 
 //--------------------------------------------------------------------------------------------------
+bkrl::creature const* bkrl::map::find_creature(
+    std::function<bool (creature const&)> const& predicate
+) const {
+    return const_cast<map*>(this)->find_creature(predicate);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature* bkrl::map::find_creature(
+    std::function<bool (creature const&)> const& predicate
+) {
+    return creatures_.find(predicate);
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::map::place_item_at(
     item&&               itm
   , item_def const&      def

@@ -17,7 +17,6 @@ bkrl::game::game()
   , creature_factory_(creature_dictionary_)
   , item_factory_()
   , current_map_()
-  , player_(creature_factory_.create(random_, creature_def {"player"}, bklib::ipoint2 {0, 0}))
 
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
@@ -52,7 +51,7 @@ bkrl::game::game()
     ////
 
     using namespace std::chrono_literals;
-    timer_message_log_ = timer_.add(5s, [&](auto& timer_record) {
+    timer_message_log_ = timer_.add(1s, [&](auto& timer_record) {
         message_log_.show(message_log::show_type::less);
     });
 
@@ -91,6 +90,13 @@ void bkrl::game::generate_map()
         
         generate_item(random_, m, item_factory_, item_def {"item0"});
     }
+
+    creature_def def {"player"};
+    def.flags.set(creature_flag::is_player);
+    def.symbol.assign("@");
+
+    bklib::ipoint2 const p {0, 0};
+    m.place_creature_at(creature_factory_.create(random_, def, p), def, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -105,7 +111,6 @@ void bkrl::game::render()
     renderer_.set_translation(x(trans), y(trans));
 
     current_map_.draw(renderer_, view_);
-    player_.draw(renderer_);   
 
     test_layout_.draw(renderer_);
     message_log_.draw(renderer_);
@@ -117,6 +122,20 @@ void bkrl::game::render()
 void bkrl::game::advance()
 {
     current_map_.advance(random_);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature& bkrl::game::get_player()
+{
+    return *current_map_.find_creature([&](creature const& c) {
+        return c.is_player();
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature const& bkrl::game::get_player() const
+{
+    return const_cast<game*>(this)->get_player();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -279,7 +298,9 @@ void bkrl::game::on_open_close(command_type const type)
 {
     BK_PRECONDITION(type == command_type::open || type == command_type::close);
 
-    auto const p = player_.position();
+    auto& player = get_player();
+
+    auto const p = player.position();
     auto const state = (type == command_type::open)
         ? door::state::closed : door::state::open;
 
@@ -356,21 +377,30 @@ void bkrl::game::on_get()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_get()
 {
-    auto const p = player_.position();
+    auto& player = get_player();
+    auto const p = player.position();
 
     if (item_pile* const pile = current_map_.items_at(p)) {
-        if (!player_.can_get_items(*pile)) {
+        if (!player.can_get_items(*pile)) {
             return;
         }
 
-        player_.get_items(current_map_.remove_items_at(p));
+        player.get_items(current_map_.remove_items_at(p));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_wait(int const turns)
+{
+    for (int i = turns; i > 0; --i) {
+        advance();
     }
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    if (current_map_.move_creature_by(player_, bklib::truncate<2>(v))) {
+    if (current_map_.move_creature_by(get_player(), bklib::truncate<2>(v))) {
         advance();
     }
 }
@@ -378,7 +408,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_move(bklib::ivec3 const v)
 {
-    printf("on_move %d %d\n", x(v), y(v));
+    BK_PRECONDITION(x(v) || y(v) && !z(v));
     do_move(v);
 }
 
@@ -390,6 +420,8 @@ void bkrl::game::on_command(command const& cmd)
         on_zoom(cmd.data0, cmd.data0);
         break;
     case command_type::dir_here:
+        do_wait(1);
+        break;
     case command_type::dir_north:
     case command_type::dir_south:
     case command_type::dir_east:

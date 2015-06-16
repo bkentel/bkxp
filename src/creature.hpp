@@ -8,6 +8,7 @@
 #include "bklib/string.hpp"
 #include "bklib/hash.hpp"
 #include "bklib/spatial_map.hpp"
+#include "bklib/flag_set.hpp"
 
 #include <vector>
 #include <bitset>
@@ -36,33 +37,7 @@ enum class creature_flag : unsigned {
   , enum_size
 };
 
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-class creature_flags {
-public:
-    creature_flags() = default;
-
-    void set(creature_flag const flag) noexcept {
-        flags_.set(value_of_(flag));
-    }
-
-    bool test(creature_flag const flag) const noexcept{
-        return flags_.test(value_of_(flag));
-    }
-
-    void clear(creature_flag const flag) noexcept {
-        flags_.reset(value_of_(flag));
-    }
-private:
-    static size_t value_of_(creature_flag const flag) noexcept {
-        auto const result = static_cast<size_t>(flag);
-        BK_PRECONDITION(result < static_cast<size_t>(creature_flag::enum_size));
-        return result;
-    }
-
-    std::bitset<static_cast<size_t>(creature_flag::enum_size)> flags_;
-};
+using creature_flags = bklib::flag_set<creature_flag>;
 
 //--------------------------------------------------------------------------------------------------
 //! The "template" to create an instance of a creature.

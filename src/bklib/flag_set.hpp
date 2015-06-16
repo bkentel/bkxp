@@ -67,7 +67,7 @@ struct flag_set_base {
         return result;
     }
 
-    T flags;
+    T flags {};
 };
 
 } //namespace detail
