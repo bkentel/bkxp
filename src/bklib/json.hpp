@@ -23,19 +23,19 @@ struct json_parser_base {
     bool Null() {
         return get_handler()->on_null();
     }
-    
+
     bool Bool(bool const b) {
         return get_handler()->on_bool(b);
     }
-    
+
     bool Int(int const i) {
         return get_handler()->on_int(i);
     }
-    
+
     bool Uint(unsigned const u) {
         return get_handler()->on_uint(u);
     }
-    
+
     bool Int64(int64_t const i) {
         return get_handler()->on_int64(i);
     }
@@ -77,7 +77,7 @@ struct json_parser_base {
     json_parser_base* handler {this};  //!< handler to use
     json_parser_base* parent  {};      //!< parser that owns / uses this; used by on_finished.
     bool              default {false}; //!< the default value to use for unhandled data / state.
-private: 
+private:
     //----------------------------------------------------------------------------------------------
     virtual bool on_null()                               { return default; }
     virtual bool on_bool(bool)                           { return default; }
@@ -92,7 +92,7 @@ private:
     virtual bool on_end_object(size_type)                { return default; }
     virtual bool on_start_array()                        { return default; }
     virtual bool on_end_array(size_type)                 { return default; }
-    
+
     //----------------------------------------------------------------------------------------------
     //! Find the deepest handler type.
     //----------------------------------------------------------------------------------------------
@@ -113,11 +113,11 @@ struct json_string_parser final : public json_parser_base {
     using json_parser_base::json_parser_base;
 
     //----------------------------------------------------------------------------------------------
-    bool on_string(const char* const str, size_type const len, bool) override final {       
+    bool on_string(const char* const str, size_type const len, bool) override final {
         if (out) {
             out->assign(str, len);
         }
-        
+
         if (parent) {
             return parent->on_finished();
         }

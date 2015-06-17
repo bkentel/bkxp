@@ -53,7 +53,7 @@ int bklib::timer::size() const noexcept
 int bklib::timer::update()
 {
     BK_PRECONDITION(!updating_);
-    
+
     int result = 0;
     updating_ = true;
     BK_SCOPE_EXIT {updating_ = false; };
@@ -81,7 +81,7 @@ int bklib::timer::update()
         } else {
             auto old = std::move(data);
             records_.erase(it);
-            
+
             updating_ = false;
             add_(now, std::move(old));
             updating_ = true;

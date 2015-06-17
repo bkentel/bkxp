@@ -11,7 +11,7 @@ using json_select_handler_t = std::function<bklib::json_parser_base* (bklib::utf
 using json_on_finish_def_t  = std::function<bool ()>;
 
 //--------------------------------------------------------------------------------------------------
-//! 
+//!
 //--------------------------------------------------------------------------------------------------
 void json_parse_definitions(
     bklib::utf8_string_view json_data

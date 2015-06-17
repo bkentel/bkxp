@@ -39,7 +39,7 @@ void bkrl::system::do_events_nowait() {
 void bkrl::system::do_events_wait() {
     impl_->do_events(true);
 }
-    
+
 //----------------------------------------------------------------------------------------------
 void bkrl::system::delay(std::chrono::nanoseconds const ns)
 {

@@ -95,7 +95,7 @@ void bkrl::game::generate_map()
         } else {
             generate_creature(random_, m, creature_factory_, zombie_id);
         }
-        
+
         generate_item(random_, m, item_factory_, item_def {"item0"});
     }
 
@@ -149,7 +149,7 @@ bkrl::creature const& bkrl::game::get_player() const
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::display_message(bklib::utf8_string_view const msg) {
     printf("%s\n", msg.data());
-    
+
     timer_.reset(timer_message_log_);
     message_log_.println(msg);
 }
@@ -312,7 +312,7 @@ void bkrl::game::on_open_close(command_type const type)
     auto const state = (type == command_type::open)
         ? door::state::closed : door::state::open;
 
-    auto const candidates = current_map_.find_around(p, find_door(state));   
+    auto const candidates = current_map_.find_around(p, find_door(state));
 
     //
     // Nothing to do.
@@ -323,10 +323,10 @@ void bkrl::game::on_open_close(command_type const type)
         } else if (type == command_type::close) {
             display_message("There is nothing here to close.");
         }
-        
+
         return;
     }
-    
+
     //
     // Ok.
     //

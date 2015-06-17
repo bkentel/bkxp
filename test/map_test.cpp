@@ -8,9 +8,9 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
     bkrl::map map;
     bkrl::creature_dictionary dic;
     bkrl::creature_factory factory {dic};
-    
+
     bkrl::creature_def const cdef {"test"};
-    
+
     bklib::ipoint2 const p {10, 10};
 
     REQUIRE(dic.insert(cdef));
@@ -37,10 +37,10 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
     SECTION("generate at same location") {
         REQUIRE(!map.creature_at(p));
         REQUIRE(generate_creature(random, map, factory, cdef, p));
-        
+
         auto const ptr = map.creature_at(p);
         REQUIRE(ptr);
-        REQUIRE(!generate_creature(random, map, factory, cdef, p));      
+        REQUIRE(!generate_creature(random, map, factory, cdef, p));
         REQUIRE(ptr->def() == cdef.id);
     }
 }
@@ -65,7 +65,7 @@ TEST_CASE("map items", "[map][item][bkrl]") {
 
         REQUIRE(!ptr->empty());
         REQUIRE(std::distance(ptr->begin(), ptr->end()) == 2);
-        
+
         auto it = std::begin(*ptr);
         REQUIRE(it->def() == idef1.id);
         REQUIRE((++it)->def() == idef0.id);

@@ -62,7 +62,7 @@ struct def_parser final : bklib::json_parser_base {
         state_ = state::expect_object;
         return true;
     }
-    
+
     //----------------------------------------------------------------------------------------------
     bool on_end_array(size_type const) override final {
         handler = this;
@@ -85,7 +85,7 @@ struct def_parser final : bklib::json_parser_base {
         if (key_ == key::none) {
             return true;
         }
-        
+
         if (key_ != key::definitions) {
             return default;
         }
@@ -100,11 +100,11 @@ struct def_parser final : bklib::json_parser_base {
 
         return true;
     }
-    
+
     //----------------------------------------------------------------------------------------------
-    bool on_key(const char* const str, size_type const len, bool const) override final {               
+    bool on_key(const char* const str, size_type const len, bool const) override final {
         auto const key_from_hash = static_cast<key>(bklib::djb2_hash(str, str + len));
-        
+
         switch (key_from_hash) {
         case key::file_type   : state_ = state::expect_string; break;
         case key::definitions : state_ = state::expect_array;  break;
@@ -115,7 +115,7 @@ struct def_parser final : bklib::json_parser_base {
         key_ = key_from_hash;
         return true;
     }
-    
+
     //----------------------------------------------------------------------------------------------
     bool on_end_object(size_type const) override final {
         handler = this;

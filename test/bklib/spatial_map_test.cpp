@@ -44,7 +44,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
             auto const ptr = map.find(find_by_id(i));
             REQUIRE(!!ptr);
             REQUIRE(ptr->id.value == i);
-            
+
             auto const& p = ptr->pos;
             REQUIRE(x(p) == index_to_point_x(i));
             REQUIRE(y(p) == index_to_point_y(i));

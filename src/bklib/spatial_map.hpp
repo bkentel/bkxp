@@ -25,7 +25,7 @@ public:
     T& insert(point_t p, T&& data) {
         auto const i = static_cast<int>(data_.size());
         data_.emplace_back(std::move(data));
-        
+
         sorted_.emplace_back(std::make_pair(std::move(p), i));
         sort_();
 

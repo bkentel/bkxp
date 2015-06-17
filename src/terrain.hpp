@@ -40,7 +40,7 @@ struct terrain_data_base { };
 struct terrain_entry {
     //!< Terrain specific data. e.g. the data needed to track the state of a door.
     uint64_t data;
-    
+
     //!<
     terrain_flags flags;   //!< Current flags
     terrain_type  type;
@@ -100,7 +100,7 @@ struct door : terrain_data_base {
 
     struct data_t {
         uint8_t flags;
-        uint8_t unused[7];       
+        uint8_t unused[7];
     } data;
 };
 

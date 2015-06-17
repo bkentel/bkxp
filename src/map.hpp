@@ -176,12 +176,12 @@ public:
         int y;
         std::bitset<9> valid;
     };
-    
+
     template <typename Predicate>
     find_around_result find_around(bklib::ipoint2 const& p, Predicate&& pred) const {
         constexpr int const dx[] = {-1,  0,  1, -1,  0,  1, -1,  0,  1};
         constexpr int const dy[] = {-1, -1, -1,  0,  0,  0,  1,  1,  1};
-        
+
         find_around_result result {};
 
         auto const x0 = x(p);
@@ -238,7 +238,7 @@ private:
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m
-//! @return true if generation succeeded, false otherwise. 
+//! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
 bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def_id def, bklib::ipoint2 p);
 bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def_id def);
@@ -247,7 +247,7 @@ bool generate_creature(random_state& random, map& m, creature_factory& factory, 
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m.
-//! @return true if generation succeeded, false otherwise. 
+//! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
 bool generate_item(random_state& random, map& m, item_factory& factory, item_def_id def, bklib::ipoint2 p);
 bool generate_item(random_state& random, map& m, item_factory& factory, item_def_id def);

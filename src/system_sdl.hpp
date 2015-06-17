@@ -30,7 +30,7 @@ public:
       : handle_(create_())
     {
     }
-    
+
     ~sdl_window() = default;
 
     SDL_Window* handle()       noexcept { return handle_.get(); }
@@ -127,7 +127,7 @@ public:
     bklib::ipoint2 client_size() const;
     int client_width() const;
     int client_height() const;
-    
+
     void quit();
 
     bool is_running() const noexcept {
@@ -135,7 +135,7 @@ public:
     }
 
     void do_events(bool wait);
-    
+
     void delay(std::chrono::nanoseconds ns);
 private:
     void handle_keyboard_(SDL_KeyboardEvent const& event);

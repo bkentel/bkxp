@@ -6,7 +6,7 @@
 
 TEST_CASE("flag_set") {
     enum class test_enum : uint32_t {
-        flag_1, flag_2, flag_3, flag_4, flag_5, 
+        flag_1, flag_2, flag_3, flag_4, flag_5,
     };
 
     using flag_set = bklib::flag_set<test_enum>;
@@ -38,7 +38,7 @@ TEST_CASE("flag_set") {
 
     SECTION("set and test") {
         fs.set(test_enum::flag_4);
-        
+
         REQUIRE(fs.test(test_enum::flag_4));
         REQUIRE(fs.any());
         REQUIRE(fs.any_of(all_flags));
@@ -49,7 +49,7 @@ TEST_CASE("flag_set") {
     SECTION("set, clear, test") {
         fs.set(test_enum::flag_4);
         fs.clear(test_enum::flag_4);
-        
+
         REQUIRE(!fs.test(test_enum::flag_4));
         REQUIRE(!fs.any());
         REQUIRE(!fs.any_of(all_flags));

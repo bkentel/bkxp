@@ -63,7 +63,7 @@ bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
     }
 
     auto const& ter = at(q);
-    
+
     switch (ter.type) {
     case terrain_type::empty:
     case terrain_type::floor:
@@ -244,7 +244,7 @@ void bkrl::map::fill(bklib::irect r, terrain_type const value, terrain_type cons
     for (int y = r.top; y < r.bottom; ++y) {
         for (int x = r.left; x < r.right; ++x) {
             auto& cell = at(x, y);
-            
+
             if (y == r.top  || y == r.bottom - 1
              || x == r.left || x == r.right - 1
             ) {

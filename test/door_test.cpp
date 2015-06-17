@@ -14,7 +14,7 @@ TEST_CASE("door from terrain", "[door][bkrl]") {
     bkrl::terrain_entry const e {1, bkrl::terrain_flags::none, bkrl::terrain_type::door, 0};
 
     bkrl::door d {e};
-    
+
     SECTION("initial state") {
         REQUIRE(d.is_open());
         REQUIRE(!d.is_closed());

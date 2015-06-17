@@ -32,7 +32,7 @@ public:
     void center_on_world(int const x, int const y) noexcept {
         scroll_x_ = window_w_ / 2.0 + (x - 0.5) * tile_w_ * zoom_x_;
         scroll_y_ = window_h_ / 2.0 + (y - 0.5) * tile_h_ * zoom_y_;
-    }  
+    }
 
     //----------------------------------------------------------------------------------------------
     template <typename Result = void, typename T>
@@ -56,7 +56,7 @@ public:
 
         return {static_cast<int>(xt), static_cast<int>(yt)};
     }
-    
+
     //----------------------------------------------------------------------------------------------
     bklib::irect screen_to_world(bklib::irect const r) const noexcept {
         auto const tl = screen_to_world(r.left,  r.top);

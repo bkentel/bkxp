@@ -241,7 +241,7 @@ inline bool operator<(point_t<D, T> const p, point_t<D, T> const q) noexcept {
 template <unsigned D, typename T>
 inline point_t<D, T>& operator+(point_t<D, T> const p, vector_t<D, T> const v) noexcept {
     auto q = p;
-    return q += v;   
+    return q += v;
 }
 
 template <unsigned D, typename T>
@@ -320,7 +320,7 @@ inline bool intersects(point_t<2, T> const p, rect_t<T> const r) noexcept {
 template <unsigned D1, unsigned D0, typename T, typename Tag>
 inline auto truncate(tuple_base_t<Tag, D0, T> const& value) noexcept {
     static_assert(D1 < D0, "bad dimension");
-    
+
     tuple_base_t<Tag, D1, T> result;
     for (size_t i = 0; i < D1; ++i) {
         result.data[i] = value.data[i];

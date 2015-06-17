@@ -84,7 +84,7 @@ public:
         if ((w > h) && ((p_.aspect.den * w) > (p_.aspect.num * h))) {
             return split_type::vertical;
         }
-        
+
         if ((h > w) && ((p_.aspect.den * h) > (p_.aspect.num * w))) {
             return split_type::horizonal;
         }
@@ -93,8 +93,8 @@ public:
     }
 
     int get_split_point(random_t& gen, int const n, int const min) {
-        BK_ASSERT(n >= min * 2);  
-    
+        BK_ASSERT(n >= min * 2);
+
         auto const split = static_cast<int>(std::lround(((2 + split_dist_(gen)) * n) / 4));
         return bklib::clamp(min, split, n - min);
     }
@@ -148,7 +148,7 @@ public:
         nodes_.emplace_back(i, bklib::irect {n.left, y0, n.right, y1});
         nodes_.emplace_back(i, bklib::irect {n.left, y1, n.right, y2});
     }
-    
+
     //----------------------------------------------------------------------------------------------
     void split_vert(random_t& gen, size_t const i) {
         auto const n = nodes_[i].set_children(nodes_.size()).bounds();

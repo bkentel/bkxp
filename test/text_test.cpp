@@ -5,7 +5,7 @@
 
 TEST_CASE("text rendering", "[text][graphics]") {
     bkrl::text_renderer trender;
-    
+
     bkrl::text_layout layout {trender, "This is a test string.", 10, 10, 100, 100};
 }
 

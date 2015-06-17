@@ -39,7 +39,7 @@ bkrl::sdl_window::handle_t bkrl::sdl_window::create_()
 bkrl::detail::renderer_impl::handle_t bkrl::detail::renderer_impl::create_(sdl_window const& w)
 {
     auto const result = SDL_CreateRenderer(w.handle(), -1, SDL_RENDERER_ACCELERATED);
-    
+
     if (!result) {
         BOOST_THROW_EXCEPTION(bklib::platform_error {}
           << boost::errinfo_api_function {"SDL_CreateRenderer"});
@@ -112,7 +112,7 @@ void bkrl::detail::renderer_impl::present() {
 //----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::set_active_texture(renderer::texture const tex)
 {
-    
+
 }
 
 //----------------------------------------------------------------------------------------------
@@ -193,7 +193,7 @@ bklib::ipoint2 bkrl::detail::system_impl::client_size() const
 {
     int w {0};
     int h {0};
-    
+
     SDL_GetWindowSize(window_.handle(), &w, &h);
 
     return {w, h};
@@ -314,7 +314,7 @@ void bkrl::detail::system_impl::handle_mouse_motion_(SDL_MouseMotionEvent const&
     };
 
     sys_->on_mouse_motion(state);
-    
+
     last_mouse_ = state;
 }
 

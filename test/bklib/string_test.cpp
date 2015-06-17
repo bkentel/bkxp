@@ -8,7 +8,7 @@
 TEST_CASE("default constructed string hashes", "[bklib][string]") {
     bklib::string_id<struct tag_test> id;
 
-    REQUIRE(id.hash == 0);   
+    REQUIRE(id.hash == 0);
     for (auto const& e : id.hash_string) {
         REQUIRE(e == 0);
     }

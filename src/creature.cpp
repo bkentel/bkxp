@@ -89,7 +89,7 @@ void bkrl::creature::advance(random_state& random, map& m)
     }
 
     auto& rnd = random[random_stream::creature];
-    
+
     if (!x_in_y_chance(rnd, 1, 3)) {
         return;
     }
@@ -218,7 +218,7 @@ public:
     creature_dictionary_impl() = default;
     creature_dictionary_impl(bklib::utf8_string_view filename, creature_dictionary::load_from_file_t);
     creature_dictionary_impl(bklib::utf8_string_view string, creature_dictionary::load_from_string_t);
-    
+
     int size() const noexcept;
 
     creature_def const* operator[](creature_def_id id) const;

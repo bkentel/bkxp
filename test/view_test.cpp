@@ -48,7 +48,7 @@ TEST_CASE("view <=> world transforms", "[math]") {
     SECTION("zoom, no scroll") {
         auto const zoom = 2.0;
         v.zoom_to(zoom);
-        
+
         for (int xi = 0; xi < tile_w; ++xi) {
             for (int yi = 0; yi < tile_h; ++yi) {
                 auto const xp = 100 + xi;

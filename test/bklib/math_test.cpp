@@ -26,7 +26,7 @@ TEST_CASE("intersections", "[bklib][math]") {
     constexpr int const bottom = 100;
 
     irect const a {left, top, right, bottom};
-    
+
     SECTION("a == b") {
         irect const b = a;
         auto const result = intersection(a, b);

@@ -58,13 +58,13 @@ public:
 
         handlers_.back()(cmd);
     }
-    
+
     void on_key_up(int key) {
     }
 
     void on_mouse_move_to(int x, int y) {
     }
-    
+
     void on_mouse_down(int x, int y, int button) {
     }
 
@@ -119,7 +119,7 @@ void bkrl::query_yn(
 ) {
     translator.push_handler([&translator, handler](command const& cmd) {
         auto result = query_result::more;
-        
+
         switch (cmd.type) {
         case command_type::yes:    result = handler(command_type::yes);     break;
         case command_type::no:     result = handler(command_type::no);      break;
@@ -141,7 +141,7 @@ void bkrl::query_dir(
 ) {
     translator.push_handler([&translator, handler](command const& cmd) {
         auto result = query_result::more;
-        
+
         switch (cmd.type) {
         case command_type::dir_here:
         case command_type::dir_north:
