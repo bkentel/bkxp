@@ -15,6 +15,20 @@
 #include "bklib/timer.hpp"
 
 namespace bkrl {
+
+template <typename T>
+inline decltype(auto) get_arg(T&& arg) noexcept {
+    return std::forward<T>(arg);
+}
+
+inline char const* get_arg(bklib::utf8_string const& s) noexcept {
+    return s.data();
+}
+
+inline char const* get_arg(bklib::utf8_string_view const s) noexcept {
+    return s.data();
+}
+
 //--------------------------------------------------------------------------------------------------
 // Game simulation state.
 //--------------------------------------------------------------------------------------------------
@@ -29,6 +43,17 @@ public:
 
     creature& get_player();
     creature const& get_player() const;
+
+    //TODO use a typesafe printf library for this
+    template <typename... Args>
+    void display_message(bklib::utf8_string_view const format, Args&&... args) {
+        char buffer[256];
+        auto const result =_snprintf_s(buffer, _TRUNCATE, format.data(), get_arg(std::forward<Args>(args))...);
+
+        BK_ASSERT(result >= 0);
+
+        display_message(bklib::utf8_string_view {buffer, static_cast<size_t>(result)});
+    }
 
     void display_message(bklib::utf8_string_view msg);
 
@@ -48,7 +73,7 @@ public:
     void do_open_close(bklib::ipoint2 p, command_type type);
 
     void on_get();
-    void do_get();
+    void do_get(creature& subject, bklib::ipoint2 where);
 
     void do_wait(int turns);
 

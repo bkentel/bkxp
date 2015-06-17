@@ -2,6 +2,7 @@
 #include "direction.hpp"
 
 #include "bklib/string.hpp"
+#include "bklib/scope_guard.hpp"
 
 //--------------------------------------------------------------------------------------------------
 bkrl::game::game()
@@ -379,22 +380,47 @@ void bkrl::game::on_open_close(command_type const type)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_get()
 {
-    do_get();
+    auto& player = get_player();
+    do_get(player, player.position());
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_get()
+void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
 {
-    auto& player = get_player();
-    auto const p = player.position();
+    BK_NAMED_SCOPE_EXIT(on_fail) {
+        display_message("There is nothing here to get.");
+    };
 
-    if (item_pile* const pile = current_map_.items_at(p)) {
-        if (!player.can_get_items(*pile)) {
-            return;
-        }
+    auto const p = subject.position();
 
-        player.get_items(current_map_.remove_items_at(p));
+    if (abs_max(where - p) > 1) {
+        return;
     }
+
+    item_pile* const pile = current_map_.items_at(where);
+    if (!pile) {
+        return;
+    }
+
+    on_fail.dismiss();
+
+    if (!subject.can_get_items(*pile)) {
+        return;
+    }
+
+    for (auto const& itm : *pile) {
+        if (auto const idef = item_dictionary_[itm.def()]) {
+            if (idef->name.empty()) {
+                display_message("You picked up the [%s].", idef->id_string);
+            } else {
+                display_message("You picked up the %s.", idef->name);
+            }
+        } else {
+            display_message("You picked up the %s.", "<UNKNOWN>");
+        }
+    }
+
+    subject.get_items(current_map_.remove_items_at(p));
 }
 
 //--------------------------------------------------------------------------------------------------

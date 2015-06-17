@@ -317,6 +317,67 @@ inline bool intersects(point_t<2, T> const p, rect_t<T> const r) noexcept {
 }
 
 //--------------------------------------------------------------------------------------------------
+template <unsigned D, typename T>
+inline auto distance2(point_t<D, T> const& u, point_t<D, T> const& v) noexcept {
+    T result {};
+
+    for (size_t i = 0; i < D; ++i) {
+        auto const delta = v.data[i] - u.data[i];
+        result += delta * delta;
+    }
+
+    return result;
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename Tag, unsigned D, typename T, typename F>
+inline decltype(auto) fold(tuple_base_t<Tag, D, T> const& n, F&& f)
+    noexcept (noexcept(f(n.data[0], n.data[0])))
+{
+    auto result = n.data[0];
+
+    for (size_t i = 1; i < D; ++i) {
+        result = f(result, n.data[i]);
+    }
+
+    return result;
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename Tag, unsigned D, typename T>
+inline decltype(auto) max(tuple_base_t<Tag, D, T> const& n) noexcept {
+    return fold(n, [](auto&& a, auto&& b) noexcept { return std::max(a, b); });
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename Tag, unsigned D, typename T>
+inline decltype(auto) min(tuple_base_t<Tag, D, T> const& n) noexcept {
+    return fold(n, [](auto&& a, auto&& b) noexcept { return std::min(a, b); });
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename Tag, unsigned D, typename T>
+inline decltype(auto) abs_max(tuple_base_t<Tag, D, T> const& n) noexcept {
+    return fold(n, [](auto&& a, auto&& b) noexcept {
+        return std::max(std::abs(a), std::abs(b));
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename Tag, unsigned D, typename T>
+inline decltype(auto) abs_min(tuple_base_t<Tag, D, T> const& n) noexcept {
+    return fold(n, [](auto&& a, auto&& b) noexcept {
+        return std::min(std::abs(a), std::abs(b));
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
+template <unsigned D, typename T>
+inline auto distance(point_t<D, T> const& u, point_t<D, T> const& v) noexcept {
+    return std::sqrt(distance2(u, v));
+}
+
+//--------------------------------------------------------------------------------------------------
 template <unsigned D1, unsigned D0, typename T, typename Tag>
 inline auto truncate(tuple_base_t<Tag, D0, T> const& value) noexcept {
     static_assert(D1 < D0, "bad dimension");

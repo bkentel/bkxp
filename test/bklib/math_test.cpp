@@ -3,6 +3,30 @@
 
 #include "bklib/math.hpp"
 
+TEST_CASE("distance", "[bklib][math]") {
+    bklib::ipoint3 const p {0, 0, 0};
+    bklib::ipoint3 const q {1, 1, 1};
+
+    auto const d = distance2(p, q);
+
+    REQUIRE(d == 3);
+    REQUIRE(distance(p, q) == std::sqrt(d));
+}
+
+TEST_CASE("min max element", "[bklib][math]") {
+    bklib::ipoint3 const p {-1, 0, 2};
+
+    static_assert(noexcept(max(p)), "");
+    static_assert(noexcept(min(p)), "");
+    static_assert(noexcept(abs_max(p)), "");
+    static_assert(noexcept(abs_min(p)), "");
+
+    REQUIRE(max(p) ==  2);
+    REQUIRE(min(p) == -1);
+    REQUIRE(abs_max(p) == 2);
+    REQUIRE(abs_min(p) == 0);
+}
+
 TEST_CASE("transform_float", "[bklib][math]") {
     using namespace bklib;
 
