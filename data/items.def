@@ -1,0 +1,22 @@
+{ "file_type": "items"
+, "definitions": [
+    { "id": "weapon_sword_short"
+    , "name": "short sword"
+    , "description": "A simple short sword."
+    , "symbol": "/"
+    , "symbol_color": "grey"
+    }
+  , { "id": "weapon_dagger"
+    , "name": "dagger"
+    , "description": "A simple dagger."
+    , "symbol": "/"
+    , "symbol_color": "grey"
+    }
+  , { "id": "armor_rags"
+    , "name": "torn rags"
+    , "description": "A set of frayed rags."
+    , "symbol": "["
+    , "symbol_color": "grey"
+    }
+  ]
+}

@@ -130,10 +130,22 @@ namespace detail { class item_dictionary_impl; }
 
 class item_dictionary {
 public:
+    enum class load_from_file_t   {} static constexpr const load_from_file   {};
+    enum class load_from_string_t {} static constexpr const load_from_string {};
+
     ~item_dictionary();
-    explicit item_dictionary(bklib::utf8_string_view filename);
+    item_dictionary();
+    item_dictionary(bklib::utf8_string_view filename, load_from_file_t);
+    item_dictionary(bklib::utf8_string_view string, load_from_string_t);
+
+    int size() const noexcept;
 
     item_def const* operator[](item_def_id id) const;
+    item_def const* operator[](uint32_t hash) const;
+
+    item_def const& random(random_state& random) const;
+
+    bool insert(item_def def);
 private:
     std::unique_ptr<detail::item_dictionary_impl> impl_;
 };
@@ -141,4 +153,3 @@ private:
 using item_map = bklib::spatial_map_2d<item_pile>;
 
 } //namespace bkrl
-

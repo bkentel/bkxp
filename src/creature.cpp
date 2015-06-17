@@ -230,6 +230,8 @@ public:
     creature_def const* operator[](creature_def_id id) const;
     creature_def const* operator[](uint32_t hash) const;
 
+    creature_def const& random(random_state& random) const;
+
     bool insert(creature_def&& def);
 private:
     void load_(bklib::utf8_string_view json);
@@ -304,6 +306,17 @@ bkrl::detail::creature_dictionary_impl::operator[](uint32_t const id) const
 }
 
 //--------------------------------------------------------------------------------------------------
+bkrl::creature_def const& bkrl::detail::creature_dictionary_impl::random(random_state& random) const
+{
+    BK_PRECONDITION(!defs_.empty());
+
+    auto& rnd = random[random_stream::creature];
+    auto const i = bkrl::random_range(rnd, 0, static_cast<int>(defs_.size()) - 1);
+
+    return defs_[i];
+}
+
+//--------------------------------------------------------------------------------------------------
 bool bkrl::detail::creature_dictionary_impl::insert(creature_def&& def) {
     defs_.push_back(std::move(def)); //TODO duplicates
     return true;
@@ -356,7 +369,14 @@ bkrl::creature_dictionary::operator[](uint32_t const hash) const
     return (*impl_)[hash];
 }
 
+//--------------------------------------------------------------------------------------------------
 bool bkrl::creature_dictionary::insert(creature_def def)
 {
     return impl_->insert(std::move(def));
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::creature_def const& bkrl::creature_dictionary::random(random_state& random) const
+{
+    return impl_->random(random);
 }

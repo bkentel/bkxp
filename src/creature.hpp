@@ -148,6 +148,8 @@ public:
     creature_def const* operator[](creature_def_id id) const;
     creature_def const* operator[](uint32_t hash) const;
 
+    creature_def const& random(random_state& random) const;
+
     bool insert(creature_def def);
 private:
     std::unique_ptr<detail::creature_dictionary_impl> impl_;
