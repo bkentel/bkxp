@@ -75,10 +75,16 @@ public:
     void on_get();
     void do_get(creature& subject, bklib::ipoint2 where);
 
+    void on_drop();
+    void do_drop(creature& subject, bklib::ipoint2 where);
+
     void do_wait(int turns);
 
     void do_move(bklib::ivec3 v);
     void on_move(bklib::ivec3 v);
+
+    void on_show_inventory();
+    void do_show_inventory();
 
     void on_command(command const& cmd);
 

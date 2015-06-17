@@ -123,6 +123,15 @@ public:
     void place_item_at(item&& itm, item_def const& def, bklib::ipoint2 p);
     void place_item_at(random_state& random, item_def const& def, item_factory& factory, bklib::ipoint2 p);
 
+    void place_items_at(item_pile&& pile, bklib::ipoint2 p);
+
+    template <typename Function>
+    void with_pile_at(bklib::ipoint2 const p, Function&& f) {
+        item_pile pile;
+        f(pile);
+        place_items_at(std::move(pile), p);
+    }
+
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
     //! @pre a creature must not already exist at @p p.
@@ -207,6 +216,8 @@ public:
         return result;
     }
 private:
+    void update_item_render_data_(bklib::ipoint2 p);
+
     struct terrain_render_data_t {
         uint16_t base_index;
         uint16_t unused0;

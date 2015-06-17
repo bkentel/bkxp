@@ -162,6 +162,12 @@ void bkrl::creature::get_items(item_pile&& ip)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::creature::drop_item(item_pile& dst, int const i)
+{
+    move_item(items_, dst, i);
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature::creature(
     creature_instance_id const  id
   , creature_def         const& def
