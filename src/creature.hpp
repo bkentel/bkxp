@@ -112,6 +112,13 @@ public:
 
     void get_item(item&& i);
     void get_items(item_pile&& ip);
+
+    void drop_item(item_pile& dst, int i = 0);
+    void drop_items(item_pile& dst);
+
+    item_pile const& item_list() const {
+        return items_;
+    }
 private:
     creature(creature_instance_id id, creature_def const& def, bklib::ipoint2 p);
 

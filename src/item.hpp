@@ -99,7 +99,7 @@ public:
 
     void move_item_to(item_pile& dst, int const index) {
         BK_PRECONDITION(index >= 0);
-        dst.items_.splice_after(dst.items_.before_begin(), items_, std::next(items_.begin(), index));
+        dst.items_.splice_after(dst.items_.before_begin(), items_, std::next(items_.before_begin(), index));
     }
 private:
     std::forward_list<item> items_;

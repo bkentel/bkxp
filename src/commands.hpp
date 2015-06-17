@@ -36,6 +36,7 @@ enum class command_type : int32_t {
   , open
   , close
   , drop
+  , show_inventory
   , get
 };
 

@@ -385,6 +385,26 @@ void bkrl::game::on_get()
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::game::on_drop()
+{
+    auto& player = get_player();
+    do_drop(player, player.position());
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
+{
+    if (subject.item_list().empty()) {
+        display_message("You have nothing to drop.");
+        return;
+    }
+
+    current_map_.with_pile_at(where, [&](item_pile& pile) {
+        subject.drop_item(pile);
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
 {
     BK_NAMED_SCOPE_EXIT(on_fail) {
@@ -447,6 +467,34 @@ void bkrl::game::on_move(bklib::ivec3 const v)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::game::on_show_inventory()
+{
+    do_show_inventory();
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_show_inventory()
+{
+    auto const& player = get_player();
+
+    char i = 0;
+    for (auto const& itm : player.item_list()) {
+        auto const& idef = item_dictionary_[itm.def()];
+        if (idef) {
+            if (!idef->name.empty()) {
+                display_message("[%c] %s", 'a' + i, idef->name);
+            } else {
+                display_message("[%c] [%s]", 'a' + i, idef->id_string);
+            }
+        } else {
+            display_message("[%c] <UNKNOWN>", 'a' + i);
+        }
+
+        ++i;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::on_command(command const& cmd)
 {
     switch (cmd.type) {
@@ -477,6 +525,12 @@ void bkrl::game::on_command(command const& cmd)
         break;
     case command_type::get:
         on_get();
+        break;
+    case command_type::drop:
+        on_drop();
+        break;
+    case command_type::show_inventory:
+        on_show_inventory();
         break;
     default:
         break;

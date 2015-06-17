@@ -158,7 +158,12 @@ void bkrl::map::place_item_at(
     }();
 
     pile.insert(std::move(itm));
+    update_item_render_data_(p);
+}
 
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::update_item_render_data_(bklib::ipoint2 const p)
+{
     auto const pos_x = static_cast<int16_t>(x(p));
     auto const pos_y = static_cast<int16_t>(y(p));
     auto const sym   = static_cast<uint16_t>('*');
@@ -187,6 +192,22 @@ void bkrl::map::place_item_at(
   , bklib::ipoint2 const p
 ) {
     place_item_at(factory.create(random, def), def, p);
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::place_items_at(item_pile&& pile, bklib::ipoint2 const p)
+{
+    if (auto const maybe_items = items_at(p)) {
+        move_items(pile, *maybe_items);
+        return;
+    }
+
+    if (pile.empty()) {
+        return;
+    }
+
+    items_.insert(p, std::move(pile));
+    update_item_render_data_(p);
 }
 
 //--------------------------------------------------------------------------------------------------

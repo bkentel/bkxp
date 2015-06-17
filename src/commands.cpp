@@ -48,11 +48,13 @@ public:
         case SDLK_KP_8:   cmd.type = command_type::dir_north;  break;
         case SDLK_KP_9:   cmd.type = command_type::dir_n_east; break;
         case SDLK_c:      cmd.type = command_type::close;      break;
+        case SDLK_d:      cmd.type = command_type::drop;       break;
         case SDLK_g:      cmd.type = command_type::get;        break;
         case SDLK_o:      cmd.type = command_type::open;       break;
         case SDLK_n:      cmd.type = command_type::no;         break;
         case SDLK_y:      cmd.type = command_type::yes;        break;
         case SDLK_q:      cmd.type = command_type::quit;       break;
+        case SDLK_i:      cmd.type = command_type::show_inventory; break;
         case SDLK_ESCAPE: cmd.type = command_type::cancel;     break;
         }
 
