@@ -14,7 +14,7 @@ bkrl::game::game()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
   , creature_dictionary_ {"./data/creatures.def", creature_dictionary::load_from_file}
-  , item_dictionary_ {"./data/items.def"}
+  , item_dictionary_ {"./data/items.def", item_dictionary::load_from_file}
   , creature_factory_(creature_dictionary_)
   , item_factory_()
   , current_map_()
@@ -91,13 +91,8 @@ void bkrl::game::generate_map()
     constexpr auto const zombie_id   = creature_def_id {bklib::static_djb2_hash("zombie")};
 
     for (int i = 0; i < 10; ++i) {
-        if (i % 2) {
-            generate_creature(random_, m, creature_factory_, skeleton_id);
-        } else {
-            generate_creature(random_, m, creature_factory_, zombie_id);
-        }
-
-        generate_item(random_, m, item_factory_, item_def {"item0"});
+        generate_creature(random_, m, creature_factory_, creature_dictionary_.random(random_));
+        generate_item(random_, m, item_factory_, item_dictionary_.random(random_));
     }
 
     creature_def def {"player"};
@@ -401,6 +396,16 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
 
     current_map_.with_pile_at(where, [&](item_pile& pile) {
         subject.drop_item(pile);
+
+        if (auto const idef = item_dictionary_[pile.begin()->def()]) {
+            if (idef->name.empty()) {
+                display_message("You dropped the [%s].", idef->id_string);
+            } else {
+                display_message("You dropped the %s.", idef->name);
+            }
+        } else {
+            display_message("You dropped the %s.", "<UNKNOWN>");
+        }
     });
 }
 
