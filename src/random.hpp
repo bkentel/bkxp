@@ -76,6 +76,29 @@ inline int random_range(random_t& random, int const lo, int const hi) noexcept {
 }
 
 //--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <typename Container>
+inline decltype(auto) random_element(random_t& random, Container&& c) noexcept
+{
+    using std::begin;
+    using std::end;
+
+    auto const first = begin(c);
+    auto const last = end(c);
+
+    static_assert(std::is_same<
+        std::random_access_iterator_tag
+      , std::iterator_traits<decltype(first)>::iterator_category>::value, "");
+
+    auto const size = std::distance(first, last);
+
+    BK_PRECONDITION(size > 0);
+
+    return *(first + random_range(random, 0, size - 1));
+}
+
+//--------------------------------------------------------------------------------------------------
 //! @pre n > 0
 //! @pre sides > 0
 //! @pre n * sides + mod < std::numeric_limits<int>::max()

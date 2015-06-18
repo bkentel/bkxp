@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="src\bklib\algorithm.hpp" />
     <ClInclude Include="src\bklib\assert.hpp" />
+    <ClInclude Include="src\bklib\dictionary.hpp" />
     <ClInclude Include="src\bklib\exception.hpp" />
     <ClInclude Include="src\bklib\flag_set.hpp" />
     <ClInclude Include="src\bklib\hash.hpp" />
@@ -26,6 +27,7 @@
     <ClInclude Include="src\bsp_layout.hpp" />
     <ClInclude Include="src\commands.hpp" />
     <ClInclude Include="src\creature.hpp" />
+    <ClInclude Include="src\definitions.hpp" />
     <ClInclude Include="src\direction.hpp" />
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\identifier.hpp" />
@@ -74,6 +76,7 @@
     <ClCompile Include="src\text.cpp" />
     <ClCompile Include="src\view.cpp" />
     <ClCompile Include="test\bklib\algorithm_test.cpp" />
+    <ClCompile Include="test\bklib\dictionary_test.cpp" />
     <ClCompile Include="test\bklib\flag_set_test.cpp" />
     <ClCompile Include="test\bklib\math_test.cpp" />
     <ClCompile Include="test\bklib\scope_guard_test.cpp" />

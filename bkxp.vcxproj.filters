@@ -106,6 +106,12 @@
     <ClInclude Include="src\json.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\dictionary.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\definitions.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -199,6 +205,9 @@
     </ClCompile>
     <ClCompile Include="test\map_test.cpp">
       <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\dictionary_test.cpp">
+      <Filter>test\bklib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -13,7 +13,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 
     bklib::ipoint2 const p {10, 10};
 
-    REQUIRE(dic.insert(cdef));
+    REQUIRE(dic.insert_or_discard(cdef).second);
 
     SECTION("add, find and remove creature") {
         REQUIRE(!map.creature_at(p));

@@ -415,7 +415,7 @@ bool bkrl::generate_creature(
   , creature_def_id const def
   , bklib::ipoint2 const  p
 ) {
-    if (auto const maybe_def = factory.dictionary()[def]) {
+    if (auto const maybe_def = factory.dictionary().find(def)) {
         return generate_creature(random, m, factory, *maybe_def, p);
     }
 
@@ -429,7 +429,7 @@ bool bkrl::generate_creature(
   , creature_factory&     factory
   , creature_def_id const def
 ) {
-    if (auto const maybe_def = factory.dictionary()[def]) {
+    if (auto const maybe_def = factory.dictionary().find(def)) {
         return generate_creature(random, m, factory, *maybe_def);
     }
 

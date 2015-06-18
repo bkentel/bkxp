@@ -13,8 +13,8 @@ bkrl::game::game()
   , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
-  , creature_dictionary_ {"./data/creatures.def", creature_dictionary::load_from_file}
-  , item_dictionary_ {"./data/items.def", item_dictionary::load_from_file}
+  , creature_dictionary_ {}
+  , item_dictionary_ {}
   , creature_factory_(creature_dictionary_)
   , item_factory_()
   , current_map_()
@@ -22,6 +22,9 @@ bkrl::game::game()
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
 {
+    load_definitions(item_dictionary_, "./data/items.def", load_from_file);
+    load_definitions(creature_dictionary_, "./data/creatures.def", load_from_file);
+
     command_translator_.push_handler([&](command const& cmd) {
         on_command(cmd);
     });
@@ -91,8 +94,8 @@ void bkrl::game::generate_map()
     constexpr auto const zombie_id   = creature_def_id {bklib::static_djb2_hash("zombie")};
 
     for (int i = 0; i < 10; ++i) {
-        generate_creature(random_, m, creature_factory_, creature_dictionary_.random(random_));
-        generate_item(random_, m, item_factory_, item_dictionary_.random(random_));
+        generate_creature(random_, m, creature_factory_, random_definition(random_[random_stream::substantive], creature_dictionary_));
+        generate_item(random_, m, item_factory_, random_definition(random_[random_stream::substantive], item_dictionary_));
     }
 
     creature_def def {"player"};
@@ -397,7 +400,7 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
     current_map_.with_pile_at(where, [&](item_pile& pile) {
         subject.drop_item(pile);
 
-        if (auto const idef = item_dictionary_[pile.begin()->def()]) {
+        if (auto const idef = item_dictionary_.find(pile.begin()->def())) {
             if (idef->name.empty()) {
                 display_message("You dropped the [%s].", idef->id_string);
             } else {
@@ -434,7 +437,7 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
     }
 
     for (auto const& itm : *pile) {
-        if (auto const idef = item_dictionary_[itm.def()]) {
+        if (auto const idef = item_dictionary_.find(itm.def())) {
             if (idef->name.empty()) {
                 display_message("You picked up the [%s].", idef->id_string);
             } else {
@@ -484,7 +487,7 @@ void bkrl::game::do_show_inventory()
 
     char i = 0;
     for (auto const& itm : player.item_list()) {
-        auto const& idef = item_dictionary_[itm.def()];
+        auto const& idef = item_dictionary_.find(itm.def());
         if (idef) {
             if (!idef->name.empty()) {
                 display_message("[%c] %s", 'a' + i, idef->name);
@@ -554,7 +557,7 @@ void bkrl::game::debug_print(int const mx, int const my) const
     if (auto const& c = current_map_.creature_at(p)) {
         printf("  creature present\n");
 
-        if (auto const& cdef = creature_dictionary_[c->def()]) {
+        if (auto const& cdef = creature_dictionary_.find(c->def())) {
             printf("  %s\n", cdef->id_string.c_str());
         } else {
             printf("  !!unknown creature!!\n");
@@ -564,7 +567,7 @@ void bkrl::game::debug_print(int const mx, int const my) const
     if (auto const& ip = current_map_.items_at(p)) {
         printf("  item(s) present\n");
         for (auto const& i : *ip) {
-            if (auto const& idef = item_dictionary_[i.def()]) {
+            if (auto const& idef = item_dictionary_.find(i.def())) {
                 printf("  %s\n", idef->id_string.c_str());
             } else {
                 printf("  !!unknown item!!\n");

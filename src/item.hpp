@@ -3,10 +3,13 @@
 #include "identifier.hpp"
 #include "random.hpp"
 
+#include "definitions.hpp"
+
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 #include "bklib/hash.hpp"
 #include "bklib/spatial_map.hpp"
+#include "bklib/dictionary.hpp"
 
 #include <forward_list>
 #include <array>
@@ -28,22 +31,25 @@ enum class item_type : int16_t {
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
-struct item_def {
-    using id_t = item_def_id;
+struct item_def : definition_base {
+    using id_type = item_def_id;
 
     explicit item_def(bklib::utf8_string id_string)
-      : id {bklib::hash_value(id_string)}
-      , id_string {std::move(id_string)}
+      : definition_base {std::move(id_string)}
+      , id {bklib::djb2_hash(this->id_string)}
     {
     }
 
-    item_def_id        id;
-    bklib::utf8_string id_string;
-    bklib::utf8_string name;
-    bklib::utf8_string description;
-    bklib::utf8_string symbol;
-    bklib::utf8_string symbol_color;
+    item_def_id id;
 };
+
+inline item_def_id get_id(item_def const& def) noexcept {
+    return def.id;
+}
+
+inline item_def_id get_id(item_def_id const id) noexcept {
+    return id;
+}
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -124,32 +130,9 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------------------------
-namespace detail { class item_dictionary_impl; }
-
-class item_dictionary {
-public:
-    enum class load_from_file_t   {} static constexpr const load_from_file   {};
-    enum class load_from_string_t {} static constexpr const load_from_string {};
-
-    ~item_dictionary();
-    item_dictionary();
-    item_dictionary(bklib::utf8_string_view filename, load_from_file_t);
-    item_dictionary(bklib::utf8_string_view string, load_from_string_t);
-
-    int size() const noexcept;
-
-    item_def const* operator[](item_def_id id) const;
-    item_def const* operator[](uint32_t hash) const;
-
-    item_def const& random(random_state& random) const;
-
-    bool insert(item_def def);
-private:
-    std::unique_ptr<detail::item_dictionary_impl> impl_;
-};
-
+using item_dictionary = bklib::dictionary<item_def>;
 using item_map = bklib::spatial_map_2d<item_pile>;
+
+void load_definitions(item_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);
 
 } //namespace bkrl
