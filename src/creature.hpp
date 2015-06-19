@@ -19,7 +19,6 @@
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class renderer;
 class map;
 
 struct creature_def;
@@ -96,7 +95,6 @@ public:
     creature(creature const&) = delete;
     creature& operator=(creature const&) = delete;
 
-    void draw(renderer& render) const;
     void advance(random_state& random, map& m);
 
     bool is_player() const noexcept;

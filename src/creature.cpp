@@ -1,5 +1,4 @@
 #include "creature.hpp"
-#include "renderer.hpp"
 #include "map.hpp"
 
 #include "json.hpp"
@@ -74,12 +73,6 @@ struct creature_def_parser final : bklib::json_parser_base {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::creature
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::creature::draw(renderer& render) const
-{
-    render.draw_cell(x(pos_), y(pos_), 1);
-}
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::creature::advance(random_state& random, map& m)
@@ -215,10 +208,6 @@ bkrl::creature bkrl::creature_factory::create(
 ) {
     return creature {creature_instance_id {++next_id_}, def, p};
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// bkrl::creature_dictionary
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view const data, detail::load_from_string_t)

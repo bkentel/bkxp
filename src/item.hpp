@@ -16,7 +16,6 @@
 
 namespace bkrl {
 
-class renderer;
 struct item_def;
 class item;
 class item_factory;
@@ -65,7 +64,6 @@ public:
     item_instance_id id()  const noexcept { return id_; }
     item_def_id      def() const noexcept { return def_; }
 
-    void draw(renderer& render, bklib::ipoint2 p) const;
     void update();
 private:
     item(item_instance_id id, item_def const& def);

@@ -1,5 +1,4 @@
 #include "item.hpp"
-#include "renderer.hpp"
 
 #include "json.hpp"
 #include "bklib/json.hpp"
@@ -86,20 +85,10 @@ bkrl::item::item(
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::item::draw(renderer& render, bklib::ipoint2 const p) const
-{
-    render.draw_cell(x(p), y(p), 4);
-}
-
-//--------------------------------------------------------------------------------------------------
 bkrl::item bkrl::item_factory::create(random_state& random, item_def const& def)
 {
     return item {item_instance_id {++next_id_}, def};
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// bkrl::item_dictionary
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::load_definitions(item_dictionary& dic, bklib::utf8_string_view const data, detail::load_from_string_t)
