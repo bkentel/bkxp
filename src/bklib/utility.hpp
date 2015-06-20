@@ -44,6 +44,11 @@ struct tagged_value {
 };
 
 template <typename T, typename Tag>
+bool operator<(tagged_value<T, Tag> const& lhs, tagged_value<T, Tag> const& rhs) noexcept {
+    return lhs.value < rhs.value;
+}
+
+template <typename T, typename Tag>
 bool operator==(tagged_value<T, Tag> const& lhs, tagged_value<T, Tag> const& rhs) noexcept {
     return lhs.value == rhs.value;
 }

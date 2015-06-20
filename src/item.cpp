@@ -1,5 +1,4 @@
 #include "item.hpp"
-#include "renderer.hpp"
 
 #include "json.hpp"
 #include "bklib/json.hpp"
@@ -86,63 +85,13 @@ bkrl::item::item(
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::item::draw(renderer& render, bklib::ipoint2 const p) const
-{
-    render.draw_cell(x(p), y(p), 4);
-}
-
-//--------------------------------------------------------------------------------------------------
 bkrl::item bkrl::item_factory::create(random_state& random, item_def const& def)
 {
     return item {item_instance_id {++next_id_}, def};
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// bkrl::item_dictionary
-////////////////////////////////////////////////////////////////////////////////////////////////////
-class bkrl::detail::item_dictionary_impl {
-public:
-    item_dictionary_impl() = default;
-    item_dictionary_impl(bklib::utf8_string_view filename, item_dictionary::load_from_file_t);
-    item_dictionary_impl(bklib::utf8_string_view string, item_dictionary::load_from_string_t);
-
-    int size() const noexcept;
-
-    item_def const* operator[](item_def_id id) const;
-    item_def const* operator[](uint32_t hash) const;
-
-    item_def const& random(random_state& random) const;
-
-    bool insert(item_def&& def);
-private:
-    void load_(bklib::utf8_string_view json);
-
-    std::vector<item_def> defs_;
-};
-
 //--------------------------------------------------------------------------------------------------
-bkrl::detail::item_dictionary_impl::item_dictionary_impl(
-    bklib::utf8_string_view const filename, item_dictionary::load_from_file_t
-) {
-    auto const json_data = bklib::read_file_to_buffer(filename);
-    load_(bklib::utf8_string_view {json_data.data(), json_data.size()});
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::detail::item_dictionary_impl::item_dictionary_impl(
-    bklib::utf8_string_view const string, item_dictionary::load_from_string_t
-) {
-    load_(string);
-}
-
-//--------------------------------------------------------------------------------------------------
-int bkrl::detail::item_dictionary_impl::size() const noexcept
-{
-    return defs_.size();
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::detail::item_dictionary_impl::load_(bklib::utf8_string_view const json)
+void bkrl::load_definitions(item_dictionary& dic, bklib::utf8_string_view const data, detail::load_from_string_t)
 {
     item_def_parser item_handler;
 
@@ -156,7 +105,7 @@ void bkrl::detail::item_dictionary_impl::load_(bklib::utf8_string_view const jso
         return nullptr;
     };
 
-    json_parse_definitions(json, select_handler, [&] {
+    json_parse_definitions(data, select_handler, [&] {
         item_def def {std::move(item_handler.id)};
 
         def.name         = std::move(item_handler.name);
@@ -164,100 +113,8 @@ void bkrl::detail::item_dictionary_impl::load_(bklib::utf8_string_view const jso
         def.symbol       = std::move(item_handler.symbol);
         def.symbol_color = std::move(item_handler.symbol_color);
 
-        insert(std::move(def)); // TODO duplicates
+        dic.insert_or_replace(std::move(def)); // TODO duplicates
 
         return true;
     });
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_def const*
-bkrl::detail::item_dictionary_impl::operator[](item_def_id const id) const
-{
-    return bklib::find_maybe(defs_, [&](item_def const& def) {
-        return def.id == id;
-    });
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_def const*
-bkrl::detail::item_dictionary_impl::operator[](uint32_t const id) const
-{
-    return (*this)[item_def_id {id}];
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_def const& bkrl::detail::item_dictionary_impl::random(random_state& random) const
-{
-    BK_PRECONDITION(!defs_.empty());
-
-    auto& rnd = random[random_stream::item];
-    auto const i = bkrl::random_range(rnd, 0, static_cast<int>(defs_.size()) - 1);
-
-    return defs_[i];
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::detail::item_dictionary_impl::insert(item_def&& def) {
-    defs_.push_back(std::move(def)); //TODO duplicates
-    return true;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_dictionary::~item_dictionary() = default;
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_dictionary::item_dictionary()
-  : impl_ {std::make_unique<detail::item_dictionary_impl>()}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_dictionary::item_dictionary(
-    bklib::utf8_string_view const filename
-  , item_dictionary::load_from_file_t
-)
-  : impl_ {std::make_unique<detail::item_dictionary_impl>(filename, load_from_file)}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_dictionary::item_dictionary(
-    bklib::utf8_string_view const string
-  , item_dictionary::load_from_string_t
-)
-  : impl_ {std::make_unique<detail::item_dictionary_impl>(string, load_from_string)}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-int bkrl::item_dictionary::size() const noexcept
-{
-    return impl_->size();
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_def const*
-bkrl::item_dictionary::operator[](item_def_id const id) const
-{
-    return (*impl_)[id];
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_def const*
-bkrl::item_dictionary::operator[](uint32_t const hash) const
-{
-    return (*impl_)[hash];
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::item_dictionary::insert(item_def def)
-{
-    return impl_->insert(std::move(def));
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::item_def const& bkrl::item_dictionary::random(random_state& random) const
-{
-    return impl_->random(random);
 }

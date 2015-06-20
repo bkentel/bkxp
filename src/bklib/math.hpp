@@ -382,11 +382,11 @@ template <unsigned D1, unsigned D0, typename T, typename Tag>
 inline auto truncate(tuple_base_t<Tag, D0, T> const& value) noexcept {
     static_assert(D1 < D0, "bad dimension");
 
-    tuple_base_t<Tag, D1, T> result;
-    for (size_t i = 0; i < D1; ++i) {
-        result.data[i] = value.data[i];
-    }
+    static_assert(std::is_trivially_destructible<T>::value &&
+                  std::is_trivially_copy_constructible<T>::value, "");
 
+    tuple_base_t<Tag, D1, T> result;
+    std::memcpy(&result.data[0], &value.data[0], sizeof(result.data));
     return result;
 }
 

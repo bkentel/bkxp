@@ -1,5 +1,4 @@
 #include "creature.hpp"
-#include "renderer.hpp"
 #include "map.hpp"
 
 #include "json.hpp"
@@ -74,12 +73,6 @@ struct creature_def_parser final : bklib::json_parser_base {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::creature
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::creature::draw(renderer& render) const
-{
-    render.draw_cell(x(pos_), y(pos_), 1);
-}
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::creature::advance(random_state& random, map& m)
@@ -201,7 +194,7 @@ bkrl::creature bkrl::creature_factory::create(
   , creature_def_id const def
   , bklib::ipoint2  const p
 ) {
-    auto const ptr = dic_.get()[def];
+    auto const ptr = dic_.get().find(def);
     BK_PRECONDITION(ptr);
 
     return create(random, *ptr, p);
@@ -216,52 +209,8 @@ bkrl::creature bkrl::creature_factory::create(
     return creature {creature_instance_id {++next_id_}, def, p};
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// bkrl::creature_dictionary
-////////////////////////////////////////////////////////////////////////////////////////////////////
-class bkrl::detail::creature_dictionary_impl {
-public:
-    creature_dictionary_impl() = default;
-    creature_dictionary_impl(bklib::utf8_string_view filename, creature_dictionary::load_from_file_t);
-    creature_dictionary_impl(bklib::utf8_string_view string, creature_dictionary::load_from_string_t);
-
-    int size() const noexcept;
-
-    creature_def const* operator[](creature_def_id id) const;
-    creature_def const* operator[](uint32_t hash) const;
-
-    creature_def const& random(random_state& random) const;
-
-    bool insert(creature_def&& def);
-private:
-    void load_(bklib::utf8_string_view json);
-
-    std::vector<creature_def> defs_;
-};
-
 //--------------------------------------------------------------------------------------------------
-bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
-    bklib::utf8_string_view const filename, creature_dictionary::load_from_file_t
-) {
-    auto const json_data = bklib::read_file_to_buffer(filename);
-    load_(bklib::utf8_string_view {json_data.data(), json_data.size()});
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::detail::creature_dictionary_impl::creature_dictionary_impl(
-    bklib::utf8_string_view const string, creature_dictionary::load_from_string_t
-) {
-    load_(string);
-}
-
-//--------------------------------------------------------------------------------------------------
-int bkrl::detail::creature_dictionary_impl::size() const noexcept
-{
-    return defs_.size();
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::detail::creature_dictionary_impl::load_(bklib::utf8_string_view const json)
+void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view const data, detail::load_from_string_t)
 {
     creature_def_parser creature_handler;
 
@@ -275,7 +224,7 @@ void bkrl::detail::creature_dictionary_impl::load_(bklib::utf8_string_view const
         return nullptr;
     };
 
-    json_parse_definitions(json, select_handler, [&] {
+    json_parse_definitions(data, select_handler, [&] {
         creature_def def {std::move(creature_handler.id)};
 
         def.name         = std::move(creature_handler.name);
@@ -283,100 +232,8 @@ void bkrl::detail::creature_dictionary_impl::load_(bklib::utf8_string_view const
         def.symbol       = std::move(creature_handler.symbol);
         def.symbol_color = std::move(creature_handler.symbol_color);
 
-        insert(std::move(def)); // TODO duplicates
+        dic.insert_or_replace(std::move(def)); // TODO duplicates
 
         return true;
     });
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_def const*
-bkrl::detail::creature_dictionary_impl::operator[](creature_def_id const id) const
-{
-    return bklib::find_maybe(defs_, [&](creature_def const& def) {
-        return def.id == id;
-    });
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_def const*
-bkrl::detail::creature_dictionary_impl::operator[](uint32_t const id) const
-{
-    return (*this)[creature_def_id {id}];
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_def const& bkrl::detail::creature_dictionary_impl::random(random_state& random) const
-{
-    BK_PRECONDITION(!defs_.empty());
-
-    auto& rnd = random[random_stream::creature];
-    auto const i = bkrl::random_range(rnd, 0, static_cast<int>(defs_.size()) - 1);
-
-    return defs_[i];
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::detail::creature_dictionary_impl::insert(creature_def&& def) {
-    defs_.push_back(std::move(def)); //TODO duplicates
-    return true;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_dictionary::~creature_dictionary() = default;
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_dictionary::creature_dictionary()
-  : impl_ {std::make_unique<detail::creature_dictionary_impl>()}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_dictionary::creature_dictionary(
-    bklib::utf8_string_view const filename
-  , creature_dictionary::load_from_file_t
-)
-  : impl_ {std::make_unique<detail::creature_dictionary_impl>(filename, load_from_file)}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_dictionary::creature_dictionary(
-    bklib::utf8_string_view const string
-  , creature_dictionary::load_from_string_t
-)
-  : impl_ {std::make_unique<detail::creature_dictionary_impl>(string, load_from_string)}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-int bkrl::creature_dictionary::size() const noexcept
-{
-    return impl_->size();
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_def const*
-bkrl::creature_dictionary::operator[](creature_def_id const id) const
-{
-    return (*impl_)[id];
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_def const*
-bkrl::creature_dictionary::operator[](uint32_t const hash) const
-{
-    return (*impl_)[hash];
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::creature_dictionary::insert(creature_def def)
-{
-    return impl_->insert(std::move(def));
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::creature_def const& bkrl::creature_dictionary::random(random_state& random) const
-{
-    return impl_->random(random);
 }

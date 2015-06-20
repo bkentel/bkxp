@@ -6,9 +6,18 @@
 
 namespace {
 
-inline decltype(auto) find_creature_by_id(bkrl::creature_instance_id const id) {
-    return [id](bkrl::creature const& c) {
+inline decltype(auto) find_creature_by_id(bkrl::creature_instance_id const id) noexcept {
+    return [id](bkrl::creature const& c) noexcept {
         return c.id() == id;
+    };
+}
+
+inline decltype(auto) find_by_pos(bklib::ipoint2 const p) noexcept {
+    auto const x_pos = x(p);
+    auto const y_pos = y(p);
+
+    return [=](auto const& data) noexcept {
+        return (data.x == x_pos) && (data.y == y_pos);
     };
 }
 
@@ -88,16 +97,9 @@ bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
     // TODO update this to take the player into consideration
     creatures_.relocate(p, q, c);
 
-    auto const x_pos = x(p);
-    auto const y_pos = y(p);
-
-    if (auto const ptr = bklib::find_maybe(
-        creature_render_data_, [=](creature_render_data_t const& data) {
-            return (data.x == x_pos) && (data.y == y_pos);
-        }
-    )) {
-        ptr->x = static_cast<int16_t>(x(q));
-        ptr->y = static_cast<int16_t>(y(q));
+    if (auto const maybe = bklib::find_maybe(creature_render_data_, find_by_pos(p))) {
+        maybe->x = static_cast<int16_t>(x(q));
+        maybe->y = static_cast<int16_t>(y(q));
     }
 
     return true;
@@ -173,14 +175,10 @@ void bkrl::map::update_item_render_data_(bklib::ipoint2 const p)
       , {255, 255, 255, 255}
     };
 
-    auto const ptr = bklib::find_maybe(item_render_data_, [&](item_render_data_t const& i) {
-        return (i.x == pos_x) && (i.y == pos_y);
-    });
-
-    if (ptr) {
-        *ptr = data;
+    if (auto const maybe = bklib::find_maybe(item_render_data_, find_by_pos(p))) {
+        *maybe = std::move(data);
     } else {
-        item_render_data_.push_back(data);
+        item_render_data_.push_back(std::move(data));
     }
 }
 
@@ -318,15 +316,8 @@ void bkrl::map::update_render_data()
 //--------------------------------------------------------------------------------------------------
 bkrl::item_pile bkrl::map::remove_items_at(bklib::ipoint2 const p)
 {
-    auto const pos_x = x(p);
-    auto const pos_y = y(p);
-
-    auto const it = bklib::find_if(item_render_data_, [&](item_render_data_t const& i) {
-        return i.x == pos_x && i.y == pos_y;
-    });
-
+    auto const it = bklib::find_if(item_render_data_, find_by_pos(p));
     BK_PRECONDITION(it != std::end(item_render_data_));
-
     item_render_data_.erase(it);
 
     return items_.remove(p);
@@ -335,15 +326,8 @@ bkrl::item_pile bkrl::map::remove_items_at(bklib::ipoint2 const p)
 //--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::map::remove_creature_at(bklib::ipoint2 const p)
 {
-    auto const pos_x = x(p);
-    auto const pos_y = y(p);
-
-    auto const it = bklib::find_if(creature_render_data_, [&](creature_render_data_t const& c) {
-        return c.x == pos_x && c.y == pos_y;
-    });
-
+    auto const it = bklib::find_if(creature_render_data_, find_by_pos(p));
     BK_PRECONDITION(it != std::end(creature_render_data_));
-
     creature_render_data_.erase(it);
 
     return creatures_.remove(p);
@@ -415,7 +399,7 @@ bool bkrl::generate_creature(
   , creature_def_id const def
   , bklib::ipoint2 const  p
 ) {
-    if (auto const maybe_def = factory.dictionary()[def]) {
+    if (auto const maybe_def = factory.dictionary().find(def)) {
         return generate_creature(random, m, factory, *maybe_def, p);
     }
 
@@ -429,7 +413,7 @@ bool bkrl::generate_creature(
   , creature_factory&     factory
   , creature_def_id const def
 ) {
-    if (auto const maybe_def = factory.dictionary()[def]) {
+    if (auto const maybe_def = factory.dictionary().find(def)) {
         return generate_creature(random, m, factory, *maybe_def);
     }
 

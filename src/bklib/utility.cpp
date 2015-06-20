@@ -13,7 +13,11 @@ std::vector<char> bklib::read_file_to_buffer(utf8_string_view const filename)
     std::streamsize const size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    std::vector<char> result(size);
+    if (size > std::numeric_limits<size_t>::max()) {
+        BK_ASSERT(false);
+    }
+
+    std::vector<char> result(static_cast<size_t>(size));
     if (!file.read(result.data(), size)) {
         BK_ASSERT(false);
     }

@@ -4,6 +4,8 @@
 #include "random.hpp"
 #include "item.hpp"
 
+#include "definitions.hpp"
+
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 #include "bklib/hash.hpp"
@@ -17,15 +19,11 @@
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class renderer;
 class map;
 
 struct creature_def;
 class creature;
 class creature_factory;
-class creature_dictionary;
-
-namespace detail { class creature_dictionary_impl; }
 
 //--------------------------------------------------------------------------------------------------
 //!
@@ -42,23 +40,26 @@ using creature_flags = bklib::flag_set<creature_flag>;
 //--------------------------------------------------------------------------------------------------
 //! The "template" to create an instance of a creature.
 //--------------------------------------------------------------------------------------------------
-struct creature_def {
-    using id_t = creature_def_id;
+struct creature_def : definition_base {
+    using id_type = creature_def_id;
 
     explicit creature_def(bklib::utf8_string id_string)
-      : id {bklib::djb2_hash(id_string)}
-      , id_string {std::move(id_string)}
+      : definition_base {std::move(id_string)}
+      , id {bklib::djb2_hash(this->id_string)}
     {
     }
 
-    creature_def_id    id;
-    bklib::utf8_string id_string;
-    bklib::utf8_string name;
-    bklib::utf8_string description;
-    bklib::utf8_string symbol;
-    bklib::utf8_string symbol_color;
-    creature_flags     flags;
+    creature_def_id id;
+    creature_flags  flags;
 };
+
+inline creature_def_id get_id(creature_def const& def) noexcept {
+    return def.id;
+}
+
+inline creature_def_id get_id(creature_def_id const id) noexcept {
+    return id;
+}
 
 template <typename T>
 struct creature_stat {
@@ -94,7 +95,6 @@ public:
     creature(creature const&) = delete;
     creature& operator=(creature const&) = delete;
 
-    void draw(renderer& render) const;
     void advance(random_state& random, map& m);
 
     bool is_player() const noexcept;
@@ -130,30 +130,8 @@ private:
     creature_flags       flags_;
 };
 
-//--------------------------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------------------------
-class creature_dictionary {
-public:
-    enum class load_from_file_t   {} static constexpr const load_from_file   {};
-    enum class load_from_string_t {} static constexpr const load_from_string {};
-
-    ~creature_dictionary();
-    creature_dictionary();
-    creature_dictionary(bklib::utf8_string_view filename, load_from_file_t);
-    creature_dictionary(bklib::utf8_string_view string, load_from_string_t);
-
-    int size() const noexcept;
-
-    creature_def const* operator[](creature_def_id id) const;
-    creature_def const* operator[](uint32_t hash) const;
-
-    creature_def const& random(random_state& random) const;
-
-    bool insert(creature_def def);
-private:
-    std::unique_ptr<detail::creature_dictionary_impl> impl_;
-};
+using creature_map = bklib::spatial_map_2d<creature>;
+using creature_dictionary = bklib::dictionary<creature_def>;
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -179,7 +157,7 @@ private:
     std::reference_wrapper<creature_dictionary const> dic_;
 };
 
-using creature_map = bklib::spatial_map_2d<creature>;
+void load_definitions(creature_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl

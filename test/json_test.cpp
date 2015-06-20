@@ -46,13 +46,14 @@ TEST_CASE("json creature definition parser", "[creature][json][bkrl]") {
         }
     )"};
 
-    bkrl::creature_dictionary const creatures {json, bkrl::creature_dictionary::load_from_string};
+    bkrl::creature_dictionary creatures;
+    bkrl::load_definitions(creatures, json, bkrl::load_from_string);
 
     REQUIRE(creatures.size() == 2);
 
     auto const check_values = [&](auto const id, auto const name, auto const desc, auto const sym, auto const sym_color) {
         auto const hash = bklib::djb2_hash(id);
-        auto const ptr = creatures[hash];
+        auto const ptr = creatures.find(bkrl::creature_def_id {hash});
 
         REQUIRE(ptr);
         REQUIRE(ptr->id.value == hash);
