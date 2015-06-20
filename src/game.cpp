@@ -397,7 +397,7 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
         return;
     }
 
-    current_map_.with_pile_at(where, [&](item_pile& pile) {
+    with_pile_at(item_dictionary_, current_map_, where, [&](item_pile& pile) {
         subject.drop_item(pile);
 
         if (auto const idef = item_dictionary_.find(pile.begin()->def())) {
@@ -462,7 +462,8 @@ void bkrl::game::do_wait(int const turns)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    if (current_map_.move_creature_by(get_player(), bklib::truncate<2>(v))) {
+    auto const ok = move_by(get_player(), current_map_, bklib::truncate<2>(v));
+    if (ok) {
         advance();
     }
 }

@@ -99,8 +99,8 @@ public:
 
     bool is_player() const noexcept;
 
-    bool move_by(bklib::ivec2 const v);
-    bool move_by(int dx, int dy);
+    void move_by(bklib::ivec2 v) noexcept;
+    void move_to(bklib::ipoint2 p) noexcept;
 
     bklib::ipoint2 position() const noexcept;
 
@@ -158,6 +158,11 @@ private:
 };
 
 void load_definitions(creature_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);
+
+void advance(random_state& random, map& m, creature& c);
+void advance(random_state& random, map& m, creature_map& cmap);
+
+bool move_by(creature& c, map& m, bklib::ivec2 v);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl

@@ -2,6 +2,8 @@
 
 #include "bklib/math.hpp"
 #include <memory>
+#include <array>
+#include <cstdint>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
@@ -94,6 +96,25 @@ public:
     void draw_rect(rect_t src, rect_t dst);
 private:
     std::unique_ptr<detail::renderer_impl> impl_;
+};
+
+struct terrain_render_data_t {
+    uint16_t base_index;
+    uint16_t unused0;
+    uint16_t unused1;
+    uint16_t unused2;
+};
+
+struct creature_render_data_t {
+    int16_t x, y;
+    uint16_t base_index;
+    std::array<uint8_t, 4> color;
+};
+
+struct item_render_data_t {
+    int16_t x, y;
+    uint16_t base_index;
+    std::array<uint8_t, 4> color;
 };
 
 } //namespace bkrl

@@ -24,109 +24,168 @@ inline decltype(auto) find_by_pos(bklib::ipoint2 const p) noexcept {
 } // namespace
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::draw(renderer& render, view const& v) const
-{
-    auto const r = intersection(bounds(), v.screen_to_world());
-    if (!r) {
-        return;
-    }
+//--------------------------------------------------------------------------------------------------
 
-    for (auto y = r.top; y < r.bottom; ++y) {
-        for (auto x = r.left; x < r.right; ++x) {
-            auto const& cell = terrain_render_data_.cell_at(x, y);
+class bkrl::map::render_data_t {
+public:
+    using point_t = bklib::ipoint2;
 
-            if (cell.base_index) {
-                render.draw_cell(x, y, cell.base_index);
+    void draw(renderer& render, bklib::irect const bounds, view const& v) const {
+        auto const r = intersection(bounds, v.screen_to_world());
+        if (!r) {
+            return;
+        }
+
+        for (auto y = r.top; y < r.bottom; ++y) {
+            for (auto x = r.left; x < r.right; ++x) {
+                auto const& cell = terrain_data_.cell_at(x, y);
+
+                if (cell.base_index) {
+                    render.draw_cell(x, y, cell.base_index);
+                }
+
             }
+        }
 
+        for (auto const& i : item_data_) {
+            render.draw_cell(i.x, i.y, i.base_index);
+        }
+
+        for (auto const& c : creature_data_) {
+            render.draw_cell(c.x, c.y, c.base_index);
         }
     }
 
-    for (auto const& i : item_render_data_) {
-        render.draw_cell(i.x, i.y, i.base_index);
+    void update_creature_pos(point_t const from, point_t const to) {
+        update_pos_(creature_data_, from, to);
     }
 
-    for (auto const& c : creature_render_data_) {
-        render.draw_cell(c.x, c.y, c.base_index);
+    void update_item_pos(point_t const from, point_t const to) {
+        update_pos_(item_data_, from, to);
     }
+
+    void update_or_add(item_def const& idef, point_t const p) {
+        item_render_data_t data {
+            static_cast<int16_t>(x(p))
+          , static_cast<int16_t>(y(p))
+          , static_cast<uint16_t>(idef.symbol[0])
+          , {255, 255, 255, 255}
+        };
+
+        update_or_add_(item_data_, p, std::move(data));
+    }
+
+    void update_or_add(creature_def const& cdef, point_t const p) {
+        creature_render_data_t data {
+            static_cast<int16_t>(x(p))
+          , static_cast<int16_t>(y(p))
+          , static_cast<uint16_t>(cdef.symbol[0])
+          , {255, 255, 255, 255}
+        };
+
+        update_or_add_(creature_data_, p, std::move(data));
+    }
+
+    void update_terrain(terrain_entry const& ter, point_t const p) {
+        auto const x_pos = x(p);
+        auto const y_pos = y(p);
+
+        auto& index = terrain_data_.block_at(x_pos, y_pos).cell_at(x_pos, y_pos).base_index;
+
+        switch (ter.type) {
+        default :
+        case terrain_type::empty : index = 0;   break;
+        case terrain_type::rock  : index = '*'; break;
+        case terrain_type::stair : index = '>'; break;
+        case terrain_type::floor : index = '.'; break;
+        case terrain_type::wall  : index = '#'; break;
+        case terrain_type::door:
+            index = (door {ter}.is_open()) ? '\\' : '+';
+            break;
+        }
+    }
+
+    void clear_item_at(point_t const p) {
+        clear_at_(item_data_, p);
+    }
+
+    void clear_creature_at(point_t const p) {
+        clear_at_(creature_data_, p);
+    }
+private:
+    template <typename Container>
+    static void clear_at_(Container& c, point_t const p) {
+        auto const it = bklib::find_if(c, find_by_pos(p));
+        BK_PRECONDITION(it != std::end(c));
+        c.erase(it);
+    }
+
+    template <typename Container, typename T>
+    static void update_or_add_(Container& c, point_t const p, T&& value) {
+        if (auto const maybe = bklib::find_maybe(c, find_by_pos(p))) {
+            *maybe = std::forward<T>(value);
+        } else {
+            c.push_back(std::forward<T>(value));
+        }
+    }
+
+    template <typename Container>
+    static void update_pos_(Container& c, point_t const from, point_t const to) {
+        auto const ptr = bklib::find_maybe(c, find_by_pos(from));
+        BK_ASSERT(ptr);
+
+        ptr->x = static_cast<int16_t>(x(to));
+        ptr->y = static_cast<int16_t>(y(to));
+    }
+
+    chunk_t<terrain_render_data_t>      terrain_data_;
+    std::vector<creature_render_data_t> creature_data_;
+    std::vector<item_render_data_t>     item_data_;
+};
+
+//--------------------------------------------------------------------------------------------------
+bkrl::map::map()
+  : render_data_ {std::make_unique<render_data_t>()}
+{
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::map::~map() = default;
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::map::draw(renderer& render, view const& v) const
+{
+    render_data_->draw(render, bounds(), v);
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::advance(random_state& random)
 {
-    creatures_.for_each_data([&](creature& c) {
-        c.advance(random, *this);
-    });
+    bkrl::advance(random, *this, creatures_);
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::map::move_creature_by(creature& c, bklib::ivec2 const v)
+void bkrl::map::move_creature_to(creature& c, bklib::ipoint2 const to)
 {
-    BK_ASSERT(std::abs(x(v)) <= 1);
-    BK_ASSERT(std::abs(y(v)) <= 1);
+    auto const from = c.position();
 
-    auto const p = c.position();
-    auto const q = c.position() + v;
-    if (!intersects(bounds(), q)) {
-        return false;
+    if (!creatures_.relocate(from, to, c)) {
+        BK_ASSERT(false);
     }
 
-    auto const& ter = at(q);
-
-    switch (ter.type) {
-    case terrain_type::empty:
-    case terrain_type::floor:
-        break;
-    case terrain_type::door:
-        if (!door {ter}.is_open()) {
-            return false;
-        }
-        break;
-    default:
-        return false;
-    }
-
-    if (creatures_.at(q)) {
-        return false;
-    }
-
-    if (!c.move_by(v)) {
-        return false;
-    }
-
-    // TODO update this to take the player into consideration
-    creatures_.relocate(p, q, c);
-
-    if (auto const maybe = bklib::find_maybe(creature_render_data_, find_by_pos(p))) {
-        maybe->x = static_cast<int16_t>(x(q));
-        maybe->y = static_cast<int16_t>(y(q));
-    }
-
-    return true;
+    c.move_to(to);
+    render_data_->update_creature_pos(from, to);
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::map::move_creature_to(creature& c, bklib::ipoint2 const p)
-{
-    return move_creature_by(c, p - c.position());
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::map::move_creature_by(
-    creature_instance_id const id
-  , bklib::ivec2         const v
-) {
-    auto const ptr = creatures_.find(find_creature_by_id(id));
-    return ptr ? move_creature_by(*ptr, v) : false;
-}
-
-//--------------------------------------------------------------------------------------------------
-bool bkrl::map::move_creature_to(
+void bkrl::map::move_creature_to(
     creature_instance_id const id
   , bklib::ipoint2       const p
 ) {
     auto const ptr = creatures_.find(find_creature_by_id(id));
-    return ptr ? move_creature_to(*ptr, p) : false;
+    BK_ASSERT(ptr);
+
+    move_creature_to(*ptr, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -160,26 +219,7 @@ void bkrl::map::place_item_at(
     }();
 
     pile.insert(std::move(itm));
-    update_item_render_data_(p);
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::map::update_item_render_data_(bklib::ipoint2 const p)
-{
-    auto const pos_x = static_cast<int16_t>(x(p));
-    auto const pos_y = static_cast<int16_t>(y(p));
-    auto const sym   = static_cast<uint16_t>('*');
-
-    item_render_data_t const data {
-        pos_x, pos_y, sym
-      , {255, 255, 255, 255}
-    };
-
-    if (auto const maybe = bklib::find_maybe(item_render_data_, find_by_pos(p))) {
-        *maybe = std::move(data);
-    } else {
-        item_render_data_.push_back(std::move(data));
-    }
+    render_data_->update_or_add(def, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -193,7 +233,7 @@ void bkrl::map::place_item_at(
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::place_items_at(item_pile&& pile, bklib::ipoint2 const p)
+void bkrl::map::place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 const p)
 {
     if (auto const maybe_items = items_at(p)) {
         move_items(pile, *maybe_items);
@@ -204,8 +244,11 @@ void bkrl::map::place_items_at(item_pile&& pile, bklib::ipoint2 const p)
         return;
     }
 
+    auto const maybe_idef = dic.find(pile.begin()->def());
+    BK_PRECONDITION(maybe_idef);
+
+    render_data_->update_or_add(*maybe_idef, p);
     items_.insert(p, std::move(pile));
-    update_item_render_data_(p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -217,16 +260,8 @@ void bkrl::map::place_creature_at(
     BK_PRECONDITION(intersects(p, bounds()));
     BK_PRECONDITION(!creature_at(p));
 
-    auto const x_pos = static_cast<int16_t>(x(p));
-    auto const y_pos = static_cast<int16_t>(y(p));
-    auto const sym   = static_cast<uint16_t>(def.symbol[0]);
-
-    creature_render_data_.push_back(creature_render_data_t {
-        x_pos, y_pos, sym
-      , {255, 255, 255, 255}
-    });
-
     creatures_.insert(p, std::move(c));
+    render_data_->update_or_add(def, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -286,21 +321,8 @@ void bkrl::map::update_render_data(bklib::ipoint2 const p)
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data(int const x, int const y)
 {
-    auto& index = terrain_render_data_.block_at(x, y).cell_at(x, y).base_index;
-
     auto const& ter = terrain_entries_.block_at(x, y).cell_at(x, y);
-
-    switch (ter.type) {
-    default :
-    case terrain_type::empty : index = 0;   break;
-    case terrain_type::rock  : index = '*'; break;
-    case terrain_type::stair : index = '>'; break;
-    case terrain_type::floor : index = '.'; break;
-    case terrain_type::wall  : index = '#'; break;
-    case terrain_type::door:
-        index = (door {ter}.is_open()) ? '\\' : '+';
-        break;
-    }
+    render_data_->update_terrain(ter, bklib::ipoint2 {x, y});
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -316,20 +338,14 @@ void bkrl::map::update_render_data()
 //--------------------------------------------------------------------------------------------------
 bkrl::item_pile bkrl::map::remove_items_at(bklib::ipoint2 const p)
 {
-    auto const it = bklib::find_if(item_render_data_, find_by_pos(p));
-    BK_PRECONDITION(it != std::end(item_render_data_));
-    item_render_data_.erase(it);
-
+    render_data_->clear_item_at(p);
     return items_.remove(p);
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::map::remove_creature_at(bklib::ipoint2 const p)
 {
-    auto const it = bklib::find_if(creature_render_data_, find_by_pos(p));
-    BK_PRECONDITION(it != std::end(creature_render_data_));
-    creature_render_data_.erase(it);
-
+    render_data_->clear_creature_at(p);
     return creatures_.remove(p);
 }
 
@@ -447,4 +463,13 @@ bool bkrl::generate_item(
     };
 
     return generate_item(random, m, factory, def, p);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::advance(random_state& random, map& m)
+{
+    m.advance(random);
 }

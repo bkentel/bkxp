@@ -106,13 +106,14 @@ void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
 //--------------------------------------------------------------------------------------------------
 class map {
 public:
+    map();
+    ~map();
+
     void draw(renderer& render, view const& v) const;
     void advance(random_state& random);
 
-    bool move_creature_by(creature& c, bklib::ivec2 v);
-    bool move_creature_to(creature& c, bklib::ipoint2 p);
-    bool move_creature_by(creature_instance_id id, bklib::ivec2 v);
-    bool move_creature_to(creature_instance_id id, bklib::ipoint2 p);
+    void move_creature_to(creature& c, bklib::ipoint2 p);
+    void move_creature_to(creature_instance_id id, bklib::ipoint2 p);
 
     creature const* find_creature(std::function<bool (creature const&)> const& predicate) const;
     creature* find_creature(std::function<bool (creature const&)> const& predicate);
@@ -123,7 +124,7 @@ public:
     void place_item_at(item&& itm, item_def const& def, bklib::ipoint2 p);
     void place_item_at(random_state& random, item_def const& def, item_factory& factory, bklib::ipoint2 p);
 
-    void place_items_at(item_pile&& pile, bklib::ipoint2 p);
+    void place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 p);
 
     template <typename Function>
     void with_pile_at(bklib::ipoint2 const p, Function&& f) {
@@ -216,36 +217,43 @@ public:
         return result;
     }
 private:
-    void update_item_render_data_(bklib::ipoint2 p);
-
-    struct terrain_render_data_t {
-        uint16_t base_index;
-        uint16_t unused0;
-        uint16_t unused1;
-        uint16_t unused2;
-    };
-
-    struct creature_render_data_t {
-        int16_t x, y;
-        uint16_t base_index;
-        std::array<uint8_t, 4> color;
-    };
-
-    struct item_render_data_t {
-        int16_t x, y;
-        uint16_t base_index;
-        std::array<uint8_t, 4> color;
-    };
+    class render_data_t;
+    std::unique_ptr<render_data_t> render_data_;
 
     chunk_t<terrain_entry> terrain_entries_;
-    chunk_t<terrain_render_data_t> terrain_render_data_;
 
     creature_map creatures_;
     item_map     items_;
-
-    std::vector<creature_render_data_t> creature_render_data_;
-    std::vector<item_render_data_t>     item_render_data_;
 };
+
+template <typename T>
+using base_type_of_t = std::remove_const_t<
+    std::remove_reference_t<
+        std::remove_all_extents_t<T>
+    >
+>;
+
+//----------------------------------------------------------------------------------------------
+//! Call f(item_pile&) creating a new item_pile at @p in the map @m if it doesn't already exist.
+//! @pre @p p is a valid position in @p m.
+//! @pre @p dic has valid enties for any new items added.
+//----------------------------------------------------------------------------------------------
+template <typename Map, typename Function>
+void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, Function&& f)
+{
+    static_assert(std::is_same<map, base_type_of_t<Map>>::value, "");
+
+    if (auto const maybe_pile = m.items_at(p)) {
+        f(*maybe_pile);
+        m.update_render_data(p);
+    } else {
+        item_pile pile;
+        f(pile);
+        m.place_items_at(dic, std::move(pile), p);
+    }
+}
+
+void advance(random_state& random, map& m);
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m
