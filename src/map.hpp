@@ -1,12 +1,12 @@
 #pragma once
 
-#include <bklib/math.hpp>
-
 #include "terrain.hpp"
 #include "creature.hpp"
 #include "item.hpp"
 #include "identifier.hpp"
 #include "random.hpp"
+
+#include <bklib/math.hpp>
 
 #include <array>
 #include <bitset>
@@ -179,43 +179,6 @@ public:
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
-
-    struct find_around_result {
-        int count;
-        int x;
-        int y;
-        std::bitset<9> valid;
-    };
-
-    template <typename Predicate>
-    find_around_result find_around(bklib::ipoint2 const& p, Predicate&& pred) const {
-        constexpr int const dx[] = {-1,  0,  1, -1,  0,  1, -1,  0,  1};
-        constexpr int const dy[] = {-1, -1, -1,  0,  0,  0,  1,  1,  1};
-
-        find_around_result result {};
-
-        auto const x0 = x(p);
-        auto const y0 = y(p);
-
-        for (int i = 0; i < 9; ++i) {
-            auto const x1 = x0 + dx[i];
-            auto const y1 = y0 + dy[i];
-
-            if (x1 < 0 || x1 > size_chunk
-             || y1 < 0 || y1 > size_chunk
-             || !pred(at(x1, y1))
-            ) {
-                continue;
-            }
-
-            ++result.count;
-            result.x = x1;
-            result.y = y1;
-            result.valid.set(i);
-        }
-
-        return result;
-    }
 private:
     class render_data_t;
     std::unique_ptr<render_data_t> render_data_;
@@ -232,6 +195,40 @@ using base_type_of_t = std::remove_const_t<
         std::remove_all_extents_t<T>
     >
 >;
+
+struct find_around_result {
+    explicit operator bool() const noexcept { return count > 0; }
+
+    int                 count; //!< number of results found.
+    bklib::ipoint2      p;     //!< position of the last match.
+    std::array<bool, 9> valid; //!<
+};
+
+//----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
+template <typename Map, typename Predicate>
+find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred)
+{
+    constexpr int const dx[] = {-1,  0,  1, -1,  0,  1, -1,  0,  1};
+    constexpr int const dy[] = {-1, -1, -1,  0,  0,  0,  1,  1,  1};
+
+    find_around_result result {};
+
+    auto const bounds = m.bounds();
+
+    for (auto i = 0u; i < 9u; ++i) {
+        auto const q = p + bklib::ivec2 {dx[i], dy[i]};
+        if (!bklib::intersects(q, bounds) || !pred(m.at(q))) {
+            continue;
+        }
+
+        ++result.count;
+        result.p = q;
+        result.valid[i] = true;
+    }
+
+    return result;
+}
 
 //----------------------------------------------------------------------------------------------
 //! Call f(item_pile&) creating a new item_pile at @p in the map @m if it doesn't already exist.

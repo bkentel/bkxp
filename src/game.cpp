@@ -311,12 +311,12 @@ void bkrl::game::on_open_close(command_type const type)
     auto const state = (type == command_type::open)
         ? door::state::closed : door::state::open;
 
-    auto const candidates = current_map_.find_around(p, find_door(state));
+    auto const candidates = find_around(current_map_, p, find_door(state));
 
     //
     // Nothing to do.
     //
-    if (!candidates.count) {
+    if (!candidates) {
         if (type == command_type::open) {
             display_message("There is nothing here to open.");
         } else if (type == command_type::close) {
@@ -330,7 +330,7 @@ void bkrl::game::on_open_close(command_type const type)
     // Ok.
     //
     if (candidates.count == 1) {
-        do_open_close(bklib::ipoint2 {candidates.x, candidates.y}, type);
+        do_open_close(candidates.p, type);
         return;
     }
 

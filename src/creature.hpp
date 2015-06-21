@@ -3,7 +3,6 @@
 #include "identifier.hpp"
 #include "random.hpp"
 #include "item.hpp"
-
 #include "definitions.hpp"
 
 #include "bklib/math.hpp"
@@ -13,7 +12,6 @@
 #include "bklib/flag_set.hpp"
 
 #include <vector>
-#include <bitset>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
@@ -57,10 +55,8 @@ inline creature_def_id get_id(creature_def const& def) noexcept {
     return def.id;
 }
 
-inline creature_def_id get_id(creature_def_id const id) noexcept {
-    return id;
-}
-
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 template <typename T>
 struct creature_stat {
     T base     = 1;
