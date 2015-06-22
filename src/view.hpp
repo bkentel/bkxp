@@ -59,8 +59,8 @@ public:
 
     //----------------------------------------------------------------------------------------------
     bklib::irect screen_to_world(bklib::irect const r) const noexcept {
-        auto const tl = screen_to_world(r.left,  r.top);
-        auto const br = screen_to_world(r.right, r.bottom);
+        auto const tl = screen_to_world<bklib::transform_float_round>(r.left,  r.top);
+        auto const br = screen_to_world<bklib::transform_float_round>(r.right, r.bottom);
 
         return {x(tl), y(tl), x(br), y(br)};
     }

@@ -64,19 +64,19 @@ TEST_CASE("view <=> world transforms", "[math]") {
     SECTION("window rect, no scroll, no zoom") {
         auto const r = v.screen_to_world(bklib::irect {0, 0, window_w, window_h});
         REQUIRE(r.left   == 0);
-        REQUIRE(r.right  == window_w / tile_w);
+        REQUIRE(r.right  == bklib::round_to<int>(static_cast<double>(window_w) / tile_w));
         REQUIRE(r.top    == 0);
-        REQUIRE(r.bottom == window_h / tile_h);
+        REQUIRE(r.bottom == bklib::round_to<int>(static_cast<double>(window_h) / tile_h));
     }
 
     SECTION("window rect") {
         v.center_on_world(0, 0);
-        auto const r = v.screen_to_world(bklib::irect {0, 0, window_w, window_h});
+        auto const r = v.screen_to_world();
 
-        REQUIRE(r.left   == -(window_w / (tile_w * 2.0)));
-        REQUIRE(r.right  ==  (window_w / (tile_w * 2.0)));
-        REQUIRE(r.top    == -(window_h / (tile_h * 2.0)));
-        REQUIRE(r.bottom ==  (window_h / (tile_h * 2.0)));
+        REQUIRE(r.left   == bklib::floor_to<int>((-window_w / 2.0 + tile_w / 2.0) / tile_w));
+        REQUIRE(r.right  == bklib::ceil_to<int>( ( window_w / 2.0 + tile_w / 2.0) / tile_w));
+        REQUIRE(r.top    == bklib::floor_to<int>((-window_h / 2.0 + tile_h / 2.0) / tile_h));
+        REQUIRE(r.bottom == bklib::ceil_to<int>( ( window_h / 2.0 + tile_h / 2.0) / tile_h));
     }
 
 }

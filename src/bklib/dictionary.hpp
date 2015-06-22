@@ -42,28 +42,45 @@ public:
         return (get_id(value) == id) ? std::addressof(value) : nullptr;
     }
 
+    template <typename T, std::enable_if_t<!std::is_same<T, id_type>::value>* = nullptr>
+    Definition const* find(T const& key) const {
+        return find(get_id(key));
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //! Inserts @p value into the dictionary iff it does not already exist, otherwise @p value is
+    //! ignored.
     //----------------------------------------------------------------------------------------------
     template <typename T>
     decltype(auto) insert_or_discard(T&& value) {
-        auto const it = lower_bound(data_, get_id(value));
-        if (it != std::end(data_) && get_id(*it) == get_id(value)) {
-            return std::make_pair(*it, false);
-        }
-
-        return std::make_pair(*data_.insert(it, std::forward<T>(value)), true);
+        return do_insert_(std::forward<T>(value), [](auto&&) noexcept {});
     }
 
+    //----------------------------------------------------------------------------------------------
+    //! Inserts @p value into the dictionary if it does not already exist, otherwise the existing
+    //! value is replaced by @p value.
+    //----------------------------------------------------------------------------------------------
     template <typename T>
     decltype(auto) insert_or_replace(T&& value) {
-        auto const it = lower_bound(data_, get_id(value));
-        if (it != std::end(data_) && get_id(*it) == get_id(value)) {
-            *it = std::forward<T>(value);
-            return std::make_pair(*it, false);
-        }
-
-        return std::make_pair(*data_.insert(it, std::forward<T>(value)), true);
+        return do_insert_(std::forward<T>(value), [&](auto&& existing) noexcept {
+            existing = std::forward<T>(value);
+        });
     }
 private:
+    //----------------------------------------------------------------------------------------------
+    template <typename T, typename Function>
+    decltype(auto) do_insert_(T&& value, Function&& f) {
+        using result_t = std::pair<Definition const*, bool>;
+
+        auto const it = lower_bound(data_, get_id(value));
+        if (it != std::end(data_) && get_id(*it) == get_id(value)) {
+            f(*it);
+            return result_t {std::addressof(*it), false};
+        }
+
+        return result_t {std::addressof(*data_.insert(it, std::forward<T>(value))), true};
+    }
+
     //----------------------------------------------------------------------------------------------
     template <typename Container>
     static decltype(auto) lower_bound(Container&& c, id_type const id) noexcept {
