@@ -2,7 +2,6 @@
 
 #include "identifier.hpp"
 #include "random.hpp"
-
 #include "definitions.hpp"
 
 #include "bklib/math.hpp"
@@ -44,10 +43,6 @@ struct item_def : definition_base {
 
 inline item_def_id get_id(item_def const& def) noexcept {
     return def.id;
-}
-
-inline item_def_id get_id(item_def_id const id) noexcept {
-    return id;
 }
 
 //--------------------------------------------------------------------------------------------------

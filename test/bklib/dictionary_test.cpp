@@ -9,16 +9,18 @@
 namespace {
 
 struct test_def {
-    using id_type = bklib::tagged_value<int, test_def>;
+    using id_type = bklib::tagged_value<uint32_t, test_def>;
 
-    explicit test_def(bklib::utf8_string id_string)
+    test_def(bklib::utf8_string id_string, int const data)
       : id {bklib::hash_value(id_string)}
       , id_string {std::move(id_string)}
+      , data {data}
     {
     }
 
     id_type            id;
     bklib::utf8_string id_string;
+    int                data;
 };
 
 template <typename T, typename Tag>
@@ -37,34 +39,46 @@ TEST_CASE("new test case") {
     REQUIRE(dic.empty());
     REQUIRE(dic.size() == 0);
 
-    static test_def const def {"test0"};
+    auto const expect_result = [](bool const ok, bklib::utf8_string_view const id, int const data, auto const& result) {
+        REQUIRE(result.second == ok);
+        REQUIRE(result.first->id_string == id);
+        REQUIRE(result.first->id.value == bklib::djb2_hash(id));
+        REQUIRE(result.first->data == data);
+    };
 
-    test_def def0 {"test0"};
-    test_def def1 {"test0"};
+    using insert_type0 = decltype(dic.insert_or_discard(std::declval<test_def>()));
+    using insert_type1 = decltype(dic.insert_or_replace(std::declval<test_def>()));
+
+    static_assert(std::is_same<insert_type0, insert_type1>::value, "");
+    static_assert(std::is_same<insert_type0::first_type, test_def const*>::value, "");
+    static_assert(std::is_same<insert_type0::second_type, bool>::value, "");
 
     // insert into an empty dictionary
-    auto const result0 = dic.insert_or_discard(std::move(def0));
-    REQUIRE(result0.second == true);
+    expect_result(true, "test0", 0, dic.insert_or_discard(test_def {"test0", 0}));
     REQUIRE(!dic.empty());
     REQUIRE(dic.size() == 1);
-    REQUIRE(def0.id_string.empty());
-    REQUIRE(result0.first.id == def.id);
-    REQUIRE(result0.first.id_string == def.id_string);
 
-    // insert duplicate
-    auto const result1 = dic.insert_or_discard(std::move(def1));
-    REQUIRE(result1.second == false);
+    // insert duplicate - discard
+    expect_result(false, "test0", 0, dic.insert_or_discard(test_def {"test0", 1}));
     REQUIRE(dic.size() == 1);
-    REQUIRE(&result1.first == &def1);
 
-    // find non-existing
+    expect_result(false, "test0", 1, dic.insert_or_replace(test_def {"test0", 1}));
+    REQUIRE(dic.size() == 1);
+
+    // find non-existing by id
     REQUIRE(!dic.find(test_def::id_type {0}));
+    // find non-existing by def
+    REQUIRE(!dic.find(test_def {"test1", 0}));
 
-    // find existing
-    auto const ptr = dic.find(def.id);
-    REQUIRE(ptr);
-    REQUIRE(ptr->id == def.id);
-    REQUIRE(ptr->id_string == def.id_string);
+    // find existing - by def
+    auto const ptr0 = dic.find(test_def {"test0", 0});
+    REQUIRE(ptr0);
+
+    // find existing - by id
+    auto const ptr1 = dic.find(test_def {"test0", 0}.id);
+    REQUIRE(ptr1);
+
+    REQUIRE(ptr0 == ptr1);
 }
 
 #endif // BK_NO_UNIT_TESTS

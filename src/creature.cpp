@@ -75,41 +75,21 @@ struct creature_def_parser final : bklib::json_parser_base {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::creature::advance(random_state& random, map& m)
-{
-    if (is_player()) {
-        return;
-    }
-
-    auto& rnd = random[random_stream::creature];
-
-    if (!x_in_y_chance(rnd, 1, 3)) {
-        return;
-    }
-
-    int const dx = random_range(rnd, -1, 1);
-    int const dy = random_range(rnd, -1, 1);
-
-    m.move_creature_by(*this, bklib::ivec2 {dx, dy});
-}
-
-//--------------------------------------------------------------------------------------------------
 bool bkrl::creature::is_player() const noexcept
 {
     return flags_.test(creature_flag::is_player);
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::creature::move_by(bklib::ivec2 const v)
+void bkrl::creature::move_by(bklib::ivec2 const v) noexcept
 {
     pos_ += v;
-    return true;
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::creature::move_by(int const dx, int const dy)
+void bkrl::creature::move_to(bklib::ipoint2 const p) noexcept
 {
-    return move_by(bklib::ivec2 {dx, dy});
+    pos_ = p;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -236,4 +216,73 @@ void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view co
 
         return true;
     });
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::advance(random_state& random, map& m, creature& c)
+{
+    if (c.is_player()) {
+        return;
+    }
+
+    auto& rnd = random[random_stream::creature];
+
+    if (!x_in_y_chance(rnd, 1, 3)) {
+        return;
+    }
+
+    bklib::ivec2 const v {
+        random_range(rnd, -1, 1)
+      , random_range(rnd, -1, 1)
+    };
+
+    move_by(c, m, v);
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::advance(random_state& random, map& m, creature_map& cmap)
+{
+    cmap.for_each_data([&](creature& c) {
+        advance(random, m, c);
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::move_by(creature& c, map& m, bklib::ivec2 const v)
+{
+    BK_ASSERT(std::abs(x(v)) <= 1);
+    BK_ASSERT(std::abs(y(v)) <= 1);
+
+    auto const from = c.position();
+    auto const to   = c.position() + v;
+
+    if (!intersects(m.bounds(), to)) {
+        return false;
+    }
+
+    auto const& ter = m.at(to);
+
+    switch (ter.type) {
+    case terrain_type::empty:
+    case terrain_type::floor:
+        break;
+    case terrain_type::door:
+        if (!door {ter}.is_open()) {
+            return false;
+        }
+        break;
+    default:
+        return false;
+    }
+
+    if (m.creature_at(to)) {
+        return false;
+    }
+
+    m.move_creature_to(c, to);
+
+    return true;
 }

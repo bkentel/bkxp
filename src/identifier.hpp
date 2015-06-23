@@ -5,14 +5,17 @@
 
 namespace bkrl {
 
-using item_def_id          = bklib::tagged_value<uint32_t, struct tag_item_def_id>;
-using item_instance_id     = bklib::tagged_value<uint32_t, struct tag_item_instance_id>;
-using creature_def_id      = bklib::tagged_value<uint32_t, struct tag_creature_def_id>;
-using creature_instance_id = bklib::tagged_value<uint32_t, struct tag_creature_instance_id>;
+template <typename Tag>
+using id_t = bklib::tagged_value<uint32_t, Tag>;
 
-template <typename T>
-inline auto idof(const T& value) noexcept {
-    return typename T::id_t {std::hash<T> {}(value)};
+using item_def_id          = id_t<struct tag_item_def_id>;
+using item_instance_id     = id_t<struct tag_item_instance_id>;
+using creature_def_id      = id_t<struct tag_creature_def_id>;
+using creature_instance_id = id_t<struct tag_creature_instance_id>;
+
+template <typename Tag>
+inline id_t<Tag> get_id(id_t<Tag> const id) noexcept {
+    return id;
 }
 
 } //namespace bkrl
