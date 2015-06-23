@@ -134,15 +134,26 @@ void bresenham_line(T const x0, T const y0, T const x1, T const y1, SetPixel&& s
 //--------------------------------------------------------------------------------------------------
 template <typename T>
 struct aspect_ratio {
-    aspect_ratio(T const num = T {1}, T const den = T {1}) noexcept
+    constexpr aspect_ratio(T const num = T {1}, T const den = T {1}) noexcept
       : num {num > den ? num : den}
       , den {num > den ? den : num}
     {
     }
 
+    template <typename U>
+    constexpr U as() const noexcept {
+        return static_cast<U>(num) / static_cast<U>(den);
+    }
+
     T num;
     T den;
 };
+
+template <typename T>
+inline constexpr aspect_ratio<T> make_aspect_ratio(T const num, T const den) noexcept
+{
+    return aspect_ratio<T> {num, den};
+}
 
 //--------------------------------------------------------------------------------------------------
 //!
@@ -265,15 +276,15 @@ using ivec3   = vector_t<3, int>;
 //--------------------------------------------------------------------------------------------------
 template <typename T = int>
 struct rect_t {
-    T width() const noexcept {
+    constexpr T width() const noexcept {
         return right - left;
     }
 
-    T height() const noexcept {
+    constexpr T height() const noexcept {
         return bottom - top;
     }
 
-    explicit operator bool() const noexcept {
+    constexpr explicit operator bool() const noexcept {
         return (left < right) && (top < bottom);
     }
 
