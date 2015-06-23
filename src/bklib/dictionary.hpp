@@ -32,6 +32,8 @@ public:
     decltype(auto) cend()   const noexcept { return data_.cend(); }
 
     //----------------------------------------------------------------------------------------------
+    //! @returns a pointer to an entry with an id matching @p id, otherwise nullptr.
+    //----------------------------------------------------------------------------------------------
     Definition const* find(id_type const id) const {
         auto const it = lower_bound(data_, id);
         if (it == std::end(data_)) {
@@ -42,6 +44,9 @@ public:
         return (get_id(value) == id) ? std::addressof(value) : nullptr;
     }
 
+    //----------------------------------------------------------------------------------------------
+    //! @returns a pointer to an entry with an id matching get_id(value), otherwise nullptr.
+    //----------------------------------------------------------------------------------------------
     template <typename T, std::enable_if_t<!std::is_same<T, id_type>::value>* = nullptr>
     Definition const* find(T const& key) const {
         return find(get_id(key));
@@ -50,6 +55,9 @@ public:
     //----------------------------------------------------------------------------------------------
     //! Inserts @p value into the dictionary iff it does not already exist, otherwise @p value is
     //! ignored.
+    //! @returns a pair {Definition const*, bool} where the first element is a pointer to the
+    //! inserted or existing value, and the second is a bool indicating whether an insertion
+    //! actually took place.
     //----------------------------------------------------------------------------------------------
     template <typename T>
     decltype(auto) insert_or_discard(T&& value) {
@@ -59,6 +67,7 @@ public:
     //----------------------------------------------------------------------------------------------
     //! Inserts @p value into the dictionary if it does not already exist, otherwise the existing
     //! value is replaced by @p value.
+    //! @returns @see insert_or_discard.
     //----------------------------------------------------------------------------------------------
     template <typename T>
     decltype(auto) insert_or_replace(T&& value) {
