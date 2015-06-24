@@ -16,6 +16,7 @@ install:
   
   - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/core.git
   - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/config.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/preprocessor.git
   - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/assert.git
   - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/static_assert.git
   - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/type_traits.git

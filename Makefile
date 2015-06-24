@@ -17,6 +17,7 @@ SRC_DIR_BKLIB_TESTS = test/bklib
 
 INCLUDE  = -isystem ./deps/core/include
 INCLUDE += -isystem ./deps/config/include
+INCLUDE += -isystem ./deps/preprocessor/include
 INCLUDE += -isystem ./deps/assert/include
 INCLUDE += -isystem ./deps/static_assert/include
 INCLUDE += -isystem ./deps/type_traits/include
