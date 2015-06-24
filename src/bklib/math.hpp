@@ -302,6 +302,12 @@ constexpr inline bool operator==(rect_t<T> const lhs, rect_t<T> const rhs) noexc
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>
+constexpr inline bool operator!=(rect_t<T> const lhs, rect_t<T> const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
 inline rect_t<T> intersection(rect_t<T> const a, rect_t<T> const b) noexcept {
     return {
         std::max(a.left,   b.left)

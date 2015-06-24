@@ -41,6 +41,43 @@ TEST_CASE("bsp_layout split", "[bkrl]") {
     expect_type(classify(irect {0, 0, a,     b    }), st::can,  st::can);
     expect_type(classify(irect {0, 0, a + 1, b    }), st::must, st::can);
     expect_type(classify(irect {0, 0, b,     a + 1}), st::can,  st::must);
+
+    bkrl::random_t random;
+
+    auto const r = irect {0, 0, max_w, max_h};
+
+    irect r0 {};
+    irect r1 {};
+    bool  ok {};
+
+    for (auto i = 0u; i < 1000; ++i) {
+        std::tie(r0, r1, ok) =
+            bkrl::random_split(random, r, min_w, max_w, min_h, max_h, aspect);
+
+        REQUIRE(ok);
+        REQUIRE(r0 != r);
+        REQUIRE(r1 != r);
+
+        REQUIRE(aspect.as<double>()
+            >= bklib::make_aspect_ratio(r0.width(), r0.height()).as<double>());
+
+        REQUIRE(aspect.as<double>()
+            >= bklib::make_aspect_ratio(r1.width(), r1.height()).as<double>());
+
+        if (r0.width() < r.width()) {
+            REQUIRE((r0.width() + r1.width()) == r.width());
+            REQUIRE(r0.width() <= max_w);
+            REQUIRE(r0.width() >= min_w);
+            REQUIRE(r1.width() <= max_w);
+            REQUIRE(r1.width() >= min_w);
+
+            REQUIRE(r0.right  == r1.left);
+            REQUIRE(r0.top    == r1.top);
+            REQUIRE(r0.bottom == r1.bottom);
+        } else {
+
+        }
+    }
 }
 
 #endif // BK_NO_UNIT_TESTS

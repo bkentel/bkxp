@@ -144,5 +144,34 @@ inline constexpr classify_split_result_t classify_split(
     };
 }
 
+inline auto random_split(random_t& random, bklib::irect const r
+  , int const min_w = std::numeric_limits<int>::min()
+  , int const max_w = std::numeric_limits<int>::max()
+  , int const min_h = std::numeric_limits<int>::min()
+  , int const max_h = std::numeric_limits<int>::max()
+  , bklib::aspect_ratio<int> const aspect_limit = {0, 1}
+) {
+    auto const split = [&](auto const& f, int const min, int const value) {
+        return std::tuple_cat(f(r, random_range(random, min, value - min)), std::make_tuple(true));
+    };
+
+    auto const split_h = [&] { return split(split_horizontal, min_h, r.height()); };
+    auto const split_v = [&] { return split(split_vertical,   min_w, r.width());  };
+
+    auto const type = classify_split(r, min_w, max_w, min_h, max_h, aspect_limit);
+
+    if (type.horizontal == split_type::must && type.vertical == split_type::must
+     || type.horizontal == split_type::can  && type.vertical == split_type::can
+    ) {
+        return toss_coin(random) ? split_h() : split_v();
+    } else if (type.horizontal != split_type::none) {
+        return split_h();
+    } else if (type.vertical != split_type::none) {
+        return split_v();
+    }
+
+    return std::make_tuple(r, r, false);
+}
+
 } //namespace bkrl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
