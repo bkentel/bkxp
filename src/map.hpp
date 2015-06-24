@@ -6,7 +6,7 @@
 #include "identifier.hpp"
 #include "random.hpp"
 
-#include <bklib/math.hpp>
+#include "bklib/math.hpp"
 
 #include <array>
 #include <bitset>
