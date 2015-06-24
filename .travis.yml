@@ -1,0 +1,54 @@
+sudo: false
+language: cpp
+compiler:
+  - clang
+  - gcc
+
+before_install:
+  - git submodule update --init --recursive
+
+install:
+  - DEPS_DIR="${PWD}/deps"
+  - mkdir ${DEPS_DIR} && cd ${DEPS_DIR}
+  
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
+  - if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.7" CC="clang-3.7"; fi
+  
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/core.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/config.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/assert.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/static_assert.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/type_traits.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/mpl.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/integer.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/throw_exception.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/smart_ptr.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/exception.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/predef.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/utility.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/tuple.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/random.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/philsquared/Catch.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/imneme/pcg-cpp.git
+  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/miloyip/rapidjson.git
+
+before_script:
+  - mkdir ./Catch/include/catch && ln ./Catch/single_include/catch.hpp ./Catch/include/catch/catch.hpp
+  ############################################################################
+  # Go back to the root of the project.
+  ############################################################################
+  - cd ${TRAVIS_BUILD_DIR}
+  - find ./ -type d -print
+  - ls -al ./deps/Catch/include/catch/
+  
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise
+    packages:
+    - gcc-5
+    - g++-5
+    - clang-3.7
+
+script: $CXX --version && make

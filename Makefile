@@ -8,10 +8,33 @@ CPPFLAGS = $(shell root-config --cflags)
 LDFLAGS  = $(shell root-config --ldflags)
 LDLIBS   = $(shell root-config --libs)
 
+CPPFLAGS += -std=c++14
+
 SRC_DIR_BKXP        = src
 SRC_DIR_BKLIB       = src/bklib
 SRC_DIR_BKXP_TESTS  = test
 SRC_DIR_BKLIB_TESTS = test/bklib
+
+INCLUDE  = -isystem ./deps/core/include
+INCLUDE += -isystem ./deps/config/include
+INCLUDE += -isystem ./deps/assert/include
+INCLUDE += -isystem ./deps/static_assert/include
+INCLUDE += -isystem ./deps/type_traits/include
+INCLUDE += -isystem ./deps/mpl/include
+INCLUDE += -isystem ./deps/integer/include
+INCLUDE += -isystem ./deps/throw_exception/include
+INCLUDE += -isystem ./deps/smart_ptr/include
+INCLUDE += -isystem ./deps/exception/include
+INCLUDE += -isystem ./deps/predef/include
+INCLUDE += -isystem ./deps/utility/include
+INCLUDE += -isystem ./deps/tuple/include
+INCLUDE += -isystem ./deps/random/include
+INCLUDE += -isystem ./deps/Catch/include
+INCLUDE += -isystem ./deps/pcg-cpp/include
+INCLUDE += -isystem ./deps/rapidjson/include
+INCLUDE += -iquote ./$(SRC_DIR_BKXP)
+
+CPPFLAGS += $(INCLUDE)
 
 SRCS  = $(wildcard $(SRC_DIR_BKXP)/*.cpp)
 SRCS += $(wildcard $(SRC_DIR_BKLIB)/*.cpp)
@@ -22,14 +45,14 @@ OBJS = $(subst .cpp,.o,$(SRCS))
 
 all: bkxp
 
-tool: $(OBJS)
-	$(CXX) $(LDFLAGS) -o bkxp $(OBJS) $(LDLIBS) 
+bkxp: $(OBJS)
+	$(CXX) $(LDFLAGS) -o bkxp $(OBJS) $(LDLIBS)
 
 depend: .depend
 
 .depend: $(SRCS)
 	rm -f ./.depend
-	$(CXX) $(CPPFLAGS) -MM $^>>./.depend;
+	$(CXX) $(CPPFLAGS) -MM $^ >> ./.depend;
 
 clean:
 	$(RM) $(OBJS)
