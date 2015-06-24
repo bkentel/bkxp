@@ -15,7 +15,7 @@ TEST_CASE("flag_set") {
     static_assert(std::is_standard_layout<flag_set>::value, "");
 
     flag_set fs {};
-    auto const all_flags = {
+    std::initializer_list<test_enum> const all_flags = {
         test_enum::flag_1
       , test_enum::flag_2
       , test_enum::flag_3
