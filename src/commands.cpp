@@ -16,6 +16,9 @@ public:
         handlers_.pop_back();
     }
 
+#if defined(BK_NO_SDL)
+    void on_key_down(int const key) {}
+#else
     void on_key_down(int const key) {
         if (handlers_.empty()) {
             return;
@@ -60,6 +63,7 @@ public:
 
         handlers_.back()(cmd);
     }
+#endif
 
     void on_key_up(int key) {
     }

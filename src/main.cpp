@@ -5,12 +5,12 @@
 
 int run_unit_tests();
 
-void main() try {
+int main() try {
     run_unit_tests();
 
     bkrl::game game;
 
-    return;
+    return 0;
 } catch (bklib::exception_base const&) {
 } catch (boost::exception const&) {
 } catch (std::exception const&) {

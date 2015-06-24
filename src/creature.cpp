@@ -159,14 +159,14 @@ bkrl::creature::creature(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
-bkrl::creature_factory::creature_factory(creature_dictionary& dic)
+bkrl::creature_factory::creature_factory(creature_dictionary const& dic)
   : next_id_ {0}
-  , dic_     {dic}
+  , dic_     {&dic}
 {
 }
 
 //--------------------------------------------------------------------------------------------------
-bkrl::creature_factory::~creature_factory() = default;
+bkrl::creature_factory::~creature_factory() noexcept = default;
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::creature_factory::create(
@@ -174,7 +174,7 @@ bkrl::creature bkrl::creature_factory::create(
   , creature_def_id const def
   , bklib::ipoint2  const p
 ) {
-    auto const ptr = dic_.get().find(def);
+    auto const ptr = dic_->find(def);
     BK_PRECONDITION(ptr);
 
     return create(random, *ptr, p);

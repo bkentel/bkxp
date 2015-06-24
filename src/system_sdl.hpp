@@ -1,4 +1,5 @@
 #pragma once
+#if !defined(BK_NO_SDL)
 
 #include "system.hpp"
 #include "renderer.hpp"
@@ -151,3 +152,5 @@ private:
 };
 
 } // namespace bkrl
+
+#endif // !defined(BK_NO_SDL)

@@ -14,6 +14,8 @@
 #include "bklib/math.hpp"
 #include "bklib/timer.hpp"
 
+#include <cstdio>
+
 namespace bkrl {
 
 template <typename T>
@@ -48,8 +50,12 @@ public:
     template <typename... Args>
     void display_message(bklib::utf8_string_view const format, Args&&... args) {
         char buffer[256];
-        auto const result =_snprintf_s(buffer, _TRUNCATE, format.data(), get_arg(std::forward<Args>(args))...);
 
+#if defined(BOOST_COMP_MSVC_AVAILABLE) && !(BOOST_COMP_GNUC)
+        auto const result =_snprintf_s(buffer, _TRUNCATE, format.data(), get_arg(std::forward<Args>(args))...);
+#else
+        auto const result = std::snprintf(buffer, 256, format.data(), get_arg(std::forward<Args>(args))...);
+#endif
         BK_ASSERT(result >= 0);
 
         display_message(bklib::utf8_string_view {buffer, static_cast<size_t>(result)});
@@ -103,7 +109,7 @@ private:
     item_factory        item_factory_;
     map                 current_map_;
 
-    bklib::ipoint2 mouse_last_pos_ {0, 0};
+    bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
 
     text_layout test_layout_;
     message_log message_log_;

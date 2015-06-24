@@ -2,7 +2,10 @@
 
 #include <type_traits>
 #include <array>
+#include <algorithm>
 #include <cstdlib>
+#include <cmath>
+#include <cstring>
 
 namespace bklib {
 ////////////////////////////////////////////////////////////////////////////////////////////////////

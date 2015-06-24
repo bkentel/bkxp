@@ -16,7 +16,7 @@ inline decltype(auto) find_by_pos(bklib::ipoint2 const p) noexcept {
     auto const x_pos = x(p);
     auto const y_pos = y(p);
 
-    return [=](auto const& data) noexcept {
+    return [x_pos, y_pos](auto const& data) noexcept {
         return (data.x == x_pos) && (data.y == y_pos);
     };
 }

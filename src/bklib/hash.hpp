@@ -1,6 +1,8 @@
 #pragma once
 
 #include "bklib/string.hpp"
+#include <functional>
+#include <type_traits>
 #include <cstddef>
 
 namespace bklib {
@@ -17,9 +19,14 @@ inline void hash_combine(std::size_t& seed, T const& val, Args const&... args) n
     hash_combine(seed, args...);
 }
 
-template <typename T>
+template <typename T, std::enable_if_t<!std::is_enum<T>::value>* = nullptr>
 inline size_t hash_value(T const& val) noexcept {
     return std::hash<T>()(val);
+}
+
+template <typename T, std::enable_if_t<std::is_enum<T>::value>* = nullptr>
+inline size_t hash_value(T const& val) noexcept {
+    return std::hash<std::underlying_type_t<T>>()(static_cast<std::underlying_type_t<T>>(val));
 }
 
 template <>

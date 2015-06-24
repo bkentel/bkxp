@@ -52,4 +52,4 @@ addons:
     - g++-5
     - clang-3.7
 
-script: $CXX --version && make
+script: $CXX --version && make -j 4

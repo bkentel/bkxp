@@ -89,7 +89,7 @@ inline decltype(auto) random_element(random_t& random, Container&& c) noexcept
 
     static_assert(std::is_same<
         std::random_access_iterator_tag
-      , std::iterator_traits<decltype(first)>::iterator_category>::value, "");
+      , typename std::iterator_traits<decltype(first)>::iterator_category>::value, "");
 
     auto const size = std::distance(first, last);
 

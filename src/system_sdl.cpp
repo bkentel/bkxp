@@ -1,3 +1,4 @@
+#if !defined(BK_NO_SDL)
 #include "system_sdl.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,3 +388,5 @@ std::pair<int, int> bkrl::sdl_texture::get_size(sdl_texture const& texture) cons
 
     return {w, h};
 }
+
+#endif // !defined(BK_NO_SDL)

@@ -74,24 +74,24 @@ struct json_parser_base {
 
     virtual bool on_finished() { return true; }
 
-    json_parser_base* handler {this};  //!< handler to use
-    json_parser_base* parent  {};      //!< parser that owns / uses this; used by on_finished.
-    bool              default {false}; //!< the default value to use for unhandled data / state.
+    json_parser_base* handler    {this};  //!< handler to use
+    json_parser_base* parent     {};      //!< parser that owns / uses this; used by on_finished.
+    bool              def_result {false}; //!< the default value to use for unhandled data / state.
 private:
     //----------------------------------------------------------------------------------------------
-    virtual bool on_null()                               { return default; }
-    virtual bool on_bool(bool)                           { return default; }
-    virtual bool on_int(int)                             { return default; }
-    virtual bool on_uint(unsigned)                       { return default; }
-    virtual bool on_int64(int64_t)                       { return default; }
-    virtual bool on_uint64(uint64_t)                     { return default; }
-    virtual bool on_double(double)                       { return default; }
-    virtual bool on_string(const char*, size_type, bool) { return default; }
-    virtual bool on_start_object()                       { return default; }
-    virtual bool on_key(const char*, size_type, bool)    { return default; }
-    virtual bool on_end_object(size_type)                { return default; }
-    virtual bool on_start_array()                        { return default; }
-    virtual bool on_end_array(size_type)                 { return default; }
+    virtual bool on_null()                               { return def_result; }
+    virtual bool on_bool(bool)                           { return def_result; }
+    virtual bool on_int(int)                             { return def_result; }
+    virtual bool on_uint(unsigned)                       { return def_result; }
+    virtual bool on_int64(int64_t)                       { return def_result; }
+    virtual bool on_uint64(uint64_t)                     { return def_result; }
+    virtual bool on_double(double)                       { return def_result; }
+    virtual bool on_string(const char*, size_type, bool) { return def_result; }
+    virtual bool on_start_object()                       { return def_result; }
+    virtual bool on_key(const char*, size_type, bool)    { return def_result; }
+    virtual bool on_end_object(size_type)                { return def_result; }
+    virtual bool on_start_array()                        { return def_result; }
+    virtual bool on_end_array(size_type)                 { return def_result; }
 
     //----------------------------------------------------------------------------------------------
     //! Find the deepest handler type.

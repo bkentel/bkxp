@@ -9,7 +9,7 @@
 namespace {
 
 struct test_def {
-    using id_type = bklib::tagged_value<uint32_t, test_def>;
+    using id_type = bklib::tagged_value<size_t, test_def>;
 
     test_def(bklib::utf8_string id_string, int const data)
       : id {bklib::hash_value(id_string)}

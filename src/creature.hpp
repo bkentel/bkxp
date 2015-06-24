@@ -10,6 +10,7 @@
 #include "bklib/hash.hpp"
 #include "bklib/spatial_map.hpp"
 #include "bklib/flag_set.hpp"
+#include "bklib/dictionary.hpp"
 
 #include <vector>
 
@@ -139,18 +140,18 @@ public:
     creature_factory(creature_factory&&) = default;
     creature_factory& operator=(creature_factory&&) = default;
 
-    explicit creature_factory(creature_dictionary& dic);
-    ~creature_factory();
+    explicit creature_factory(creature_dictionary const& dic);
+    ~creature_factory() noexcept;
 
     creature create(random_state& random, creature_def_id def, bklib::ipoint2 p);
     creature create(random_state& random, creature_def const& def, bklib::ipoint2 p);
 
     creature_dictionary const& dictionary() const noexcept {
-        return dic_.get();
+        return *dic_;
     }
 private:
     creature_instance_id::value_type next_id_;
-    std::reference_wrapper<creature_dictionary const> dic_;
+    creature_dictionary const* dic_;
 };
 
 void load_definitions(creature_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);

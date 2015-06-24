@@ -126,13 +126,6 @@ public:
 
     void place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 p);
 
-    template <typename Function>
-    void with_pile_at(bklib::ipoint2 const p, Function&& f) {
-        item_pile pile;
-        f(pile);
-        place_items_at(std::move(pile), p);
-    }
-
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
     //! @pre a creature must not already exist at @p p.

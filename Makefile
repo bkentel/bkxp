@@ -37,6 +37,8 @@ INCLUDE += -iquote ./$(SRC_DIR_BKXP)
 
 CPPFLAGS += $(INCLUDE)
 
+CPPFLAGS += -D BK_NO_SDL -D BK_NO_PCH
+
 SRCS  = $(wildcard $(SRC_DIR_BKXP)/*.cpp)
 SRCS += $(wildcard $(SRC_DIR_BKLIB)/*.cpp)
 SRCS += $(wildcard $(SRC_DIR_BKXP_TESTS)/*.cpp)

@@ -24,7 +24,7 @@ public:
         size_type const w = 18;
         size_type const h = 18;
 
-        return {x, y, x + w, y + h};
+        return {x, y, static_cast<size_type>(x + w), static_cast<size_type>(y + h)};
     }
 
     size_type line_spacing() const {
