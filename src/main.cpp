@@ -5,10 +5,18 @@
 
 int run_unit_tests();
 
+#if !defined(BK_TESTS_ONLY)
+void run_game() {
+    bkrl::game game;
+}
+#else
+void run_game() {
+}
+#endif
+
 int main() try {
     run_unit_tests();
-
-    bkrl::game game;
+    run_game();
 
     return 0;
 } catch (bklib::exception_base const&) {

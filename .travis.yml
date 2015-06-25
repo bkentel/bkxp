@@ -39,8 +39,6 @@ before_script:
   # Go back to the root of the project.
   ############################################################################
   - cd ${TRAVIS_BUILD_DIR}
-  - find ./ -type d -print
-  - ls -al ./deps/Catch/include/catch/
   
 addons:
   apt:
@@ -52,4 +50,4 @@ addons:
     - g++-5
     - clang-3.7
 
-script: $CXX --version && make -j 4
+script: $CXX --version && make -j 4 && ./bkxp
