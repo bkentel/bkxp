@@ -4,9 +4,9 @@ endif
 
 RM  = rm -f
 
-CPPFLAGS = $(shell root-config --cflags)
-LDFLAGS  = $(shell root-config --ldflags)
-LDLIBS   = $(shell root-config --libs)
+#CPPFLAGS = $(shell root-config --cflags)
+#LDFLAGS  = $(shell root-config --ldflags)
+#LDLIBS   = $(shell root-config --libs)
 
 CPPFLAGS += -std=c++14
 
