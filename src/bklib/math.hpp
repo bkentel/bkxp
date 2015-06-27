@@ -207,7 +207,7 @@ constexpr T z(tuple_base_t<Tag, D, T> const& p) noexcept {
 template <unsigned D, typename T>
 inline point_t<D, T>& operator+=(point_t<D, T>& p, vector_t<D, T> const v) noexcept {
     // TODO specialize for performance
-    for (int i = 0; i < D; ++i) {
+    for (auto i = 0u; i < D; ++i) {
         p.data[i] += v.data[i];
     }
 
@@ -216,7 +216,7 @@ inline point_t<D, T>& operator+=(point_t<D, T>& p, vector_t<D, T> const v) noexc
 
 template <unsigned D, typename T>
 inline bool operator==(point_t<D, T> const p, point_t<D, T> const q) noexcept {
-    for (int i = 0; i < D; ++i) {
+    for (auto i = 0u; i < D; ++i) {
         if (p.data[i] != q.data[i]) {
             return false;
         }
@@ -232,7 +232,7 @@ inline bool operator!=(point_t<D, T> const p, point_t<D, T> const q) noexcept {
 
 template <unsigned D, typename T>
 inline bool operator<(point_t<D, T> const p, point_t<D, T> const q) noexcept {
-    for (int i = 0; i < D; ++i) {
+    for (auto i = 0u; i < D; ++i) {
         if (p.data[i] != q.data[i]) {
             return p.data[0] < q.data[0];
         }
@@ -242,7 +242,7 @@ inline bool operator<(point_t<D, T> const p, point_t<D, T> const q) noexcept {
 }
 
 template <unsigned D, typename T>
-inline point_t<D, T>& operator+(point_t<D, T> const p, vector_t<D, T> const v) noexcept {
+inline point_t<D, T> operator+(point_t<D, T> const p, vector_t<D, T> const v) noexcept {
     auto q = p;
     return q += v;
 }
@@ -324,7 +324,7 @@ template <unsigned D, typename T>
 inline auto distance2(point_t<D, T> const& u, point_t<D, T> const& v) noexcept {
     T result {};
 
-    for (size_t i = 0; i < D; ++i) {
+    for (auto i = 0u; i < D; ++i) {
         auto const delta = v.data[i] - u.data[i];
         result += delta * delta;
     }
@@ -339,7 +339,7 @@ inline decltype(auto) fold(tuple_base_t<Tag, D, T> const& n, F&& f)
 {
     auto result = n.data[0];
 
-    for (size_t i = 1; i < D; ++i) {
+    for (auto i = 1u; i < D; ++i) {
         result = f(result, n.data[i]);
     }
 

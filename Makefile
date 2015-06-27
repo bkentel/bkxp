@@ -40,7 +40,7 @@ CPPFLAGS += $(INCLUDE)
 CPPFLAGS += -D BK_NO_SDL -D BK_NO_PCH -D BK_TESTS_ONLY
 
 ifeq ($(findstring clang++,$(CXX)),clang++)
-  CPPFLAGS += -Weverything -Wno-c++98-compat
+  CPPFLAGS += -Weverything -Wno-c++98-compat -Wno-missing-braces
 else
   CPPFLAGS += -Wredundant-decls -Wcast-align -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum -Wswitch-default -Wextra -Wall -Winvalid-pch -Wredundant-decls -Wformat=2 -Wmissing-format-attribute -Wformat-nonliteral 
 endif
