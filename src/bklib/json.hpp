@@ -12,8 +12,8 @@ struct json_parser_base {
     using size_type = rapidjson::SizeType;
 
     //----------------------------------------------------------------------------------------------
-    explicit json_parser_base(json_parser_base* const parent = nullptr)
-      : parent {parent}
+    explicit json_parser_base(json_parser_base* const parent_parser = nullptr)
+      : parent {parent_parser}
     {
     }
 

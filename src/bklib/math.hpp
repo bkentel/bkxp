@@ -251,7 +251,7 @@ template <unsigned D, typename T>
 inline vector_t<D, T> operator-(point_t<D, T> const p, point_t<D, T> const q) noexcept {
     vector_t<D, T> result {p.data};
 
-    for (int i = 0; i < D; ++i) {
+    for (auto i = 0u; i < D; ++i) {
         result.data[i] -= q.data[i];
     }
 

@@ -22,9 +22,9 @@ public:
     struct record_t {
         record_t() = delete;
 
-        id_t       id;
-        duration_t duration;
         callback_t callback;
+        duration_t duration;
+        id_t       id;
         bool       repeat;
     };
 
@@ -44,9 +44,9 @@ public:
     template <typename Duration, typename Callback>
     id_t add(Duration const duration, Callback&& callback, bool const repeat = true) {
         return add_(record_t {
-            id_t {++next_id_}
+            std::forward<Callback>(callback)
           , std::chrono::duration_cast<duration_t>(duration)
-          , std::forward<Callback>(callback)
+          , id_t {++next_id_}
           , repeat
         });
     }
@@ -59,9 +59,9 @@ private:
 
     bool reset_(id_t id, duration_t duration, bool use_new_duration = true);
 
-    int                next_id_ = 0;
     std::deque<pair_t> records_;
-    bool updating_ = false;
+    int                next_id_  = 0;
+    bool               updating_ = false;
 };
 
 } //namespace bklib
