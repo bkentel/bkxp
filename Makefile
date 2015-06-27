@@ -39,8 +39,11 @@ CPPFLAGS += $(INCLUDE)
 
 CPPFLAGS += -D BK_NO_SDL -D BK_NO_PCH -D BK_TESTS_ONLY
 
+$(info $(CXX))
+$(info $(findstring g++,$(CXX)))
+
 ifeq ($(findstring g++,$(CXX)),g++)
-  CPPFLAGS += -Wredundant-decls -Wcast-align -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum -Wswitch-default -Wextra -Wall -Werror -Winvalid-pch -Wredundant-decls -Wmissing-prototypes -Wformat=2 -Wmissing-format-attribute -Wformat-nonliteral 
+  CPPFLAGS += -Wredundant-decls -Wcast-align -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum -Wswitch-default -Wextra -Wall -Werror -Winvalid-pch -Wredundant-decls -Wformat=2 -Wmissing-format-attribute -Wformat-nonliteral 
 else
   CPPFLAGS += -Weverything -Wc++98-compat
 endif
