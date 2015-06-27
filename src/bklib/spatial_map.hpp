@@ -37,7 +37,7 @@ public:
     //----------------------------------------------------------------------------------------------
     bool relocate(point_t const from, point_t to, T const& data) {
         auto const last = end(sorted_);
-        auto const it = std::find_if(begin(sorted_), last, [&](auto const& pair) {
+        auto const it = std::find_if(begin(sorted_), last, [&](std::pair<point_t, int> const pair) {
             return (pair.first == from) && (get_data_at_(pair) == std::addressof(data));
         });
 
