@@ -13,7 +13,7 @@ public:
     using rect_t = text_renderer::rect_t;
 
     rect_t load_glyph_info(bklib::utf8_string_view const text) {
-        if (text.empty() || static_cast<unsigned char>(text.front()) & unsigned char {0b1000'0000}) {
+        if (text.empty() || static_cast<std::uint8_t>(text.front()) & std::uint8_t {0b1000'0000}) {
             return {0, 0, 18, 18};
         }
 

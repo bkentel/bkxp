@@ -17,7 +17,7 @@ struct json_parser_base {
     {
     }
 
-    virtual ~json_parser_base() = default;
+    virtual ~json_parser_base() noexcept;
 
     //----------------------------------------------------------------------------------------------
     bool Null() {

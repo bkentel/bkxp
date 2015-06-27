@@ -1,7 +1,7 @@
 #ifndef BK_NO_UNIT_TESTS
 #include <catch/catch.hpp>
 
-#include "json.hpp"
+#include "json_util.hpp"
 #include "creature.hpp"
 
 TEST_CASE("json definition parser", "[json][bkrl]") {

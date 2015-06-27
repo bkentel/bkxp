@@ -1,7 +1,7 @@
 #include "creature.hpp"
 #include "map.hpp"
 
-#include "json.hpp"
+#include "json_util.hpp"
 #include "bklib/json.hpp"
 
 #include <functional>
