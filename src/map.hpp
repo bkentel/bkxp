@@ -30,7 +30,10 @@ constexpr size_t size_chunk = size_block * size_block;
 template <typename T>
 struct block_t {
     T& cell_at(int const x, int const y) noexcept {
-        return data[(y % size_block) * size_block + (x % size_block)];
+        auto const yi = static_cast<size_t>(y) % size_block;
+        auto const xi = static_cast<size_t>(x) % size_block;
+
+        return data[yi * size_block + xi];
     }
 
     T const& cell_at(int const x, int const y) const noexcept {
@@ -39,7 +42,7 @@ struct block_t {
 
     template <typename Function>
     void for_each_cell(Function&& f, int const x0, int const y0) const {
-        for (size_t i = 0; i < data.size(); ++i) {
+        for (auto i = 0u; i < data.size(); ++i) {
             auto const yi = i / size_block;
             auto const xi = i % size_block;
             f(x0 + xi, y0 + yi, data[i]);
@@ -59,16 +62,16 @@ struct chunk_t {
     }
 
     block_t<T>& block_at(int const x, int const y) noexcept {
-        auto const yi = y / size_block;
-        auto const xi = x / size_block;
+        auto const yi = static_cast<size_t>(y) / size_block;
+        auto const xi = static_cast<size_t>(x) / size_block;
         return data[yi * size_block + xi];
     }
 
     T& cell_at(int const x, int const y) noexcept {
-        auto const yb = y / size_block;
-        auto const yi = y % size_block;
-        auto const xb = x / size_block;
-        auto const xi = x % size_block;
+        auto const yb = static_cast<size_t>(y) / size_block;
+        auto const yi = static_cast<size_t>(y) % size_block;
+        auto const xb = static_cast<size_t>(x) / size_block;
+        auto const xi = static_cast<size_t>(x) % size_block;
 
         return data[yb * size_block + xb].data[yi * size_block + xi];
     }
@@ -83,7 +86,7 @@ struct chunk_t {
 
     template <typename Function>
     void for_each_cell(Function&& f, int const x0, int const y0) const {
-        for (size_t i = 0; i < data.size(); ++i) {
+        for (auto i = 0u; i < data.size(); ++i) {
             auto const yi = i / size_block;
             auto const xi = i % size_block;
             data[i].for_each_cell(std::forward<Function>(f), x0 + xi * size_block, y0 + yi * size_block);

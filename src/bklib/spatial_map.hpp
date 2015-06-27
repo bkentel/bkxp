@@ -128,7 +128,7 @@ public:
 
         for (auto& pair : sorted_) {
             if (intersects(pair.first, r)) {
-                func(pair.first, *get_data_at_(p));
+                func(pair.first, *get_data_at_(pair));
             }
         }
     }
