@@ -96,7 +96,7 @@ inline int random_range(random_t& random, int const lo, int const hi) noexcept {
 
     //Check for overflow
     BK_PRECONDITION(lo <= hi);
-    BK_PRECONDITION(static_cast<random_t::result_type>(std::numeric_limits<int>::max()) < diff);
+    BK_PRECONDITION(static_cast<random_t::result_type>(std::numeric_limits<int>::max()) >= diff);
 
     return static_cast<int>(random(diff)) + lo;
 }

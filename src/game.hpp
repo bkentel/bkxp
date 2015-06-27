@@ -46,9 +46,14 @@ public:
     creature& get_player();
     creature const& get_player() const;
 
+    template <size_t N, typename First, typename... Args>
+    void display_message(char const (&format)[N], First&& first, Args&&... args) {
+        display_message_(bklib::utf8_string_view(format, N - 1), std::forward<First>(first), std::forward<Args>(args)...);
+    }
+
     //TODO use a typesafe printf library for this
     template <typename... Args>
-    void display_message(bklib::utf8_string_view const format, Args&&... args) {
+    void display_message_(bklib::utf8_string_view const format, Args&&... args) {
         char buffer[256];
 
 #if defined(BOOST_COMP_MSVC_AVAILABLE) && !(BOOST_COMP_GNUC)
