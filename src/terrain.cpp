@@ -5,9 +5,9 @@
 #include <functional>
 
 namespace std {
-template <> struct hash<::bkrl::terrain_entry> {
-    size_t operator()(const ::bkrl::terrain_entry& k) const noexcept {
-        return ::bklib::hash_value(k.type, k.variant);
+template <> struct hash<bkrl::terrain_entry> {
+    size_t operator()(const bkrl::terrain_entry& k) const noexcept {
+        return bklib::hash_value(k.type, k.variant);
     }
 };
 } //namespace std
