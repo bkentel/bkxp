@@ -67,7 +67,7 @@ public:
     //----------------------------------------------------------------------------------------------
     //! Inserts @p value into the dictionary if it does not already exist, otherwise the existing
     //! value is replaced by @p value.
-    //! @returns @see insert_or_discard.
+    //! @returns a pair @see insert_or_discard.
     //----------------------------------------------------------------------------------------------
     template <typename T>
     decltype(auto) insert_or_replace(T&& value) {

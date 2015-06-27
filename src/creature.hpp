@@ -150,8 +150,8 @@ public:
         return *dic_;
     }
 private:
-    creature_instance_id::value_type next_id_;
     creature_dictionary const* dic_;
+    creature_instance_id::value_type next_id_;
 };
 
 void load_definitions(creature_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);

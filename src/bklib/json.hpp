@@ -112,6 +112,8 @@ private:
 struct json_string_parser final : public json_parser_base {
     using json_parser_base::json_parser_base;
 
+    virtual ~json_string_parser() noexcept;
+
     //----------------------------------------------------------------------------------------------
     bool on_string(const char* const str, size_type const len, bool) override final {
         if (out) {

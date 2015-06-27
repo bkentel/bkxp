@@ -137,9 +137,9 @@ void bresenham_line(T const x0, T const y0, T const x1, T const y1, SetPixel&& s
 //--------------------------------------------------------------------------------------------------
 template <typename T>
 struct aspect_ratio {
-    aspect_ratio(T const num = T {1}, T const den = T {1}) noexcept
-      : num {num > den ? num : den}
-      , den {num > den ? den : num}
+    constexpr aspect_ratio(T const a = T {1}, T const b = T {1}) noexcept
+      : num {a > b ? a : b}
+      , den {a > b ? a : b}
     {
     }
 
@@ -153,7 +153,7 @@ struct aspect_ratio {
 namespace detail {
 template <unsigned N, typename T>
 constexpr inline unsigned combine_bool_impl(T const head) noexcept {
-    return (((!!head) ? 1 : 0) << (N));
+    return (((!!head) ? 1u : 0u) << (N));
 }
 
 template <unsigned N, typename T, typename... Ts>

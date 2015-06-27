@@ -63,7 +63,7 @@ bkrl::game::game()
     ////
 
     using namespace std::chrono_literals;
-    timer_message_log_ = timer_.add(1s, [&](auto& timer_record) {
+    timer_message_log_ = timer_.add(1s, [&](auto&) {
         message_log_.show(message_log::show_type::less);
     });
 

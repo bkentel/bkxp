@@ -227,9 +227,9 @@ find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred
 }
 
 //----------------------------------------------------------------------------------------------
-//! Call f(item_pile&) creating a new item_pile at @p in the map @m if it doesn't already exist.
+//! Call f(item_pile&) creating a new item_pile at @p in the map @p m if it doesn't already exist.
 //! @pre @p p is a valid position in @p m.
-//! @pre @p dic has valid enties for any new items added.
+//! @pre @p dic has valid entries for any new items added.
 //----------------------------------------------------------------------------------------------
 template <typename Map, typename Function>
 void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, Function&& f)

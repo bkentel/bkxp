@@ -18,8 +18,8 @@ public:
 
         node_t() = default;
 
-        node_t(size_t const parent, bklib::irect const bounds)
-          : bklib::irect(bounds), parent {static_cast<index_t>(parent)}
+        node_t(size_t const parent_index, bklib::irect const bounds)
+          : bklib::irect(bounds), parent {static_cast<index_t>(parent_index)}
         {
         }
 

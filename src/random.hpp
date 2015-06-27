@@ -119,9 +119,9 @@ inline decltype(auto) random_element(random_t& random, Container&& c) noexcept
 
     auto const size = std::distance(first, last);
 
-    BK_PRECONDITION(size > 0);
+    BK_PRECONDITION(size > 0 && size < std::numeric_limits<int>::max());
 
-    return *(first + random_range(random, 0, size - 1));
+    return *(first + random_range(random, 0, static_cast<int>(size - 1)));
 }
 
 //--------------------------------------------------------------------------------------------------
