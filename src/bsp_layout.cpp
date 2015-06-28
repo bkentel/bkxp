@@ -48,7 +48,7 @@ public:
         BK_PRECONDITION(p_.min_w > 0);
         BK_PRECONDITION(p_.min_h > 0);
 
-        auto const size = static_cast<size_t>((width_ / p_.min_w) * (height_ / p_.min_h))
+        auto const size = static_cast<size_t>((width_ / p_.min_w) * (height_ / p_.min_h));
 
         nodes_.reserve(size);
         nodes_.emplace_back(0, bounds);
