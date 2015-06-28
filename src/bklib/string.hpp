@@ -64,6 +64,12 @@ inline constexpr uint32_t static_djb2_hash(char const* const str) noexcept {
     return static_djb2_hash(5381, str, 0);
 }
 
+inline namespace literals {
+inline constexpr std::uint32_t operator""_hash(char const* const str, std::size_t) noexcept {
+    return bklib::static_djb2_hash(str);
+}
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //--------------------------------------------------------------------------------------------------
 //!

@@ -97,7 +97,7 @@ public:
     void on_show_inventory();
     void do_show_inventory();
 
-    void on_command(command const& cmd);
+    command_handler_result on_command(command const& cmd);
 
     void debug_print(int x, int y) const;
 private:

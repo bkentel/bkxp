@@ -2,13 +2,13 @@
 
 #include <vector>
 
+#include "bklib/string.hpp"
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class bkrl::detail::command_translator_impl {
 public:
-    using handler_t = command_translator::handler_t;
-
-    void push_handler(handler_t&& handler) {
+    void push_handler(command_handler_t&& handler) {
         handlers_.emplace_back(std::move(handler));
     }
 
@@ -61,111 +61,76 @@ public:
         case SDLK_ESCAPE: cmd.type = command_type::cancel;     break;
         }
 
-        handlers_.back()(cmd);
+        if (handlers_.back()(cmd) == command_handler_result::detach) {
+            handlers_.pop_back();
+        }
     }
 #endif
 
-    void on_key_up(int key) {
+    void on_key_up(int) {
     }
 
-    void on_mouse_move_to(int x, int y) {
+    void on_mouse_move_to(int, int) {
     }
 
-    void on_mouse_down(int x, int y, int button) {
+    void on_mouse_down(int, int, int) {
     }
 
-    void on_mouse_up(int x, int y, int button) {
+    void on_mouse_up(int, int, int) {
     }
 private:
-    std::vector<handler_t> handlers_;
+    std::vector<command_handler_t> handlers_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------
 bkrl::command_translator::command_translator()
   : impl_(std::make_unique<detail::command_translator_impl>())
 {
 }
 
-bkrl::command_translator::~command_translator() = default;
+//----------------------------------------------------------------------------------------------
+bkrl::command_translator::~command_translator() noexcept = default;
 
-void bkrl::command_translator::push_handler(handler_t handler) {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::push_handler(command_handler_t&& handler)
+{
     impl_->push_handler(std::move(handler));
 }
 
-void bkrl::command_translator::pop_handler() {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::pop_handler()
+{
     impl_->pop_handler();
 }
 
-void bkrl::command_translator::on_key_down(int const key) {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::on_key_down(int const key)
+{
     impl_->on_key_down(key);
 }
 
-void bkrl::command_translator::on_key_up(int const key) {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::on_key_up(int const key)
+{
     impl_->on_key_up(key);
 }
 
-void bkrl::command_translator::on_mouse_move_to(int const x, int const y) {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::on_mouse_move_to(int const x, int const y)
+{
     impl_->on_mouse_move_to(x, y);
 }
 
-void bkrl::command_translator::on_mouse_down(int const x, int const y, int const button) {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::on_mouse_down(int const x, int const y, int const button)
+{
     impl_->on_mouse_down(x, y, button);
 }
 
-void bkrl::command_translator::on_mouse_up(int const x, int const y, int const button) {
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::on_mouse_up(int const x, int const y, int const button)
+{
     impl_->on_mouse_up(x, y, button);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-void bkrl::query_yn(
-    command_translator& translator
-  , std::function<query_result (command_type)> handler
-) {
-    translator.push_handler([&translator, handler](command const& cmd) {
-        auto result = query_result::more;
-
-        switch (cmd.type) {
-        case command_type::yes:    result = handler(command_type::yes);     break;
-        case command_type::no:     result = handler(command_type::no);      break;
-        case command_type::cancel: result = handler(command_type::cancel);  break;
-        default:                   result = handler(command_type::invalid); break;
-        }
-
-        if (result == query_result::done) {
-            translator.pop_handler();
-        }
-    });
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-void bkrl::query_dir(
-    command_translator& translator
-  , std::function<query_result (command_type)> handler
-) {
-    translator.push_handler([&translator, handler](command const& cmd) {
-        auto result = query_result::more;
-
-        switch (cmd.type) {
-        case command_type::dir_here:
-        case command_type::dir_north:
-        case command_type::dir_south:
-        case command_type::dir_east:
-        case command_type::dir_west:
-        case command_type::dir_n_west:
-        case command_type::dir_n_east:
-        case command_type::dir_s_west:
-        case command_type::dir_s_east:
-        case command_type::dir_up:
-        case command_type::dir_down: result = handler(cmd.type); break;
-        case command_type::cancel:   result = handler(command_type::cancel);  break;
-        default:                     result = handler(command_type::invalid); break;
-        }
-
-        if (result == query_result::done) {
-            translator.pop_handler();
-        }
-    });
 }

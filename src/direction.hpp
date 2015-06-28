@@ -5,7 +5,7 @@
 
 namespace bkrl {
 
-enum class command_type : int32_t;
+enum class command_type : uint32_t;
 
 static constexpr bklib::ivec3 const vec_here   { 0,  0,  0};
 static constexpr bklib::ivec3 const vec_north  { 0, -1,  0};

@@ -26,7 +26,7 @@ bkrl::game::game()
     load_definitions(creature_dictionary_, "./data/creatures.def", load_from_file);
 
     command_translator_.push_handler([&](command const& cmd) {
-        on_command(cmd);
+        return on_command(cmd);
     });
 
     system_.on_window_resize = [&](int const w, int const h) {
@@ -217,23 +217,19 @@ void bkrl::game::on_quit()
     display_message("Are you sure you want to quit? Y/N");
 
     query_yn(command_translator_, [this](command_type const cmd) {
-        switch (cmd) {
-        case command_type::yes:
+        if (cmd == command_type::yes) {
             do_quit();
-            return query_result::done;
-        case command_type::no:
+            return command_handler_result::detach;
+        } else if (cmd ==  command_type::no) {
             display_message("Ok.");
-            return query_result::done;
-        case command_type::cancel:
+            return command_handler_result::detach;
+        } else if (cmd ==  command_type::cancel) {
             display_message("Canceled.");
-            return query_result::done;
-        case command_type::invalid:
-            display_message("Invalid choice.");
-        default:
-            break;
+            return command_handler_result::detach;
         }
 
-        return query_result::more;
+        display_message("Invalid choice.");
+        return command_handler_result::capture;
     });
 }
 
@@ -344,34 +340,29 @@ void bkrl::game::on_open_close(command_type const type)
     }
 
     query_dir(command_translator_, [this, p, type](command_type const cmd) {
-        switch (cmd) {
-        case command_type::cancel:
+        if (cmd == command_type::cancel) {
             display_message("Nevermind.");
-            return query_result::done;
-        case command_type::invalid:
-            display_message("Invalid choice.");
-            break;
-        default:
-            if (!is_direction(cmd)) {
-                break;
-            }
-
-            auto const q = p + bklib::truncate<2>(direction_vector(cmd));
-            if (current_map_.at(q).type != terrain_type::door) {
-                if (type == command_type::open) {
-                    display_message("There is nothing there to open.");
-                } else if (type == command_type::close) {
-                    display_message("There is nothing there to close.");
-                }
-
-                break;
-            }
-
-            do_open_close(q, type);
-            return query_result::done;
+            return command_handler_result::detach;
         }
 
-        return query_result::more;
+        if (!is_direction(cmd)) {
+            display_message("Invalid choice.");
+            return command_handler_result::capture;
+        }
+
+        auto const q = p + bklib::truncate<2>(direction_vector(cmd));
+        if (current_map_.at(q).type != terrain_type::door) {
+            if (type == command_type::open) {
+                display_message("There is nothing there to open.");
+            } else if (type == command_type::close) {
+                display_message("There is nothing there to close.");
+            }
+
+            return command_handler_result::capture;
+        }
+
+        do_open_close(q, type);
+        return command_handler_result::detach;
     });
 }
 
@@ -504,7 +495,7 @@ void bkrl::game::do_show_inventory()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::on_command(command const& cmd)
+bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 {
     switch (cmd.type) {
     case command_type::zoom:
@@ -544,6 +535,8 @@ void bkrl::game::on_command(command const& cmd)
     default:
         break;
     }
+
+    return command_handler_result::capture;
 }
 
 //--------------------------------------------------------------------------------------------------
