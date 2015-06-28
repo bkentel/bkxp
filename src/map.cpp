@@ -328,8 +328,8 @@ void bkrl::map::update_render_data(int const x, int const y)
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data()
 {
-    for (auto y = 0u; y < size_chunk; ++y) {
-        for (auto x = 0u; x < size_chunk; ++x) {
+    for (auto y = 0; y < static_cast<int>(size_chunk); ++y) {
+        for (auto x = 0; x < static_cast<int>(size_chunk); ++x) {
             update_render_data(x, y);
         }
     }

@@ -6,6 +6,8 @@
 
 #include <functional>
 
+using namespace bklib::literals;
+
 namespace {
 
 //----------------------------------------------------------------------------------------------
@@ -15,11 +17,11 @@ struct creature_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class field : uint32_t {
-        id           = bklib::static_djb2_hash("id")
-      , name         = bklib::static_djb2_hash("name")
-      , description  = bklib::static_djb2_hash("description")
-      , symbol       = bklib::static_djb2_hash("symbol")
-      , symbol_color = bklib::static_djb2_hash("symbol_color")
+        id           = "id"_hash
+      , name         = "name"_hash
+      , description  = "description"_hash
+      , symbol       = "symbol"_hash
+      , symbol_color = "symbol_color"_hash
     };
 
     //----------------------------------------------------------------------------------------------
@@ -31,13 +33,13 @@ struct creature_def_parser final : bklib::json_parser_base {
 
         auto const key_hash = static_cast<field>(bklib::djb2_hash(str, str + len));
         switch (key_hash) {
-        default:
-            return false;
         case field::id:           get_string(id);           break;
         case field::name:         get_string(name);         break;
         case field::description:  get_string(description);  break;
         case field::symbol:       get_string(symbol);       break;
         case field::symbol_color: get_string(symbol_color); break;
+        default:
+            return false;
         }
 
         return true;

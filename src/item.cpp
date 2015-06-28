@@ -5,6 +5,8 @@
 
 #include <unordered_map>
 
+using namespace bklib::literals;
+
 namespace {
 
 //----------------------------------------------------------------------------------------------
@@ -14,11 +16,11 @@ struct item_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class field : uint32_t {
-        id           = bklib::static_djb2_hash("id")
-      , name         = bklib::static_djb2_hash("name")
-      , description  = bklib::static_djb2_hash("description")
-      , symbol       = bklib::static_djb2_hash("symbol")
-      , symbol_color = bklib::static_djb2_hash("symbol_color")
+        id           = "id"_hash
+      , name         = "name"_hash
+      , description  = "description"_hash
+      , symbol       = "symbol"_hash
+      , symbol_color = "symbol_color"_hash
     };
 
     //----------------------------------------------------------------------------------------------

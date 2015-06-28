@@ -43,7 +43,14 @@ public:
     bsp_layout_impl(bklib::irect bounds, param_t params)
       : p_ {params}, width_ {bounds.width()}, height_ {bounds.height()}
     {
-        nodes_.reserve((width_ / p_.min_w) * (height_ / p_.min_h));
+        BK_PRECONDITION(width_ > 0);
+        BK_PRECONDITION(height_ > 0);
+        BK_PRECONDITION(p_.min_w > 0);
+        BK_PRECONDITION(p_.min_h > 0);
+
+        auto const size = static_cast<size_t>((width_ / p_.min_w) * (height_ / p_.min_h))
+
+        nodes_.reserve(size);
         nodes_.emplace_back(0, bounds);
     }
 
