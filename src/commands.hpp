@@ -16,7 +16,7 @@ namespace bkrl {
 //----------------------------------------------------------------------------------------------
 #define BK_DECLARE_COMMAND(name) name = bklib::static_djb2_hash(#name)
 enum class command_type : uint32_t {
-    none
+    none = 0
   , BK_DECLARE_COMMAND(invalid)
   , BK_DECLARE_COMMAND(scroll)
   , BK_DECLARE_COMMAND(zoom)
@@ -72,21 +72,20 @@ struct command {
 };
 
 static_assert(sizeof(command) == 16, "");
-static_assert(alignof(command) >= alignof(double), "");
 static_assert(std::is_pod<command>::value, "");
 
 namespace detail { class command_translator_impl; }
 
-//----------------------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------------------
 enum class command_handler_result {
-    detach  //<! stop accepting input
-  , capture //<! continue processing input
+    detach  //!< stop accepting input
+  , capture //!< continue processing input
 };
 
 using command_handler_t = std::function<command_handler_result (command const&)>;
 
+//----------------------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------------------
 class command_translator {
 public:
     command_translator();
@@ -105,7 +104,7 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
-//
+//! Filter and transform commands to be one of: yes, no, cancel, or invalid.
 //--------------------------------------------------------------------------------------------------
 template <typename Handler>
 void query_yn(command_translator& translator, Handler&& handler) {
@@ -119,7 +118,7 @@ void query_yn(command_translator& translator, Handler&& handler) {
 }
 
 //--------------------------------------------------------------------------------------------------
-//
+//! Filter and transform commands to be: is_direction(cmd) => cmd, cancel, or invalid.
 //--------------------------------------------------------------------------------------------------
 template <typename Handler>
 void query_dir(command_translator& translator, Handler&& handler) {

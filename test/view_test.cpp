@@ -33,8 +33,8 @@ TEST_CASE("view <=> world transforms", "[math]") {
 
         auto const o = v.origin();
 
-        REQUIRE(x(o) == (window_w / 2 - tile_w * zoom / 2));
-        REQUIRE(y(o) == (window_h / 2 - tile_h * zoom / 2));
+        REQUIRE(x(o) == bklib::trunc_to<int>(window_w / 2 - tile_w * zoom / 2));
+        REQUIRE(y(o) == bklib::trunc_to<int>(window_h / 2 - tile_h * zoom / 2));
     }
 
     SECTION("no zoom, no scroll") {

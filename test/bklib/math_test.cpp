@@ -15,7 +15,7 @@ TEST_CASE("distance", "[bklib][math]") {
     auto const d = distance2(p, q);
 
     REQUIRE(d == 3);
-    REQUIRE(distance(p, q) == std::sqrt(d));
+    REQUIRE(distance(p, q) == Approx {std::sqrt(d)});
 }
 
 TEST_CASE("min max element", "[bklib][math]") {
@@ -35,15 +35,16 @@ TEST_CASE("min max element", "[bklib][math]") {
 TEST_CASE("transform_float", "[bklib][math]") {
     using namespace bklib;
 
-    REQUIRE(1 == transform_float<transform_float_none>(1));
-    REQUIRE(1 == transform_float<transform_float_floor>(1));
-    REQUIRE(1 == transform_float<transform_float_ceil>(1));
-    REQUIRE(1 == transform_float<transform_float_round>(1));
+    REQUIRE(Approx {1} == transform_float<transform_float_none>(1));
+    REQUIRE(Approx {1} == transform_float<transform_float_floor>(1));
+    REQUIRE(Approx {1} == transform_float<transform_float_ceil>(1));
+    REQUIRE(Approx {1} == transform_float<transform_float_round>(1));
 
-    REQUIRE(1.1 == transform_float<transform_float_none>(1.1));
-    REQUIRE(1.0 == transform_float<transform_float_floor>(1.1));
-    REQUIRE(2.0 == transform_float<transform_float_ceil>(1.1));
-    REQUIRE(1.0 == transform_float<transform_float_round>(1.1));
+    REQUIRE(Approx {1.1} == transform_float<transform_float_none>(1.1));
+    REQUIRE(Approx {1.0} == transform_float<transform_float_floor>(1.1));
+    REQUIRE(Approx {2.0} == transform_float<transform_float_ceil>(1.1));
+    REQUIRE(Approx {1.0} == transform_float<transform_float_round>(1.1));
+
 }
 
 TEST_CASE("intersections", "[bklib][math]") {
