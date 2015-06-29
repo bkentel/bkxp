@@ -215,6 +215,9 @@
     <ClCompile Include="test\command_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
+    <ClCompile Include="test\random_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bklib.natvis" />

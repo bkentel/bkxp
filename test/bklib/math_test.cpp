@@ -44,7 +44,6 @@ TEST_CASE("transform_float", "[bklib][math]") {
     REQUIRE(Approx {1.0} == transform_float<transform_float_floor>(1.1));
     REQUIRE(Approx {2.0} == transform_float<transform_float_ceil>(1.1));
     REQUIRE(Approx {1.0} == transform_float<transform_float_round>(1.1));
-
 }
 
 TEST_CASE("intersections", "[bklib][math]") {

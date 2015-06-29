@@ -56,8 +56,16 @@ enum class random_stream {
     stream_count
 };
 
+//--------------------------------------------------------------------------------------------------
+//! Bundle up a few random streams into one object.
+//--------------------------------------------------------------------------------------------------
 class random_state {
 public:
+    random_state(random_state const&) = delete;
+    random_state(random_state&&) = default;
+    random_state& operator=(random_state const&) = delete;
+    random_state& operator=(random_state&&) = default;
+
     using stream_itype = decltype(std::declval<random_t>().stream());
     static constexpr auto const stream_count = static_cast<size_t>(random_stream::stream_count);
 

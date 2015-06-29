@@ -88,6 +88,7 @@
     <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />
     <ClCompile Include="test\map_test.cpp" />
+    <ClCompile Include="test\random_test.cpp" />
     <ClCompile Include="test\text_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />
   </ItemGroup>
