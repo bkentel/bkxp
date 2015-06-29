@@ -100,13 +100,7 @@ private:
 //! @pre abs(lo) + abs(hi) <= std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
 inline int random_range(random_t& random, int const lo, int const hi) noexcept {
-    auto const diff = static_cast<random_t::result_type>(hi - lo + 1);
-
-    //Check for overflow
-    BK_PRECONDITION(lo <= hi);
-    BK_PRECONDITION(static_cast<random_t::result_type>(std::numeric_limits<int>::max()) >= diff);
-
-    return static_cast<int>(random(diff)) + lo;
+    return boost::random::uniform_int_distribution<int> {lo, hi}(random);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -138,18 +132,14 @@ inline decltype(auto) random_element(random_t& random, Container&& c) noexcept
 //! @pre n * sides + mod < std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
 inline int roll_dice(random_t& random, int const n, int const sides, int const mod = 0) noexcept {
-    BK_PRECONDITION(n > 0);
-    BK_PRECONDITION(sides > 0);
-    BK_PRECONDITION(n * sides + mod <= std::numeric_limits<int>::max()); //TODO
-
-    random_t::result_type result = 0;
-    auto const s = static_cast<random_t::result_type>(sides);
+    int result = 0;
+    boost::random::uniform_int_distribution<int> dist {1, sides};
 
     for (int i = 0; i < n; ++i) {
-        result += (random(s) + random_t::result_type {1});
+        result += dist(random);
     }
 
-    return static_cast<int>(result) + mod;
+    return result + mod;
 }
 
 //--------------------------------------------------------------------------------------------------
