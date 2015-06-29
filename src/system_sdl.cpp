@@ -111,7 +111,7 @@ void bkrl::detail::renderer_impl::present() {
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::renderer_impl::set_active_texture(renderer::texture const tex)
+void bkrl::detail::renderer_impl::set_active_texture(renderer::texture const)
 {
 
 }
@@ -275,7 +275,7 @@ void bkrl::detail::system_impl::do_events(bool const wait)
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::system_impl::delay(std::chrono::nanoseconds const ns)
+void bkrl::detail::system_impl::delay(std::chrono::nanoseconds const)
 {
 }
 
