@@ -17,11 +17,10 @@ try {
     file.read(result.data(), size);
 
     return result;
-} catch (std::ios_base::failure& e) {
+} catch (std::ios_base::failure const&) {
     // TODO
     BOOST_THROW_EXCEPTION(bklib::io_error {}
         << boost::errinfo_file_name {filename.to_string()}
-        << boost::errinfo_errno {e.code().value()}
     );
 } catch (...) {
     throw;
