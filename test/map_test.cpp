@@ -8,6 +8,26 @@
 
 #include "map.hpp"
 
+TEST_CASE("map terrain", "[map][terrain][bkrl]") {
+    bkrl::map map;
+
+    auto const r = bklib::irect {1, 1, bkrl::size_block + 1, bkrl::size_block + 1};
+    map.fill(r, bkrl::terrain_type::floor);
+
+    auto const b = map.bounds();
+    for (int y = 0; y < b.height(); ++y) {
+        for (int x = 0; x < b.width(); ++x) {
+            auto const  p = bklib::ipoint2 {x, y};
+            auto const& t = map.at(p);
+            if (intersects(r, p)) {
+                REQUIRE(t.type == bkrl::terrain_type::floor);
+            } else {
+                REQUIRE(t.type == bkrl::terrain_type::empty);
+            }
+        }
+    }
+}
+
 TEST_CASE("map creatures", "[map][creature][bkrl]") {
     bkrl::random_state random;
     bkrl::map map;

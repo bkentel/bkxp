@@ -283,13 +283,7 @@ bkrl::creature* bkrl::map::creature_at(bklib::ipoint2 const p)
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::fill(bklib::irect const r, terrain_type const value)
 {
-    for (int y = r.top; y < r.bottom; ++y) {
-        for (int x = r.left; x < r.right; ++x) {
-            auto& cell = terrain_entries_.block_at(x, y).cell_at(x, y);
-            cell.type = value;
-            cell.variant = 0;
-        }
-    }
+    fill(r, value, value);
 }
 
 //--------------------------------------------------------------------------------------------------

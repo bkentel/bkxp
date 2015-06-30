@@ -84,6 +84,7 @@
     <ClCompile Include="test\bklib\spatial_map_test.cpp" />
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\bklib\timer_test.cpp" />
+    <ClCompile Include="test\bklib\utility_test.cpp" />
     <ClCompile Include="test\command_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />

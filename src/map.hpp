@@ -162,16 +162,16 @@ public:
         return {0, 0, size_chunk, size_chunk};
     }
 
-    terrain_entry& at(int x, int y) {
+    terrain_entry& at(int const x, int const y) noexcept {
         return terrain_entries_.block_at(x, y).cell_at(x, y);
     }
 
-    terrain_entry const& at(int x, int y) const {
-        return terrain_entries_.block_at(x, y).cell_at(x, y);
+    terrain_entry const& at(int const x, int const y) const noexcept {
+        return const_cast<map*>(this)->at(x, y);
     }
 
-    terrain_entry const& at(bklib::ipoint2 const p) const { return at(x(p), y(p)); }
-    terrain_entry&       at(bklib::ipoint2 const p)       { return at(x(p), y(p)); }
+    terrain_entry const& at(bklib::ipoint2 const p) const noexcept { return const_cast<map*>(this)->at(p); }
+    terrain_entry&       at(bklib::ipoint2 const p)       noexcept { return at(x(p), y(p)); }
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
