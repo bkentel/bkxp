@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bklib/assert.hpp"
+#include "bklib/math.hpp"
 
 #include <boost/predef.h>
 
@@ -101,6 +102,10 @@ private:
 //--------------------------------------------------------------------------------------------------
 inline int random_range(random_t& random, int const lo, int const hi) noexcept {
     return boost::random::uniform_int_distribution<int> {lo, hi}(random);
+}
+
+inline int random_range(random_t& random, bklib::range<int> const r) noexcept {
+    return random_range(random, r.lo, r.hi);
 }
 
 //--------------------------------------------------------------------------------------------------

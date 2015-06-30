@@ -50,12 +50,9 @@
     <ClCompile Include="src\bklib\utility.cpp" />
     <ClCompile Include="src\bsp_layout.cpp" />
     <ClCompile Include="src\catch.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
       </ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </ForcedIncludeFiles>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\commands.cpp" />
     <ClCompile Include="src\creature.cpp" />
@@ -67,8 +64,7 @@
     <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\message_log.cpp" />
     <ClCompile Include="src\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\system.cpp" />
@@ -85,6 +81,7 @@
     <ClCompile Include="test\bklib\string_test.cpp" />
     <ClCompile Include="test\bklib\timer_test.cpp" />
     <ClCompile Include="test\bklib\utility_test.cpp" />
+    <ClCompile Include="test\bsp_layout_test.cpp" />
     <ClCompile Include="test\command_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />
@@ -132,6 +129,10 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

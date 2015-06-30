@@ -15,8 +15,8 @@ TEST_CASE("map terrain", "[map][terrain][bkrl]") {
     map.fill(r, bkrl::terrain_type::floor);
 
     auto const b = map.bounds();
-    for (int y = 0; y < b.height(); ++y) {
-        for (int x = 0; x < b.width(); ++x) {
+    for (int y = 0; y < r.bottom + 1; ++y) {
+        for (int x = 0; x < r.right + 1; ++x) {
             auto const  p = bklib::ipoint2 {x, y};
             auto const& t = map.at(p);
             if (intersects(r, p)) {

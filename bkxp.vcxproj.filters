@@ -206,6 +206,9 @@
     <ClCompile Include="test\bklib\dictionary_test.cpp">
       <Filter>test\bklib</Filter>
     </ClCompile>
+    <ClCompile Include="test\bsp_layout_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
     <ClCompile Include="src\bklib\json.cpp">
       <Filter>bklib</Filter>
     </ClCompile>

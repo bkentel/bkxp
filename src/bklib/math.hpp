@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <type_traits>
 #include <array>
 #include <algorithm>
@@ -135,17 +136,90 @@ void bresenham_line(T const x0, T const y0, T const x1, T const y1, SetPixel&& s
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
+template <typename T = int>
+struct rect_t {
+    constexpr T width() const noexcept {
+        return right - left;
+    }
+
+    constexpr T height() const noexcept {
+        return bottom - top;
+    }
+
+    constexpr explicit operator bool() const noexcept {
+        return (left < right) && (top < bottom);
+    }
+
+    T left, top, right, bottom;
+};
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+constexpr inline bool operator==(rect_t<T> const lhs, rect_t<T> const rhs) noexcept {
+    return (lhs.left   == rhs.left)
+        && (lhs.top    == rhs.top)
+        && (lhs.right  == rhs.right)
+        && (lhs.bottom == rhs.bottom);
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+constexpr inline bool operator!=(rect_t<T> const lhs, rect_t<T> const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
 template <typename T>
 struct aspect_ratio {
     constexpr aspect_ratio(T const a = T {1}, T const b = T {1}) noexcept
       : num {a > b ? a : b}
-      , den {a > b ? a : b}
+      , den {a > b ? b : a}
     {
+    }
+
+    template <typename U>
+    constexpr U as() const noexcept {
+        return static_cast<U>(num) / static_cast<U>(den);
     }
 
     T num;
     T den;
 };
+
+template <typename T>
+inline constexpr aspect_ratio<T> make_aspect_ratio(T const num, T const den) noexcept {
+    return aspect_ratio<T> {num, den};
+}
+
+template <typename T>
+inline constexpr aspect_ratio<T> make_aspect_ratio(rect_t<T> const r) noexcept {
+    return aspect_ratio<T> {r.width(), r.height()};
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+struct range {
+    constexpr T size() const noexcept {
+        return hi - lo + 1;
+    }
+
+    T lo;
+    T hi;
+};
+
+template <typename T>
+constexpr inline bool operator==(range<T> const lhs, range<T> const rhs) noexcept {
+    return (lhs.lo == rhs.lo) && (lhs.hi == rhs.hi);
+}
+
+template <typename T>
+constexpr inline range<T> make_range(T const lo, T const hi) noexcept {
+    return {lo, hi};
+}
 
 //--------------------------------------------------------------------------------------------------
 //!
@@ -262,35 +336,6 @@ using ipoint2 = point_t<2, int>;
 using ivec2   = vector_t<2, int>;
 using ipoint3 = point_t<3, int>;
 using ivec3   = vector_t<3, int>;
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-template <typename T = int>
-struct rect_t {
-    T width() const noexcept {
-        return right - left;
-    }
-
-    T height() const noexcept {
-        return bottom - top;
-    }
-
-    explicit operator bool() const noexcept {
-        return (left < right) && (top < bottom);
-    }
-
-    T left, top, right, bottom;
-};
-
-//--------------------------------------------------------------------------------------------------
-template <typename T>
-constexpr inline bool operator==(rect_t<T> const lhs, rect_t<T> const rhs) noexcept {
-    return (lhs.left   == rhs.left)
-        && (lhs.top    == rhs.top)
-        && (lhs.right  == rhs.right)
-        && (lhs.bottom == rhs.bottom);
-}
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>
