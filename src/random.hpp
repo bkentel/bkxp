@@ -146,26 +146,15 @@ inline int roll_dice(random_t& random, int const n, int const sides, int const m
 //!
 //--------------------------------------------------------------------------------------------------
 inline bool toss_coin(random_t& random) noexcept {
-    return !!random(2u);
+    return !!random_range(random, 0, 1);
 }
 
 //--------------------------------------------------------------------------------------------------
 //! @pre 0 <= x <= y
 //--------------------------------------------------------------------------------------------------
 inline bool x_in_y_chance(random_t& random, int const x, int const y) noexcept {
-    BK_PRECONDITION(x >= 0 && x <= y);
-
-    return static_cast<int>(random(static_cast<random_t::result_type>(y))) <= x;
-}
-
-//--------------------------------------------------------------------------------------------------
-//! @pre c is not empty.
-//--------------------------------------------------------------------------------------------------
-template <typename Container>
-decltype(auto) choose_random_element(random_t& random, Container&& c) {
-    BK_PRECONDITION(!c.empty());
-
-    return *std::next(begin(c), random(c.size()));
+    BK_PRECONDITION(x >= 0);
+    return random_range(random, 0, y - 1) < x;
 }
 
 } // namespace bkrl

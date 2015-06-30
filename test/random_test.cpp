@@ -70,6 +70,17 @@ TEST_CASE("random", "[bkrl][random]") {
         }
     }
 
+    SECTION("random x_in_y_chance") {
+        double i = 0;
+        for (auto n = 0; n < iterations; ++n) {
+            i += bkrl::x_in_y_chance(random, 3, 10) ? 1 : 0;
+        }
+
+        double const ratio = 3.0 / 10;
+        double const delta = (i / iterations) - ratio;
+        REQUIRE(0.05 > delta);
+    }
+
     SECTION("random dice") {
         for (auto n = 0; n < iterations; ++n) {
             auto const i = bkrl::roll_dice(random, 2, 6);
