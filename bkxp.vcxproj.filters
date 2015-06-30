@@ -103,13 +103,13 @@
     <ClInclude Include="src\bklib\scope_guard.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
-    <ClInclude Include="src\json.hpp">
-      <Filter>bkrl</Filter>
-    </ClInclude>
     <ClInclude Include="src\bklib\dictionary.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
     <ClInclude Include="src\definitions.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\json_util.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
   </ItemGroup>
@@ -194,9 +194,6 @@
     <ClCompile Include="test\bklib\scope_guard_test.cpp">
       <Filter>test\bklib</Filter>
     </ClCompile>
-    <ClCompile Include="src\json.cpp">
-      <Filter>bkrl</Filter>
-    </ClCompile>
     <ClCompile Include="src\bklib\utility.cpp">
       <Filter>bklib</Filter>
     </ClCompile>
@@ -211,6 +208,21 @@
     </ClCompile>
     <ClCompile Include="test\bsp_layout_test.cpp">
       <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\bklib\json.cpp">
+      <Filter>bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\json_util.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\command_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\random_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\bklib\utility_test.cpp">
+      <Filter>test\bklib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
