@@ -6,41 +6,57 @@
 TEST_CASE("bsp_layout split", "[bkrl]") {
     using bklib::aspect_ratio;
     using bklib::irect;
-    using bkrl::classify_split;
     using bkrl::split_type;
+
+    SECTION("no aspect") {
+        constexpr auto const w     = 10;
+        constexpr auto const h     = 12;
+        constexpr auto const min_w = 1;
+        constexpr auto const min_h = 2;
+
+        auto const result = bkrl::calculate_splittable_ranges(irect {0, 0, w, h}, min_w, min_h);
+
+        REQUIRE(result.h == split_type::can);
+        REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+
+        REQUIRE(result.v == split_type::can);
+        REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+    }
+
+    SECTION("aspect") {
+        constexpr auto const w      = 10;
+        constexpr auto const h      = 16;
+        constexpr auto const min_w  = 4;
+        constexpr auto const min_h  = 4;
+        constexpr auto const aspect = 1.6;
+
+        auto const result = bkrl::calculate_splittable_ranges(irect {0, 0, w, h}, min_w, min_h, aspect);
+
+        auto const check_aspect = [=](int const len) {
+            auto const a = static_cast<double>(w) / static_cast<double>(len);
+            auto const b = static_cast<double>(w) / static_cast<double>(h - len);
+            return (a <= aspect && a >= 1.0)
+                && (b <= aspect && b >= 1.0);
+        };
+
+        REQUIRE(result.h == split_type::can);
+
+        for (auto i = result.h_range.lo; i <= result.h_range.hi; ++i) {
+            REQUIRE(check_aspect(i));
+        }
+
+        REQUIRE(!check_aspect(result.h_range.lo  - 1));
+        REQUIRE(!check_aspect(result.h_range.hi + 1));
+
+        REQUIRE(result.v == split_type::none);
+        REQUIRE(result.v_range == bklib::make_range(0, 0));
+    }
 
     constexpr auto const aspect = bklib::make_aspect_ratio(16, 10);
     constexpr int const min_w {4};
     constexpr int const max_w {10};
     constexpr int const min_h {4};
     constexpr int const max_h {10};
-
-    auto const classify = [&](irect const r) {
-        return classify_split(r, min_w, max_w, min_h, max_h, aspect);
-    };
-
-    auto const expect_type = [](auto const type, auto const v, auto const h) {
-        REQUIRE(type.vertical   == v);
-        REQUIRE(type.horizontal == h);
-    };
-
-    using st = bkrl::split_type;
-
-    expect_type(classify(irect {0, 0, max_w,     max_h    }), st::can,  st::can);
-    expect_type(classify(irect {0, 0, max_w + 1, max_h    }), st::must, st::can);
-    expect_type(classify(irect {0, 0, max_w,     max_h + 1}), st::can,  st::must);
-    expect_type(classify(irect {0, 0, max_w + 1, max_h + 1}), st::must, st::must);
-
-    expect_type(classify(irect {0, 0, min_w,     min_h    }), st::none, st::none);
-    expect_type(classify(irect {0, 0, min_w + 1, min_h    }), st::can,  st::none);
-    expect_type(classify(irect {0, 0, min_w,     min_h + 1}), st::none, st::can);
-    expect_type(classify(irect {0, 0, min_w + 1, min_h + 1}), st::can,  st::can);
-
-    constexpr auto const a = aspect.num / 2;
-    constexpr auto const b = aspect.den / 2;
-    expect_type(classify(irect {0, 0, a,     b    }), st::can,  st::can);
-    expect_type(classify(irect {0, 0, a + 1, b    }), st::must, st::can);
-    expect_type(classify(irect {0, 0, b,     a + 1}), st::can,  st::must);
 
     bkrl::random_t random;
 
@@ -51,31 +67,32 @@ TEST_CASE("bsp_layout split", "[bkrl]") {
     bool  ok {};
 
     for (auto i = 0u; i < 1000; ++i) {
+        constexpr auto const aspect_limit = 3.0;
+
         std::tie(r0, r1, ok) =
-            bkrl::random_split(random, r, min_w, max_w, min_h, max_h, aspect);
+            bkrl::random_split(random, r, min_w, max_w, min_h, max_h, aspect_limit);
 
         REQUIRE(ok);
         REQUIRE(r0 != r);
         REQUIRE(r1 != r);
 
-        REQUIRE(aspect.as<double>()
-            >= bklib::make_aspect_ratio(r0.width(), r0.height()).as<double>());
+        REQUIRE(aspect_limit >= bklib::make_aspect_ratio(r0).as<double>());
+        REQUIRE(aspect_limit >= bklib::make_aspect_ratio(r1).as<double>());
 
-        REQUIRE(aspect.as<double>()
-            >= bklib::make_aspect_ratio(r1.width(), r1.height()).as<double>());
+        REQUIRE(r0.width() >= min_w);
+        REQUIRE(r1.width() >= min_w);
 
-        if (r0.width() < r.width()) {
-            REQUIRE((r0.width() + r1.width()) == r.width());
-            REQUIRE(r0.width() <= max_w);
-            REQUIRE(r0.width() >= min_w);
-            REQUIRE(r1.width() <= max_w);
-            REQUIRE(r1.width() >= min_w);
+        REQUIRE(r0.height() >= min_h);
+        REQUIRE(r1.height() >= min_h);
 
+        if (r0.height() == r.height()) {
             REQUIRE(r0.right  == r1.left);
             REQUIRE(r0.top    == r1.top);
             REQUIRE(r0.bottom == r1.bottom);
         } else {
-
+            REQUIRE(r0.bottom == r1.top);
+            REQUIRE(r0.left   == r1.left);
+            REQUIRE(r0.right  == r1.right);
         }
     }
 }

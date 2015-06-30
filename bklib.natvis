@@ -9,4 +9,8 @@
 		<DisplayString Condition="$T2 == 3">{{x={data._Elems[0]}, y={data._Elems[1]}, z={data._Elems[1]}}}</DisplayString>
 	</Type>
 
+	<Type Name="bklib::rect_t&lt;*&gt;">
+		<DisplayString>x {{{left}, {right} ⇒ {right - left}}} y {{{top}, {bottom} ⇒ {bottom - top}}}</DisplayString>
+	</Type>
+
 </AutoVisualizer>

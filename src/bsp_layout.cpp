@@ -204,3 +204,161 @@ void bkrl::bsp_layout::generate(random_t& gen, room_gen_t room_gen)
 {
     impl_->generate(gen, room_gen);
 }
+
+//--------------------------------------------------------------------------------------------------
+std::pair<bklib::irect, bklib::irect>
+bkrl::split_vertical(bklib::irect const r, int const offset) noexcept
+{
+    BK_PRECONDITION(!!r);
+    BK_PRECONDITION(offset > 0);
+    BK_PRECONDITION(offset < r.width());
+
+    return std::make_pair(
+        bklib::irect {r.left,          r.top, r.left + offset, r.bottom}
+      , bklib::irect {r.left + offset, r.top, r.right,         r.bottom}
+    );
+}
+
+//--------------------------------------------------------------------------------------------------
+std::pair<bklib::irect, bklib::irect>
+bkrl::split_horizontal(bklib::irect const r, int const offset) noexcept
+{
+    BK_PRECONDITION(!!r);
+    BK_PRECONDITION(offset > 0);
+    BK_PRECONDITION(offset < r.height());
+
+    return std::make_pair(
+        bklib::irect {r.left, r.top,          r.right, r.top + offset}
+      , bklib::irect {r.left, r.top + offset, r.right, r.bottom}
+    );
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::splittable_ranges_t
+bkrl::calculate_splittable_ranges(
+    bklib::irect const r
+  , int const min_w, int const min_h
+  , double const aspect_limit
+) {
+    using bklib::range;
+    using bklib::make_range;
+    using bklib::ceil_to;
+    using bklib::floor_to;
+
+    BK_PRECONDITION(aspect_limit >= 0.0);
+    BK_PRECONDITION(min_w >= 0);
+    BK_PRECONDITION(min_h >= 0);
+
+    splittable_ranges_t result;
+
+    //
+    // the case with no aspect ratio limit.
+    //
+    if (aspect_limit <= 0.0) {
+        auto const range_h = bklib::make_range(min_h, r.height() - min_h);
+        auto const range_w = bklib::make_range(min_w, r.width() - min_w);
+
+        if (range_h.size()) {
+            result.h = split_type::can;
+            result.h_range = range_h;
+        }
+
+        if (range_w.size()) {
+            result.v = split_type::can;
+            result.v_range = range_w;
+        }
+
+        return result;
+    }
+
+    //
+    // the more complicated case with an enforced aspect ratio limit.
+    //
+    auto const aspect = aspect_limit;
+    auto const inv_aspect = 1.0 / aspect_limit;
+
+    auto const w = static_cast<double>(r.width());
+    auto const h = static_cast<double>(r.height());
+
+    auto const aspect_min_h = w * inv_aspect;
+    auto const aspect_min_w = h * inv_aspect;
+    auto const aspect_max_h = w * aspect;
+    auto const aspect_max_w = h * aspect;
+
+    auto const range_h_min = std::max<double>(min_h, aspect_min_h);
+    auto const range_h_max = std::min<double>(h - aspect_min_h, aspect_max_h);
+
+    auto const range_w_min = std::max<double>(min_w, aspect_min_w);
+    auto const range_w_max = std::min<double>(w - aspect_min_w, aspect_max_w);
+
+    if (range_h_min > h) {
+        result.v = split_type::must; //have to split vertically
+        result.v_range = make_range(ceil_to<int>(range_w_min), floor_to<int>(range_w_max));
+    } else if (range_h_min > range_h_max) {
+        if (range_h_min < h) {
+            result.h = split_type::degenerate; //can split horizontally , but not well
+            result.h_range = make_range(ceil_to<int>(range_h_min), ceil_to<int>(range_h_min));
+        } else {
+            result.h = split_type::none; //can't split horizontally
+        }
+    } else {
+        result.h = split_type::can; //can split horizontally
+        result.h_range = make_range(ceil_to<int>(range_h_min), floor_to<int>(range_h_max));
+    }
+
+    if (range_w_min > w) {
+        result.h = split_type::must; //have to split vertically
+        result.h_range = make_range(ceil_to<int>(range_h_min), floor_to<int>(range_h_max));
+    } else if (range_w_min > range_w_max) {
+        if (range_w_min < w) {
+            result.v = split_type::degenerate; //can split horizontally , but not well
+            result.v_range = make_range(ceil_to<int>(range_w_min), ceil_to<int>(range_w_min));
+        } else {
+            result.v = split_type::none; //can't split horizontally
+        }
+    } else {
+        result.v = split_type::can; //can split horizontally
+        result.v_range = make_range(ceil_to<int>(range_w_min), floor_to<int>(range_w_max));
+    }
+
+    return result;
+}
+
+//--------------------------------------------------------------------------------------------------
+std::tuple<bklib::irect, bklib::irect, bool>
+bkrl::random_split(
+    random_t& random, bklib::irect const r
+  , int const min_w, int const max_w
+  , int const min_h, int const max_h
+  , double const aspect_limit
+) {
+    auto const ranges = calculate_splittable_ranges(r, min_w, min_h, aspect_limit);
+
+    auto const split = [&](auto const& f, bklib::range<int> range) {
+        return std::tuple_cat(f(r, random_range(random, range)), std::make_tuple(true));
+    };
+
+    auto const split_h = [&] { return split(split_horizontal, ranges.h_range); };
+    auto const split_v = [&] { return split(split_vertical, ranges.v_range); };
+
+    if (ranges.h == ranges.v) {
+        auto const w = r.width();
+        auto const h = r.height();
+
+        if (ranges.h == split_type::degenerate && w != h) {
+            return h > w ? split_h() : split_v();
+        }
+
+        if (ranges.h != split_type::none) {
+            return (h > max_h) ? split_h() :
+                   (w > max_w) ? split_v() :
+                   toss_coin(random) ? split_h() : split_v();
+        }
+    } else if (ranges.h != split_type::none && ranges.h != split_type::degenerate) {
+        return split_h();
+    } else if (ranges.v != split_type::none && ranges.v != split_type::degenerate) {
+        return split_v();
+    }
+
+    return std::make_tuple(r, r, false);
+}
