@@ -37,9 +37,8 @@ public:
     //----------------------------------------------------------------------------------------------
     bool relocate(point_t const from, point_t to, T const& data) {
         auto const last = end(sorted_);
-        auto const it = std::find_if(begin(sorted_), last, [&](auto const& pair) {
-            return (pair.first == from)
-                && (std::addressof(data_[pair.second]) == std::addressof(data));
+        auto const it = std::find_if(begin(sorted_), last, [&](std::pair<point_t, int> const pair) {
+            return (pair.first == from) && (get_data_at_(pair) == std::addressof(data));
         });
 
         bool const found = (it != last);
@@ -82,7 +81,7 @@ public:
     //----------------------------------------------------------------------------------------------
     //!
     //----------------------------------------------------------------------------------------------
-    void remove(point_t p, T const& data) {
+    void remove(point_t, T const&) {
     }
 
     //----------------------------------------------------------------------------------------------
@@ -93,7 +92,7 @@ public:
             return pair.first == p;
         });
 
-        return i ? std::addressof(data_[i->second]) : nullptr;
+        return i ? get_data_at_(*i) : nullptr;
     }
 
     //----------------------------------------------------------------------------------------------
@@ -129,7 +128,7 @@ public:
 
         for (auto& pair : sorted_) {
             if (intersects(pair.first, r)) {
-                func(pair.first, data_[pair.second]);
+                func(pair.first, *get_data_at_(pair));
             }
         }
     }
@@ -147,6 +146,15 @@ public:
         return find_maybe(data_, std::forward<Predicate>(pred));
     }
 private:
+    T* get_data_at_(std::pair<point_t, int> const p) noexcept {
+        BK_PRECONDITION(p.second >= 0);
+        return std::addressof(data_[static_cast<size_t>(p.second)]);
+    }
+
+    T const* get_data_at_(std::pair<point_t, int> const p) const noexcept {
+        return const_cast<spatial_map_2d*>(this)->get_data_at_(p);
+    }
+
     void sort_() {
         std::sort(begin(sorted_), end(sorted_), [](auto const& lhs, auto const& rhs) {
             return lhs.first < rhs.first;

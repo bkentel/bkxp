@@ -26,7 +26,7 @@ struct flag_set_base {
     }
 
     void clear() noexcept {
-        flags = type {0};
+        flags = T {0};
     }
 
     void clear(T const flag) noexcept {
@@ -59,7 +59,7 @@ struct flag_set_base {
         bool result = false;
 
         for (auto const flag : flag_list) {
-            if (result = test(flag)) {
+            if ((result = test(flag))) {
                 break;
             }
         }

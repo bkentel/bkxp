@@ -16,7 +16,7 @@ inline decltype(auto) find_by_pos(bklib::ipoint2 const p) noexcept {
     auto const x_pos = x(p);
     auto const y_pos = y(p);
 
-    return [=](auto const& data) noexcept {
+    return [x_pos, y_pos](auto const& data) noexcept {
         return (data.x == x_pos) && (data.y == y_pos);
     };
 }
@@ -283,13 +283,7 @@ bkrl::creature* bkrl::map::creature_at(bklib::ipoint2 const p)
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::fill(bklib::irect const r, terrain_type const value)
 {
-    for (int y = r.top; y < r.bottom; ++y) {
-        for (int x = r.left; x < r.right; ++x) {
-            auto& cell = terrain_entries_.block_at(x, y).cell_at(x, y);
-            cell.type = value;
-            cell.variant = 0;
-        }
-    }
+    fill(r, value, value);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -328,8 +322,8 @@ void bkrl::map::update_render_data(int const x, int const y)
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::update_render_data()
 {
-    for (int y = 0; y < size_chunk; ++y) {
-        for (int x = 0; x < size_chunk; ++x) {
+    for (auto y = 0; y < static_cast<int>(size_chunk); ++y) {
+        for (auto x = 0; x < static_cast<int>(size_chunk); ++x) {
             update_render_data(x, y);
         }
     }

@@ -15,7 +15,7 @@ public:
       : f_ {std::move(other.f_)}
       , active_ {other.active_}
     {
-        rhs.dismiss();
+        other.dismiss();
     }
 
     scope_guard& operator=(scope_guard&& rhs) noexcept {

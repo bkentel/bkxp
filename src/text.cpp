@@ -13,7 +13,7 @@ public:
     using rect_t = text_renderer::rect_t;
 
     rect_t load_glyph_info(bklib::utf8_string_view const text) {
-        if (text.empty() || text.front() > 0x7F) {
+        if (text.empty() || static_cast<std::uint8_t>(text.front()) & std::uint8_t {0b1000'0000}) {
             return {0, 0, 18, 18};
         }
 
@@ -24,7 +24,7 @@ public:
         size_type const w = 18;
         size_type const h = 18;
 
-        return {x, y, x + w, y + h};
+        return {x, y, static_cast<size_type>(x + w), static_cast<size_type>(y + h)};
     }
 
     size_type line_spacing() const {

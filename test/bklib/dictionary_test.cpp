@@ -1,4 +1,9 @@
 #ifndef BK_NO_UNIT_TESTS
+#include <boost/predef.h>
+#if BOOST_COMP_CLANG
+#   pragma clang diagnostic ignored "-Wexit-time-destructors"
+#endif
+
 #include <catch/catch.hpp>
 
 #include "bklib/string.hpp"
@@ -9,11 +14,11 @@
 namespace {
 
 struct test_def {
-    using id_type = bklib::tagged_value<uint32_t, test_def>;
+    using id_type = bklib::tagged_value<size_t, test_def>;
 
-    test_def(bklib::utf8_string id_string, int const data)
-      : id {bklib::hash_value(id_string)}
-      , id_string {std::move(id_string)}
+    test_def(bklib::utf8_string def_id_string, int const data)
+      : id {bklib::hash_value(def_id_string)}
+      , id_string {std::move(def_id_string)}
       , data {data}
     {
     }

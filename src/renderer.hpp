@@ -14,21 +14,15 @@ namespace detail { class renderer_impl; }
 
 class tilemap {
 public:
-
     tilemap(
         int const tile_w, int const tile_h
       , int const texture_w, int const texture_h
-      , int const origin_x, int const origin_y
-    )
+      , int const origin_x = 0, int const origin_y = 0
+    ) noexcept
       : origin_x_(origin_x),       origin_y_(origin_y)
       , texture_w_(texture_w),     texture_h_(texture_h)
       , tile_w_(tile_w),           tile_h_(tile_h)
       , rows_(texture_h / tile_h), cols_(texture_w / tile_w)
-    {
-    }
-
-    tilemap(int const tile_w, int const tile_h, int const texture_w, int const texture_h)
-      : tilemap {tile_w, tile_h, texture_w, texture_h, 0, 0}
     {
     }
 
@@ -44,13 +38,12 @@ public:
         };
     }
 
-    int tile_w() const noexcept {
-        return tile_w_;
-    }
-
-    int tile_h() const noexcept {
-        return tile_h_;
-    }
+    int tile_w()    const noexcept { return tile_w_; }
+    int tile_h()    const noexcept { return tile_h_; }
+    int texture_w() const noexcept { return texture_w_; }
+    int texture_h() const noexcept { return tile_h_; }
+    int cols()      const noexcept { return cols_; }
+    int rows()      const noexcept { return rows_; }
 private:
     int origin_x_;
     int origin_y_;

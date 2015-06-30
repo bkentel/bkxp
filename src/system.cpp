@@ -1,6 +1,20 @@
 #include "system.hpp"
 #include "system_sdl.hpp"
 
+#if defined(BK_NO_SDL)
+class bkrl::detail::system_impl {
+public:
+    explicit system_impl(system*) { }
+
+    int client_width() const { return 0; }
+    int client_height() const { return 0; }
+    void quit() { }
+    bool is_running() const noexcept  { return true; }
+    void do_events(bool const)  { }
+    void delay(std::chrono::nanoseconds const) { }
+};
+#endif
+
 bkrl::system::system()
   : impl_ {std::make_unique<detail::system_impl>(this)}
 {

@@ -1,4 +1,9 @@
 #ifndef BK_NO_UNIT_TESTS
+#include <boost/predef.h>
+#if BOOST_COMP_CLANG
+#   pragma clang diagnostic ignored "-Wexit-time-destructors"
+#endif
+
 #include <catch/catch.hpp>
 
 #include "bklib/algorithm.hpp"
@@ -8,7 +13,7 @@ TEST_CASE("find_maybe", "[algorithm][bklib]") {
     std::vector<int> const v {10, 20, 30, 40, 50};
 
     auto const find_value = [](int const value) {
-        return [value](int const v) { return v == value; };
+        return [value](int const n) { return n == value; };
     };
 
     SECTION("valid") {

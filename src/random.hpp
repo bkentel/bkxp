@@ -8,11 +8,26 @@
 #   define PCG_LITTLE_ENDIAN 1
 #endif
 
-#pragma warning( push )
-#pragma warning( disable : 4127 ) //condition is constant
+#if BOOST_COMP_CLANG
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdate-time"
+#endif
+
+#if defined(BOOST_COMP_MSVC_AVAILABLE)
+#   pragma warning( push )
+#   pragma warning( disable : 4127 ) //condition is constant
+#endif
+
 #include <pcg_random.hpp>
 #include <pcg_extras.hpp>
-#pragma warning( pop )
+
+#if defined(BOOST_COMP_MSVC_AVAILABLE)
+#   pragma warning( pop )
+#endif
+
+#if BOOST_COMP_CLANG
+#   pragma clang diagnostic pop
+#endif
 
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -20,6 +35,7 @@
 
 #include <random>
 #include <array>
+#include <limits>
 
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,10 +56,21 @@ enum class random_stream {
     stream_count
 };
 
+//--------------------------------------------------------------------------------------------------
+//! Bundle up a few random streams into one object.
+//--------------------------------------------------------------------------------------------------
 class random_state {
 public:
+    random_state(random_state const&) = delete;
+    random_state(random_state&&) = default;
+    random_state& operator=(random_state const&) = delete;
+    random_state& operator=(random_state&&) = default;
+
+    using stream_itype = decltype(std::declval<random_t>().stream());
+    static constexpr auto const stream_count = static_cast<size_t>(random_stream::stream_count);
+
     random_state() {
-        int stream = 0;
+        stream_itype stream {0};
         for (auto& g : generators_) {
             g.set_stream(stream++);
         }
@@ -51,7 +78,7 @@ public:
 
     template <typename Seed>
     void seed(Seed&& seed) {
-        int stream = 0;
+        stream_itype stream {0};
         for (auto& g : generators_) {
             g.seed(std::forward<Seed>(seed));
             g.set_stream(stream++);
@@ -65,14 +92,15 @@ public:
         return generators_[static_cast<size_t>(stream)];
     }
 private:
-    std::array<random_t, static_cast<size_t>(random_stream::stream_count)> generators_;
+    std::array<random_t, stream_count> generators_;
 };
 
 //--------------------------------------------------------------------------------------------------
 //! @pre lo <= hi
+//! @pre abs(lo) + abs(hi) <= std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
 inline int random_range(random_t& random, int const lo, int const hi) noexcept {
-    return random(hi - lo + 1) + lo;
+    return boost::random::uniform_int_distribution<int> {lo, hi}(random);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -89,13 +117,13 @@ inline decltype(auto) random_element(random_t& random, Container&& c) noexcept
 
     static_assert(std::is_same<
         std::random_access_iterator_tag
-      , std::iterator_traits<decltype(first)>::iterator_category>::value, "");
+      , typename std::iterator_traits<decltype(first)>::iterator_category>::value, "");
 
     auto const size = std::distance(first, last);
 
-    BK_PRECONDITION(size > 0);
+    BK_PRECONDITION(size > 0 && size < std::numeric_limits<int>::max());
 
-    return *(first + random_range(random, 0, size - 1));
+    return *(first + random_range(random, 0, static_cast<int>(size - 1)));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -104,43 +132,29 @@ inline decltype(auto) random_element(random_t& random, Container&& c) noexcept
 //! @pre n * sides + mod < std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
 inline int roll_dice(random_t& random, int const n, int const sides, int const mod = 0) noexcept {
-    BK_PRECONDITION(n > 0);
-    BK_PRECONDITION(sides > 0);
-    BK_PRECONDITION(n * sides + mod <= std::numeric_limits<int>::max()); //TODO
-
-    random_t::result_type result = 0;
+    int result = 0;
+    boost::random::uniform_int_distribution<int> dist {1, sides};
 
     for (int i = 0; i < n; ++i) {
-        result += (random(sides) + 1);
+        result += dist(random);
     }
 
-    return static_cast<int>(result) + mod;
+    return result + mod;
 }
 
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
 inline bool toss_coin(random_t& random) noexcept {
-    return !!random(2);
+    return !!random_range(random, 0, 1);
 }
 
 //--------------------------------------------------------------------------------------------------
-//! @pre x <= y
+//! @pre 0 <= x <= y
 //--------------------------------------------------------------------------------------------------
 inline bool x_in_y_chance(random_t& random, int const x, int const y) noexcept {
-    BK_PRECONDITION(x <= y);
-
-    return static_cast<int>(random(y)) <= x;
-}
-
-//--------------------------------------------------------------------------------------------------
-//! @pre c is not empty.
-//--------------------------------------------------------------------------------------------------
-template <typename Container>
-decltype(auto) choose_random_element(random_t& random, Container&& c) {
-    BK_PRECONDITION(!c.empty());
-
-    return *std::next(begin(c), random(c.size()));
+    BK_PRECONDITION(x >= 0);
+    return random_range(random, 0, y - 1) < x;
 }
 
 } // namespace bkrl

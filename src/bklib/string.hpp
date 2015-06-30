@@ -21,7 +21,7 @@ inline uint32_t djb2_hash(char const* first, char const* last) noexcept
     uint32_t hash = 5381;
 
     while (first != last) {
-        hash = (hash * 33) ^ *first++;
+        hash = (hash * 33) ^ static_cast<unsigned char>(*first++);
     }
 
     return hash;
@@ -33,7 +33,7 @@ inline uint32_t djb2_hash(char const* first, char const* last) noexcept
 inline uint32_t djb2_hash(char const* str) noexcept
 {
     uint32_t hash = 5381;
-    while (auto const c = *str++) {
+    while (auto const c = static_cast<unsigned char>(*str++)) {
         hash = (hash * 33) ^ c;
     }
     return hash;
@@ -54,7 +54,7 @@ static_djb2_hash(uint32_t const hash, char const* const str, size_t const i) noe
     //return (str[i]) ? static_djb2_hash((hash * 33) ^ str[i], str, i + 1) : hash;
     return (str[i]) ? static_djb2_hash(
         static_cast<uint32_t>(uint64_t {0xFFFFFFFF} & (uint64_t {hash} * uint64_t {33}))
-      ^ str[i], str, i + 1) : hash;
+      ^ static_cast<unsigned char>(str[i]), str, i + 1) : hash;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -62,6 +62,12 @@ static_djb2_hash(uint32_t const hash, char const* const str, size_t const i) noe
 //--------------------------------------------------------------------------------------------------
 inline constexpr uint32_t static_djb2_hash(char const* const str) noexcept {
     return static_djb2_hash(5381, str, 0);
+}
+
+inline namespace literals {
+inline constexpr std::uint32_t operator""_hash(char const* const str, std::size_t) noexcept {
+    return bklib::static_djb2_hash(str);
+}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

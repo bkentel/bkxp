@@ -18,8 +18,8 @@ static constexpr detail::load_from_string_t const load_from_string {};
 static constexpr detail::load_from_file_t   const load_from_file   {};
 
 struct definition_base {
-    explicit definition_base(bklib::utf8_string id_string)
-      : id_string {std::move(id_string)}
+    explicit definition_base(bklib::utf8_string def_id_string)
+      : id_string {std::move(def_id_string)}
     {
     }
 

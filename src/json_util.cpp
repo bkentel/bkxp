@@ -1,4 +1,4 @@
-#include "json.hpp"
+#include "json_util.hpp"
 
 #include "bklib/assert.hpp"
 #include "bklib/json.hpp"
@@ -43,7 +43,7 @@ struct def_parser final : bklib::json_parser_base {
     //----------------------------------------------------------------------------------------------
     bool on_string(const char* const str, size_type const len, bool const) override final {
         if (state_ != state::expect_string) {
-            return default;
+            return def_result;
         }
 
         if (key_ == key::file_type) {
@@ -56,7 +56,7 @@ struct def_parser final : bklib::json_parser_base {
     //----------------------------------------------------------------------------------------------
     bool on_start_array() override final {
         if (state_ != state::expect_array) {
-            return default;
+            return def_result;
         }
 
         state_ = state::expect_object;
@@ -68,7 +68,7 @@ struct def_parser final : bklib::json_parser_base {
         handler = this;
 
         if (state_ != state::expect_object || key_ != key::definitions) {
-            return default;
+            return def_result;
         }
 
         key_ = key::none;
@@ -79,7 +79,7 @@ struct def_parser final : bklib::json_parser_base {
     //----------------------------------------------------------------------------------------------
     bool on_start_object() override final {
         if (state_ != state::expect_object) {
-            return default;
+            return def_result;
         }
 
         if (key_ == key::none) {
@@ -87,11 +87,11 @@ struct def_parser final : bklib::json_parser_base {
         }
 
         if (key_ != key::definitions) {
-            return default;
+            return def_result;
         }
 
         if (!def_handler_) {
-            return default;
+            return def_result;
         }
 
         def_handler_->parent = this;
@@ -121,7 +121,7 @@ struct def_parser final : bklib::json_parser_base {
         handler = this;
 
         if (key_ != key::none) {
-            return default;
+            return def_result;
         }
 
         return true;
@@ -132,7 +132,7 @@ struct def_parser final : bklib::json_parser_base {
         BK_PRECONDITION(!!finished_def_);
 
         if (state_ != state::expect_finish) {
-            return default;
+            return def_result;
         }
 
         handler = this;

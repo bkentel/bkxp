@@ -1,4 +1,5 @@
 #pragma once
+#if !defined(BK_NO_PCH)
 
 #include <boost/predef.h>
 
@@ -6,11 +7,12 @@
 #   include <catch/catch.hpp>
 #endif
 
-#if defined(BOOST_OS_WINDOWS)
-#   define SDL_MAIN_HANDLED
+#if !defined(BK_NO_SDL)
+#   if defined(BOOST_OS_WINDOWS)
+#       define SDL_MAIN_HANDLED
+#   endif
+#   include <SDL2/SDL.h>
 #endif
-
-#include <SDL2/SDL.h>
 
 #include <boost/exception/all.hpp>
 #include <boost/utility/string_ref.hpp>
@@ -35,3 +37,5 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
+
+#endif //!defined(BK_NO_PCH)

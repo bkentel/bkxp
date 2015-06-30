@@ -18,8 +18,8 @@ public:
 
         node_t() = default;
 
-        node_t(size_t const parent, bklib::irect const bounds)
-          : bklib::irect(bounds), parent {static_cast<index_t>(parent)}
+        node_t(size_t const parent_index, bklib::irect const bounds)
+          : bklib::irect(bounds), parent {static_cast<index_t>(parent_index)}
         {
         }
 
@@ -43,7 +43,14 @@ public:
     bsp_layout_impl(bklib::irect bounds, param_t params)
       : p_ {params}, width_ {bounds.width()}, height_ {bounds.height()}
     {
-        nodes_.reserve((width_ / p_.min_w) * (height_ / p_.min_h));
+        BK_PRECONDITION(width_ > 0);
+        BK_PRECONDITION(height_ > 0);
+        BK_PRECONDITION(p_.min_w > 0);
+        BK_PRECONDITION(p_.min_h > 0);
+
+        auto const size = static_cast<size_t>((width_ / p_.min_w) * (height_ / p_.min_h));
+
+        nodes_.reserve(size);
         nodes_.emplace_back(0, bounds);
     }
 
@@ -197,43 +204,3 @@ void bkrl::bsp_layout::generate(random_t& gen, room_gen_t room_gen)
 {
     impl_->generate(gen, room_gen);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// UNIT TESTS
-////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef BK_NO_UNIT_TESTS
-#include <catch/catch.hpp>
-
-TEST_CASE("bsp_layout", "[bsp_layout][mapgen]") {
-    bkrl::random_t gen;
-    bkrl::detail::bsp_layout_impl layout(bklib::irect {0, 0, 100, 100}, bkrl::bsp_layout::param_t {});
-    auto const& p = layout.p_;
-
-    using type = bkrl::detail::bsp_layout_impl::split_type;
-
-    auto const ok_w = p.min_w*2;
-    auto const ok_h = p.min_h*2;
-
-    SECTION("Simple split scenarios") {
-        REQUIRE(layout.get_split_type(ok_w,     ok_h)     == type::random);
-        REQUIRE(layout.get_split_type(ok_w - 1, ok_h)     == type::horizonal);
-        REQUIRE(layout.get_split_type(ok_w,     ok_h - 1) == type::vertical);
-        REQUIRE(layout.get_split_type(ok_w - 1, ok_h - 1) == type::none);
-    }
-
-    SECTION("Aspect ratio split scenarios") {
-        auto const size = std::max(ok_w, ok_h);
-        auto const aspect_w = size * p.aspect.num;
-        auto const aspect_h = size * p.aspect.den;
-
-        REQUIRE(aspect_w >= ok_w);
-        REQUIRE(aspect_h >= ok_h);
-        REQUIRE(aspect_w >= aspect_h);
-
-        REQUIRE(layout.get_split_type(aspect_w,     aspect_h)     == type::random);
-        REQUIRE(layout.get_split_type(aspect_w + 1, aspect_h)     == type::horizonal);
-        REQUIRE(layout.get_split_type(aspect_h,     aspect_w + 1) == type::vertical);
-    }
-}
-
-#endif // BK_NO_UNIT_TESTS

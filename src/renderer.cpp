@@ -1,6 +1,25 @@
 #include "renderer.hpp"
 #include "system_sdl.hpp"
 
+#if defined(BK_NO_SDL)
+class bkrl::detail::renderer_impl {
+public:
+    explicit renderer_impl(system&) {}
+
+    void set_scale(double const, double const) { }
+    void set_scale(double const) { }
+    void set_translation(double const, double const) { }
+    bklib::point_t<2, double> get_scale() const { return {}; }
+    bklib::point_t<2, double> get_translation() const { return {}; }
+    void clear() { }
+    void present() { }
+    void set_active_texture(renderer::texture const) { }
+    void render_fill_rect(int, int, int, int) { }
+    void draw_cell(int const, int const, int const) { }
+    void draw_rect(renderer::rect_t const, renderer::rect_t const) { }
+};
+#endif
+
 bkrl::renderer::renderer(system& sys)
   : impl_ {std::make_unique<detail::renderer_impl>(sys)}
 {

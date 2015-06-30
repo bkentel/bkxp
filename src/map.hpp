@@ -6,7 +6,7 @@
 #include "identifier.hpp"
 #include "random.hpp"
 
-#include <bklib/math.hpp>
+#include "bklib/math.hpp"
 
 #include <array>
 #include <bitset>
@@ -30,7 +30,10 @@ constexpr size_t size_chunk = size_block * size_block;
 template <typename T>
 struct block_t {
     T& cell_at(int const x, int const y) noexcept {
-        return data[(y % size_block) * size_block + (x % size_block)];
+        auto const yi = static_cast<size_t>(y) % size_block;
+        auto const xi = static_cast<size_t>(x) % size_block;
+
+        return data[yi * size_block + xi];
     }
 
     T const& cell_at(int const x, int const y) const noexcept {
@@ -39,7 +42,7 @@ struct block_t {
 
     template <typename Function>
     void for_each_cell(Function&& f, int const x0, int const y0) const {
-        for (size_t i = 0; i < data.size(); ++i) {
+        for (auto i = 0u; i < data.size(); ++i) {
             auto const yi = i / size_block;
             auto const xi = i % size_block;
             f(x0 + xi, y0 + yi, data[i]);
@@ -59,16 +62,16 @@ struct chunk_t {
     }
 
     block_t<T>& block_at(int const x, int const y) noexcept {
-        auto const yi = y / size_block;
-        auto const xi = x / size_block;
+        auto const yi = static_cast<size_t>(y) / size_block;
+        auto const xi = static_cast<size_t>(x) / size_block;
         return data[yi * size_block + xi];
     }
 
     T& cell_at(int const x, int const y) noexcept {
-        auto const yb = y / size_block;
-        auto const yi = y % size_block;
-        auto const xb = x / size_block;
-        auto const xi = x % size_block;
+        auto const yb = static_cast<size_t>(y) / size_block;
+        auto const yi = static_cast<size_t>(y) % size_block;
+        auto const xb = static_cast<size_t>(x) / size_block;
+        auto const xi = static_cast<size_t>(x) % size_block;
 
         return data[yb * size_block + xb].data[yi * size_block + xi];
     }
@@ -83,7 +86,7 @@ struct chunk_t {
 
     template <typename Function>
     void for_each_cell(Function&& f, int const x0, int const y0) const {
-        for (size_t i = 0; i < data.size(); ++i) {
+        for (auto i = 0u; i < data.size(); ++i) {
             auto const yi = i / size_block;
             auto const xi = i % size_block;
             data[i].for_each_cell(std::forward<Function>(f), x0 + xi * size_block, y0 + yi * size_block);
@@ -126,13 +129,6 @@ public:
 
     void place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 p);
 
-    template <typename Function>
-    void with_pile_at(bklib::ipoint2 const p, Function&& f) {
-        item_pile pile;
-        f(pile);
-        place_items_at(std::move(pile), p);
-    }
-
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
     //! @pre a creature must not already exist at @p p.
@@ -166,16 +162,16 @@ public:
         return {0, 0, size_chunk, size_chunk};
     }
 
-    terrain_entry& at(int x, int y) {
+    terrain_entry& at(int const x, int const y) noexcept {
         return terrain_entries_.block_at(x, y).cell_at(x, y);
     }
 
-    terrain_entry const& at(int x, int y) const {
-        return terrain_entries_.block_at(x, y).cell_at(x, y);
+    terrain_entry const& at(int const x, int const y) const noexcept {
+        return const_cast<map*>(this)->at(x, y);
     }
 
-    terrain_entry const& at(bklib::ipoint2 const p) const { return at(x(p), y(p)); }
-    terrain_entry&       at(bklib::ipoint2 const p)       { return at(x(p), y(p)); }
+    terrain_entry const& at(bklib::ipoint2 const p) const noexcept { return const_cast<map*>(this)->at(p); }
+    terrain_entry&       at(bklib::ipoint2 const p)       noexcept { return at(x(p), y(p)); }
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
@@ -231,9 +227,9 @@ find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred
 }
 
 //----------------------------------------------------------------------------------------------
-//! Call f(item_pile&) creating a new item_pile at @p in the map @m if it doesn't already exist.
+//! Call f(item_pile&) creating a new item_pile at @p in the map @p m if it doesn't already exist.
 //! @pre @p p is a valid position in @p m.
-//! @pre @p dic has valid enties for any new items added.
+//! @pre @p dic has valid entries for any new items added.
 //----------------------------------------------------------------------------------------------
 template <typename Map, typename Function>
 void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, Function&& f)
