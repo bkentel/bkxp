@@ -18,17 +18,17 @@ public:
 
         node_t() = default;
 
-        node_t(size_t const parent_index, bklib::irect const bounds)
+        node_t(size_t const parent_index, bklib::irect const bounds) noexcept
           : bklib::irect(bounds), parent {static_cast<index_t>(parent_index)}
         {
         }
 
-        node_t& set_children(size_t const i) {
+        node_t& set_children(size_t const i) noexcept {
             child = static_cast<index_t>(i);
             return *this;
         }
 
-        bklib::irect bounds() const {
+        bklib::irect bounds() const noexcept {
             return *this;
         }
 
@@ -40,8 +40,8 @@ public:
     using param_t = bsp_layout::param_t;
 
     //----------------------------------------------------------------------------------------------
-    bsp_layout_impl(bklib::irect bounds, param_t params)
-      : p_ {params}, width_ {bounds.width()}, height_ {bounds.height()}
+    bsp_layout_impl(bklib::irect const bounds, param_t const p)
+      : p_ {p}, width_ {bounds.width()}, height_ {bounds.height()}
     {
         BK_PRECONDITION(width_ > 0);
         BK_PRECONDITION(height_ > 0);
@@ -73,40 +73,6 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    enum class split_type : int {
-        none, vertical, horizonal, random
-    };
-
-    //----------------------------------------------------------------------------------------------
-    split_type get_split_type(int const w, int const h) const noexcept {
-        switch (bklib::combine_bool(w >= p_.min_w * 2, h >= p_.min_h * 2)) {
-        default : return split_type::none;
-        case 0  : return split_type::none;
-        case 1  : return split_type::horizonal;
-        case 2  : return split_type::vertical;
-        case 3  : break;
-        }
-
-        // Both splits are possible; check the aspect ratio.
-        if ((w > h) && ((p_.aspect.den * w) > (p_.aspect.num * h))) {
-            return split_type::vertical;
-        }
-
-        if ((h > w) && ((p_.aspect.den * h) > (p_.aspect.num * w))) {
-            return split_type::horizonal;
-        }
-
-        return split_type::random;
-    }
-
-    int get_split_point(random_t& gen, int const n, int const min) {
-        BK_ASSERT(n >= min * 2);
-
-        auto const split = static_cast<int>(std::lround(((2 + split_dist_(gen)) * n) / 4));
-        return bklib::clamp(min, split, n - min);
-    }
-
-    //----------------------------------------------------------------------------------------------
     bool do_split(random_t& gen, int const w, int const h) {
         double const a = p_.max_edge_size;             // max size
         double const b = std::min(p_.min_w, p_.min_h); // min size
@@ -126,47 +92,17 @@ public:
             return;
         }
 
-        switch (get_split_type(w, h)) {
-        default                    : break;
-        case split_type::none      : break;
-        case split_type::vertical  : split_vert(gen, i); break;
-        case split_type::horizonal : split_hori(gen, i); break;
-        case split_type::random    : split_rand(gen, i); break;
+        auto const result = random_split(gen,  nodes_[i].bounds()
+          , p_.min_w, p_.max_edge_size, p_.min_h, p_.max_edge_size, p_.aspect);
+
+        if (std::get<2>(result)) {
+            nodes_[i].set_children(nodes_.size()).bounds();
+            nodes_.emplace_back(i, std::get<0>(result));
+            nodes_.emplace_back(i, std::get<1>(result));
         }
     }
 
-    //----------------------------------------------------------------------------------------------
-    void split_rand(random_t& gen, size_t const i) {
-        if (gen() & 1) {
-            split_vert(gen, i);
-        } else {
-            split_hori(gen, i);
-        }
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void split_hori(random_t& gen, size_t const i) {
-        auto const n = nodes_[i].set_children(nodes_.size()).bounds();
-
-        int const y0 = n.top;
-        int const y1 = y0 + get_split_point(gen, n.height(), p_.min_h);
-        int const y2 = n.bottom;
-
-        nodes_.emplace_back(i, bklib::irect {n.left, y0, n.right, y1});
-        nodes_.emplace_back(i, bklib::irect {n.left, y1, n.right, y2});
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void split_vert(random_t& gen, size_t const i) {
-        auto const n = nodes_[i].set_children(nodes_.size()).bounds();
-
-        int const x0 = n.left;
-        int const x1 = x0 + get_split_point(gen, n.width(), p_.min_w);
-        int const x2 = n.right;
-
-        nodes_.emplace_back(i, bklib::irect {x0, n.top, x1, n.bottom});
-        nodes_.emplace_back(i, bklib::irect {x1, n.top, x2, n.bottom});
-    }
+    param_t params() const noexcept { return p_; }
 
     //----------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
@@ -203,6 +139,11 @@ bkrl::bsp_layout::bsp_layout(bklib::irect bounds)
 void bkrl::bsp_layout::generate(random_t& gen, room_gen_t room_gen)
 {
     impl_->generate(gen, room_gen);
+}
+
+//----------------------------------------------------------------------------------------------
+bkrl::bsp_layout::param_t bkrl::bsp_layout::params() const noexcept {
+    return impl_->params();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -295,7 +236,7 @@ bkrl::calculate_splittable_ranges(
         result.v = split_type::must; //have to split vertically
         result.v_range = make_range(ceil_to<int>(range_w_min), floor_to<int>(range_w_max));
     } else if (range_h_min > range_h_max) {
-        if (range_h_min < h) {
+        if (range_h_min <= h) {
             result.h = split_type::degenerate; //can split horizontally , but not well
             result.h_range = make_range(ceil_to<int>(range_h_min), ceil_to<int>(range_h_min));
         } else {
@@ -304,21 +245,47 @@ bkrl::calculate_splittable_ranges(
     } else {
         result.h = split_type::can; //can split horizontally
         result.h_range = make_range(ceil_to<int>(range_h_min), floor_to<int>(range_h_max));
+
+        // this can occur when range_h_min == range_h_max
+        if (result.h_range.lo > result.h_range.hi) {
+            result.h_range.hi = result.h_range.lo;
+        }
+
+        if (h - result.h_range.lo < min_h) {
+            result.h = split_type::degenerate;
+        }
+
+        if (h - result.h_range.hi < min_h) {
+            result.h_range.hi = h - min_h;
+        }
     }
 
-    if (range_w_min > w) {
-        result.h = split_type::must; //have to split vertically
+    if (range_w_min > w && result.h == split_type::none) {
+        result.h = split_type::must; //have to split horizontally
         result.h_range = make_range(ceil_to<int>(range_h_min), floor_to<int>(range_h_max));
     } else if (range_w_min > range_w_max) {
-        if (range_w_min < w) {
-            result.v = split_type::degenerate; //can split horizontally , but not well
+        if (range_w_min <= w) {
+            result.v = split_type::degenerate; //can split vertically , but not well
             result.v_range = make_range(ceil_to<int>(range_w_min), ceil_to<int>(range_w_min));
         } else {
-            result.v = split_type::none; //can't split horizontally
+            result.v = split_type::none; //can't split vertically
         }
     } else {
-        result.v = split_type::can; //can split horizontally
+        result.v = split_type::can; //can split vertically
         result.v_range = make_range(ceil_to<int>(range_w_min), floor_to<int>(range_w_max));
+
+        // this can occur when range_h_min == range_h_max
+        if (result.v_range.lo > result.v_range.hi) {
+            result.v_range.hi = result.v_range.lo;
+        }
+
+        if (w - result.v_range.lo < min_w) {
+            result.v = split_type::degenerate;
+        }
+
+        if (w - result.v_range.hi < min_w) {
+            result.v_range.hi = w - min_w;
+        }
     }
 
     return result;
@@ -340,25 +307,70 @@ bkrl::random_split(
 
     auto const split_h = [&] { return split(split_horizontal, ranges.h_range); };
     auto const split_v = [&] { return split(split_vertical, ranges.v_range); };
+    auto const split_r = [&] { return toss_coin(random) ? split_h() : split_v(); };
 
-    if (ranges.h == ranges.v) {
+    using st = split_type;
+    #define BK_SPLIT_CASE(a, b) ((static_cast<unsigned>(a) << 2) | static_cast<unsigned>(b))
+
+    switch (BK_SPLIT_CASE(ranges.v, ranges.h)) {
+    case BK_SPLIT_CASE(st::none, st::none):
+        break;
+    case BK_SPLIT_CASE(st::none, st::can) :
+        return split_h();
+    case BK_SPLIT_CASE(st::none, st::must) :
+        return split_h();
+    case BK_SPLIT_CASE(st::none, st::degenerate) :
+        if (r.height() - ranges.h_range.lo >= min_h) {
+            return split_h();
+        }
+        break;
+    case BK_SPLIT_CASE(st::can, st::none) :
+        return split_v();
+    case BK_SPLIT_CASE(st::can, st::can) :
+        return split_r();
+    case BK_SPLIT_CASE(st::can, st::must) :
+        return split_h();
+    case BK_SPLIT_CASE(st::can, st::degenerate) :
+        return split_v();
+    case BK_SPLIT_CASE(st::must, st::none) :
+        return split_v();
+    case BK_SPLIT_CASE(st::must, st::can) :
+        return split_v();
+    case BK_SPLIT_CASE(st::must, st::must) :
+        return split_r();
+    case BK_SPLIT_CASE(st::must, st::degenerate) :
+        return split_v();
+    case BK_SPLIT_CASE(st::degenerate, st::none) :
+        if (r.width() - ranges.v_range.lo >= min_w) {
+            return split_v();
+        }
+        break;
+    case BK_SPLIT_CASE(st::degenerate, st::can) :
+        return split_h();
+    case BK_SPLIT_CASE(st::degenerate, st::must) :
+        return split_h();
+    case BK_SPLIT_CASE(st::degenerate, st::degenerate) : {
         auto const w = r.width();
         auto const h = r.height();
+        bool const v_ok = w - ranges.h_range.lo >= min_w;
+        bool const h_ok = h - ranges.v_range.lo >= min_h;
 
-        if (ranges.h == split_type::degenerate && w != h) {
-            return h > w ? split_h() : split_v();
+        if (v_ok && h_ok) {
+            return (w > h) ? split_v() :
+                   (w < h) ? split_h() : split_r();
+        } else if (v_ok) {
+            return split_v();
+        } else if (h_ok) {
+            return split_h();
         }
 
-        if (ranges.h != split_type::none) {
-            return (h > max_h) ? split_h() :
-                   (w > max_w) ? split_v() :
-                   toss_coin(random) ? split_h() : split_v();
-        }
-    } else if (ranges.h != split_type::none && ranges.h != split_type::degenerate) {
-        return split_h();
-    } else if (ranges.v != split_type::none && ranges.v != split_type::degenerate) {
-        return split_v();
+        break;
     }
+    default:
+        break;
+    }
+
+    #undef BK_SPLIT_CASE
 
     return std::make_tuple(r, r, false);
 }

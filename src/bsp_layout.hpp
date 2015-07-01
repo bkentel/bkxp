@@ -32,9 +32,11 @@ public:
     bsp_layout(bklib::irect bounds, param_t params);
     explicit bsp_layout(bklib::irect bounds);
 
-    using room_gen_t = std::function<void (bklib::irect const&)>;
+    using room_gen_t = std::function<void (bklib::irect)>;
 
     void generate(random_t& gen, room_gen_t room_gen);
+
+    param_t params() const noexcept;
 private:
     std::unique_ptr<detail::bsp_layout_impl> impl_;
 };

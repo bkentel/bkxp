@@ -1,6 +1,8 @@
 #include "game.hpp"
 #include "direction.hpp"
 
+#include "bsp_layout.hpp"
+
 #include "bklib/string.hpp"
 #include "bklib/scope_guard.hpp"
 
@@ -80,13 +82,14 @@ bkrl::game::game()
 void bkrl::game::generate_map()
 {
     auto& m = current_map_;
+    auto const bounds = current_map_.bounds();
 
-    m.fill(bklib::irect {5, 5, 15, 20}, terrain_type::floor, terrain_type::wall);
-
-    m.at(5, 10).type = terrain_type::door;
-    m.at(5, 12).type = terrain_type::door;
-    m.update_render_data(5, 10);
-    m.update_render_data(5, 12);
+    bsp_layout layout {bklib::irect {bounds.left, bounds.top, bounds.right - 1, bounds.bottom - 1}};
+    layout.generate(random_[random_stream::substantive], [&](bklib::irect const r) {
+        bklib::irect const r0 {r.left, r.top, r.right + 1, r.bottom + 1};
+        m.fill(r0, terrain_type::floor, terrain_type::wall);
+        m.at(r.left + 2, r.top).type = terrain_type::door;
+    });
 
     m.update_render_data();
 
