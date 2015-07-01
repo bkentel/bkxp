@@ -66,6 +66,45 @@ struct splittable_ranges_t {
 };
 
 //--------------------------------------------------------------------------------------------------
+//! @pre 0 <= min_w <= max_w
+//! @pre 0 <= min_h <= max_h
+//--------------------------------------------------------------------------------------------------
+splittable_ranges_t calculate_splittable_ranges(
+    int w, int h
+  , int min_w, int max_w
+  , int min_h, int max_h
+) noexcept;
+
+inline splittable_ranges_t calculate_splittable_ranges(
+    bklib::irect r
+  , int min_w, int max_w
+  , int min_h, int max_h
+) noexcept {
+    return calculate_splittable_ranges(r.width(), r.height(), min_w, max_w, min_h, max_h);
+}
+
+//--------------------------------------------------------------------------------------------------
+//! @pre 0 <= min_w <= max_w
+//! @pre 0 <= min_h <= max_h
+//! @pre aspect_limit >= 1
+//--------------------------------------------------------------------------------------------------
+splittable_ranges_t calculate_splittable_ranges(
+    int w, int h
+  , int min_w, int max_w
+  , int min_h, int max_h
+  , double aspect_limit
+) noexcept;
+
+inline splittable_ranges_t calculate_splittable_ranges(
+    bklib::irect r
+  , int min_w, int max_w
+  , int min_h, int max_h
+  , double aspect_limit
+) noexcept {
+    return calculate_splittable_ranges(r.width(), r.height(), min_w, max_w, min_h, max_h, aspect_limit);
+}
+
+//--------------------------------------------------------------------------------------------------
 splittable_ranges_t calculate_splittable_ranges(
     bklib::irect r, int min_w, int min_h, double aspect_limit = 0.0
 );

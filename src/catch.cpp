@@ -4,5 +4,8 @@
 #endif
 
 int run_unit_tests() {
-    return Catch::Session().run();
+    Catch::Session session;
+    session.configData().shouldDebugBreak = true;
+
+    return session.run();
 }

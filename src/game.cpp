@@ -84,8 +84,14 @@ void bkrl::game::generate_map()
     auto& m = current_map_;
     auto const bounds = current_map_.bounds();
 
+    auto& random = random_[random_stream::substantive];
+
     bsp_layout layout {bklib::irect {bounds.left, bounds.top, bounds.right - 1, bounds.bottom - 1}};
-    layout.generate(random_[random_stream::substantive], [&](bklib::irect const r) {
+    layout.generate(random, [&](bklib::irect const r) {
+        if (bkrl::x_in_y_chance(random, 7, 10)) {
+            return;
+        }
+
         bklib::irect const r0 {r.left, r.top, r.right + 1, r.bottom + 1};
         m.fill(r0, terrain_type::floor, terrain_type::wall);
         m.at(r.left + 2, r.top).type = terrain_type::door;
@@ -97,8 +103,8 @@ void bkrl::game::generate_map()
     constexpr auto const zombie_id   = creature_def_id {bklib::static_djb2_hash("zombie")};
 
     for (int i = 0; i < 10; ++i) {
-        generate_creature(random_, m, creature_factory_, random_definition(random_[random_stream::substantive], creature_dictionary_));
-        generate_item(random_, m, item_factory_, random_definition(random_[random_stream::substantive], item_dictionary_));
+        generate_creature(random_, m, creature_factory_, random_definition(random, creature_dictionary_));
+        generate_item(random_, m, item_factory_, random_definition(random, item_dictionary_));
     }
 
     creature_def def {"player"};

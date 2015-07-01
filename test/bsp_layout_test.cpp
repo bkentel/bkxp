@@ -1,7 +1,185 @@
 #ifndef BK_NO_UNIT_TESTS
+#include <boost/predef.h>
+#if BOOST_COMP_CLANG
+#   pragma clang diagnostic ignored "-Wexit-time-destructors"
+#endif
+
 #include <catch/catch.hpp>
 
 #include "bsp_layout.hpp"
+
+TEST_CASE("calculate_splittable_ranges aspect", "[bsp_layout][bkrl]") {
+    constexpr auto const a  = 16.0 / 9.0;
+    constexpr auto const a1 = 1.0 / a;
+    constexpr auto const lo = 5;
+    constexpr auto const hi = 25;
+
+    using st = bkrl::split_type;
+
+    auto const calc = [=](int const w, int const h) {
+        return bkrl::calculate_splittable_ranges(w, h, lo, hi, lo, hi, a);
+    };
+
+    auto const check_type = [](auto const& result, st const v, st const h) {
+        return (result.v == v) && (result.h == h);
+    };
+
+    SECTION("too small") {
+        for (auto x = 0; x < lo; ++x) {
+            for (auto y = 0; y < lo; ++y) {
+                REQUIRE(check_type(calc(x, y), st::none, st::none));
+            }
+        }
+    }
+
+    SECTION("too small to split well") {
+        for (auto x = 0; x < lo; ++x) {
+            for (auto y = 0; y < lo; ++y) {
+                REQUIRE(check_type(calc(lo + x, lo + y), st::degenerate, st::degenerate));
+            }
+        }
+    }
+
+    SECTION("good") {
+        for (auto x = lo * 2; x <= hi; ++x) {
+            auto const y = x * a1;
+            auto const w = x;
+            auto const h = bklib::ceil_to<int>(y);
+
+            REQUIRE(calc(w, h).v == st::can);
+        }
+    }
+
+    SECTION("too big") {
+        for (auto x = hi + 1; x < hi * 2; ++x) {
+            for (auto y = hi + 1; y < hi * 2; ++y) {
+                REQUIRE(check_type(calc(x, y), st::must, st::must));
+            }
+        }
+    }
+
+    //REQUIRE(check_type(calc(lo * 2, lo * 2), st::degenerate, st::degenerate));
+
+    //bkrl::calculate_splittable_ranges(144, 256, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(211, 119, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(255, 255, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(46, 32, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(7, 11, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(8, 5, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(9, 7, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(12, 11, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(11, 11, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(24, 27, lo, hi, lo, hi, a);
+    //bkrl::calculate_splittable_ranges(4, 6, lo, hi, lo, hi, a);
+}
+
+TEST_CASE("calculate_splittable_ranges no aspect", "[bsp_layout][bkrl]") {
+    constexpr auto min_w = 2;
+    constexpr auto max_w = 8;
+    constexpr auto min_h = 3;
+    constexpr auto max_h = 7;
+
+    auto w = min_w * 2;
+    auto h = min_h * 2;
+
+    auto const calc = [&] {
+        return bkrl::calculate_splittable_ranges(w, h, min_w, max_w, min_h, max_h);
+    };
+
+    using st = bkrl::split_type;
+
+    SECTION("w too small") {
+        w = min_w - 1;
+        h = min_h * 2;
+
+        auto const result = calc();
+
+        REQUIRE(result.v == st::none);
+        REQUIRE(result.v_range == bklib::make_range(0, 0));
+
+        REQUIRE(result.h == st::can);
+        REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+    }
+
+    SECTION("w a bit too small") {
+        w = min_w * 2 - 1;
+        h = min_h * 2;
+
+        auto const result = calc();
+
+        REQUIRE(result.v == st::degenerate);
+        REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+
+        REQUIRE(result.h == st::can);
+        REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+    }
+
+    SECTION("w too large") {
+        w = max_w + 1;
+        h = min_h * 2;
+
+        auto const result = calc();
+
+        REQUIRE(result.v == st::must);
+        REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+
+        REQUIRE(result.h == st::can);
+        REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+    }
+
+    SECTION("h too small") {
+        w = min_w * 2;
+        h = min_h - 1;
+
+        auto const result = calc();
+
+        REQUIRE(result.h == st::none);
+        REQUIRE(result.h_range == bklib::make_range(0, 0));
+
+        REQUIRE(result.v == st::can);
+        REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+    }
+
+    SECTION("h too large") {
+        w = min_w * 2;
+        h = max_h + 1;
+
+        auto const result = calc();
+
+        REQUIRE(result.h == st::must);
+        REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+
+        REQUIRE(result.v == st::can);
+        REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+    }
+
+    SECTION("h a bit too small") {
+        w = min_w * 2;
+        h = min_h * 2 - 1;
+
+        auto const result = calc();
+
+        REQUIRE(result.h == st::degenerate);
+        REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+
+        REQUIRE(result.v == st::can);
+        REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+    }
+
+    SECTION("in range") {
+        for (int x = min_w * 2; x < max_w; ++x) {
+            for (int y = min_h * 2; y < max_h; ++y) {
+                auto const result = calc();
+
+                REQUIRE(result.h == st::can);
+                REQUIRE(result.h_range == bklib::make_range(min_h, h - min_h));
+
+                REQUIRE(result.v == st::can);
+                REQUIRE(result.v_range == bklib::make_range(min_w, w - min_w));
+            }
+        }
+    }
+}
 
 TEST_CASE("bsp_layout split", "[bkrl]") {
     using bklib::aspect_ratio;
@@ -21,22 +199,6 @@ TEST_CASE("bsp_layout split", "[bkrl]") {
             && (b <= aspect && b >= 1.0);
     };
 
-    SECTION("no aspect") {
-        constexpr auto const w     = 10;
-        constexpr auto const h     = 12;
-        constexpr auto const min_w = 1;
-        constexpr auto const min_h = 2;
-
-        auto const r = irect {0, 0, w, h};
-        auto const result = calculate_splittable_ranges(r, min_w, min_h);
-
-        REQUIRE(result.h == split_type::can);
-        REQUIRE(result.h_range == make_range(min_h, h - min_h));
-
-        REQUIRE(result.v == split_type::can);
-        REQUIRE(result.v_range == make_range(min_w, w - min_w));
-    }
-
     SECTION("aspect case 7") {
         constexpr auto const w      = 7;
         constexpr auto const h      = 11;
@@ -45,7 +207,7 @@ TEST_CASE("bsp_layout split", "[bkrl]") {
         constexpr auto const aspect = 16.0 / 9.0;
 
         auto const r = irect {0, 0, w, h};
-        auto const result = random_split(random,r, min_w, 25, min_h, 25, aspect);
+        auto const result = random_split(random, r, min_w, 25, min_h, 25, aspect);
         REQUIRE(std::get<2>(result) == true);
     }
 
@@ -106,45 +268,10 @@ TEST_CASE("bsp_layout split", "[bkrl]") {
 
         auto const r = irect {0, 0, w, h};
         auto const result = random_split(random,r, min_w, 25, min_h, 25, aspect);
-        REQUIRE(std::get<2>(result) == false);
-    }
-
-    SECTION("aspect case 1") {
-        constexpr auto const w      = 24;
-        constexpr auto const h      = 27;
-        constexpr auto const min_w  = 5;
-        constexpr auto const min_h  = 5;
-        constexpr auto const aspect = 16.0 / 9.0;
-
-        auto const r = irect {0, 0, w, h};
-        auto const result = calculate_splittable_ranges(r, min_w, min_h, aspect);
-
-        REQUIRE(result.v == split_type::degenerate);
-        REQUIRE(result.h == split_type::can);
-
-        REQUIRE(result.v_range == make_range(16, 16));
-        REQUIRE(result.h_range == make_range(14, 14));
-    }
-
-    SECTION("aspect -- case too small") {
-        constexpr auto const w      = 4;
-        constexpr auto const h      = 6;
-        constexpr auto const min_w  = 5;
-        constexpr auto const min_h  = 5;
-        constexpr auto const aspect = 16.0 / 9.0;
-
-        auto const r = irect {0, 0, w, h};
-        auto const result = calculate_splittable_ranges(r, min_w, min_h, aspect);
-
-        REQUIRE(result.v == split_type::none);
-        REQUIRE(result.h == split_type::degenerate);
-
-        REQUIRE(result.v_range == make_range(0, 0));
-        REQUIRE(result.h_range == make_range(min_h, min_h));
+        REQUIRE(std::get<2>(result) == true);
     }
 
     SECTION("aspect -- random") {
-        constexpr auto const aspect = bklib::make_aspect_ratio(16, 10);
         constexpr int const min_w {4};
         constexpr int const max_w {10};
         constexpr int const min_h {4};
