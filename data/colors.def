@@ -1,7 +1,16 @@
 { "file_type": "colors"
 , "definitions": [
-    "white": [255, 255, 255, 255]
-    "red": [255, 0, 0, 255]
-    "grey": [127, 127, 127, 255]
+    { "name": "white"
+    , "code": "w"
+    , "value": [255, 255, 255]
+    }
+  , { "name": "red"
+    , "code": "r"
+    , "value": [255, 0, 0]
+    }
+  , { "name": "grey"
+    , "code": "gy"
+    , "value": [127, 127, 127]
+    }
   ]
 }

@@ -48,11 +48,11 @@ public:
         }
 
         for (auto const& i : item_data_) {
-            render.draw_cell(i.x, i.y, i.base_index);
+            render.draw_cell(i.x, i.y, i.base_index, i.color);
         }
 
         for (auto const& c : creature_data_) {
-            render.draw_cell(c.x, c.y, c.base_index);
+            render.draw_cell(c.x, c.y, c.base_index, c.color);
         }
     }
 
