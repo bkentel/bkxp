@@ -8,7 +8,7 @@ namespace {
 using namespace bklib::literals;
 
 template <typename T>
-struct json_datum : json_datum_base {
+struct json_datum {
     json_datum() = default;
 
     template <typename U>
