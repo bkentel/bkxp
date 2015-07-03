@@ -25,6 +25,7 @@
     <ClInclude Include="src\bklib\timer.hpp" />
     <ClInclude Include="src\bklib\utility.hpp" />
     <ClInclude Include="src\bsp_layout.hpp" />
+    <ClInclude Include="src\color.hpp" />
     <ClInclude Include="src\commands.hpp" />
     <ClInclude Include="src\creature.hpp" />
     <ClInclude Include="src\definitions.hpp" />
@@ -54,6 +55,7 @@
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
     </ClCompile>
+    <ClCompile Include="src\color.cpp" />
     <ClCompile Include="src\commands.cpp" />
     <ClCompile Include="src\creature.cpp" />
     <ClCompile Include="src\direction.cpp" />
@@ -82,6 +84,7 @@
     <ClCompile Include="test\bklib\timer_test.cpp" />
     <ClCompile Include="test\bklib\utility_test.cpp" />
     <ClCompile Include="test\bsp_layout_test.cpp" />
+    <ClCompile Include="test\color_test.cpp" />
     <ClCompile Include="test\command_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />
