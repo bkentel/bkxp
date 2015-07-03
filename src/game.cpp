@@ -15,6 +15,7 @@ bkrl::game::game()
   , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
   , command_translator_()
+  , color_dictionary_ {}
   , creature_dictionary_ {}
   , item_dictionary_ {}
   , creature_factory_(creature_dictionary_)
@@ -24,8 +25,11 @@ bkrl::game::game()
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
 {
+    load_definitions(color_dictionary_, "./data/colors.def", load_from_file);
     load_definitions(item_dictionary_, "./data/items.def", load_from_file);
     load_definitions(creature_dictionary_, "./data/creatures.def", load_from_file);
+
+    current_map_.set_draw_colors(color_dictionary_);
 
     command_translator_.push_handler([&](command const& cmd) {
         return on_command(cmd);
