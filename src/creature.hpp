@@ -42,18 +42,18 @@ using creature_flags = bklib::flag_set<creature_flag>;
 struct creature_def : definition_base {
     using id_type = creature_def_id;
 
-    explicit creature_def(bklib::utf8_string id_string)
-      : definition_base {std::move(id_string)}
-      , id {bklib::djb2_hash(this->id_string)}
+    explicit creature_def(bklib::utf8_string def_id_string)
+      : definition_base {std::move(def_id_string)}
+      , id {id_string}
     {
     }
 
-    creature_def_id id;
+    bklib::string_id<creature_def_id> id;
     creature_flags  flags;
 };
 
 inline creature_def_id get_id(creature_def const& def) noexcept {
-    return def.id;
+    return creature_def_id {def.id.hash};
 }
 
 //--------------------------------------------------------------------------------------------------

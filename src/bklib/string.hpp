@@ -83,14 +83,34 @@ struct string_id_base {
     explicit string_id_base(utf8_string_view const string) noexcept
       : hash(djb2_hash(string))
     {
-        size_t const size = std::min(hash_string.size() - 1, string.size() + 1);
-        std::copy_n(string.data(), size, hash_string.data());
-        hash_string[size] = '\0';
+        set_hash_string_(string);
+    }
+
+    void reset(utf8_string_view const string) noexcept {
+        hash = djb2_hash(string);
+        set_hash_string_(string);
     }
 
     uint32_t             hash;
     std::array<char, 12> hash_string;
+
+private:
+    void set_hash_string_(utf8_string_view const string) noexcept {
+        size_t const size = std::min(hash_string.size() - 1, string.size());
+        if (size) {
+            std::copy_n(string.data(), size, hash_string.data());
+            hash_string[size] = '\0';
+        }
+    }
 };
+
+inline bool operator==(bklib::utf8_string_view const lhs, string_id_base const& rhs) noexcept {
+    return lhs == bklib::utf8_string_view {rhs.hash_string.data()};
+}
+
+inline bool operator==(string_id_base const& lhs, bklib::utf8_string_view const rhs) noexcept {
+    return rhs == lhs;
+}
 
 //--------------------------------------------------------------------------------------------------
 //!

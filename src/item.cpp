@@ -82,7 +82,7 @@ bkrl::item::item(
   , item_def         const& def
 )
   : id_  {id}
-  , def_ {def.id}
+  , def_ {get_id(def)}
 {
 }
 
@@ -113,7 +113,7 @@ void bkrl::load_definitions(item_dictionary& dic, bklib::utf8_string_view const 
         def.name         = std::move(item_handler.name);
         def.description  = std::move(item_handler.description);
         def.symbol       = std::move(item_handler.symbol);
-        def.symbol_color = std::move(item_handler.symbol_color);
+        def.symbol_color.reset(item_handler.symbol_color);
 
         dic.insert_or_replace(std::move(def)); // TODO duplicates
 

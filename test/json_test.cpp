@@ -61,8 +61,8 @@ TEST_CASE("json creature definition parser", "[creature][json][bkrl]") {
         auto const ptr = creatures.find(bkrl::creature_def_id {hash});
 
         REQUIRE(ptr);
-        REQUIRE(ptr->id.value == hash);
-        REQUIRE(ptr->id_string == id);
+        REQUIRE(ptr->id.hash == hash);
+        REQUIRE(ptr->id == id);
         REQUIRE(ptr->name == name);
         REQUIRE(ptr->description == desc);
         REQUIRE(ptr->symbol == sym);

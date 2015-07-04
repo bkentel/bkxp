@@ -10,9 +10,13 @@ using namespace bklib::literals;
 template <typename T>
 struct json_datum {
     json_datum() = default;
+    json_datum(json_datum const&) = delete;
+    json_datum(json_datum&&) = default;
+    json_datum& operator=(json_datum const&) = delete;
+    json_datum& operator=(json_datum&&) = default;
 
     template <typename U>
-    explicit json_datum(U&& value)
+    json_datum(U&& value)
       : data {std::forward<U>(value)}
     {
     }
@@ -20,16 +24,32 @@ struct json_datum {
     template <typename U>
     json_datum& operator=(U&& value) {
         data = std::forward<U>(value);
-        ++set_count;
+        ++count;
         return *this;
     }
 
     explicit operator bool() const noexcept {
-        return set_count > 0;
+        return count > 0;
+    }
+
+    operator T const&() const noexcept {
+        return data;
+    }
+
+    T& operator->() noexcept { return data; }
+    T const & operator->() const noexcept { return data; }
+
+    void reset() {
+        count = 0;
+    }
+
+    void reset(T const& value) {
+        data = value;
+        reset();
     }
 
     T data;
-    int set_count = 0;
+    int count = 0;
 };
 
 struct color_def_parser final : bklib::json_parser_base {
@@ -63,9 +83,9 @@ struct color_def_parser final : bklib::json_parser_base {
         auto const val = static_cast<uint8_t>(n & 0xFF);
 
         switch (cur_state) {
-        case state::color_array0: value[0] = val; cur_state = state::color_array1;    break;
-        case state::color_array1: value[1] = val; cur_state = state::color_array2;    break;
-        case state::color_array2: value[2] = val; cur_state = state::color_array_end; break;
+        case state::color_array0: color_r = val; cur_state = state::color_array1;    break;
+        case state::color_array1: color_g = val; cur_state = state::color_array2;    break;
+        case state::color_array2: color_b = val; cur_state = state::color_array_end; break;
         default:
             return def_result;
         }
@@ -109,7 +129,11 @@ struct color_def_parser final : bklib::json_parser_base {
 
         id.clear();
         short_name.clear();
-        value.fill(0);
+
+        color_r.reset(0);
+        color_g.reset(0);
+        color_b.reset(0);
+        color_a.reset(0);
 
         return true;
     }
@@ -131,6 +155,17 @@ struct color_def_parser final : bklib::json_parser_base {
         return true;
     }
 
+    bkrl::color_def get_result() {
+        bkrl::color_def result {id};
+        result.short_name.assign(short_name);
+        result.color[0] = color_r;
+        result.color[1] = color_g;
+        result.color[2] = color_b;
+        result.color[3] = color_a;
+
+        return result;
+    }
+
     //----------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
     state cur_state = state::none;
@@ -138,7 +173,11 @@ struct color_def_parser final : bklib::json_parser_base {
 
     bklib::utf8_string id;
     bklib::utf8_string short_name;
-    bkrl::color4       value;
+
+    json_datum<uint8_t> color_r = uint8_t {0};
+    json_datum<uint8_t> color_g = uint8_t {0};
+    json_datum<uint8_t> color_b = uint8_t {0};
+    json_datum<uint8_t> color_a = uint8_t {255};
 };
 
 }
@@ -162,13 +201,7 @@ void bkrl::load_definitions(
     };
 
     json_parse_definitions(data, select_handler, [&] {
-        color_def def {std::move(color_handler.id)};
-
-        def.short_name = std::move(color_handler.short_name);
-        def.color      = std::move(color_handler.value);
-
-        dic.insert_or_replace(std::move(def)); // TODO duplicates
-
+        dic.insert_or_replace(color_handler.get_result()); // TODO duplicates
         return true;
     });
 }

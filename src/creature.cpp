@@ -148,7 +148,7 @@ bkrl::creature::creature(
   , creature_def         const& def
   , bklib::ipoint2       const  p
 ) : id_  {id}
-  , def_ {def.id}
+  , def_ {get_id(def)}
   , pos_ {p}
   , stats_ {}
   , items_ {}
@@ -212,7 +212,7 @@ void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view co
         def.name         = std::move(creature_handler.name);
         def.description  = std::move(creature_handler.description);
         def.symbol       = std::move(creature_handler.symbol);
-        def.symbol_color = std::move(creature_handler.symbol_color);
+        def.symbol_color.reset(creature_handler.symbol_color);
 
         dic.insert_or_replace(std::move(def)); // TODO duplicates
 

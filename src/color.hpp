@@ -16,20 +16,18 @@ using color4 = std::array<uint8_t, 4>;
 struct color_def {
     using id_type = color_def_id;
 
-    explicit color_def(bklib::utf8_string def_id_string)
-      : id {bklib::djb2_hash(def_id_string)}
-      , id_string {std::move(def_id_string)}
+    explicit color_def(bklib::utf8_string_view id_string)
+      : id {id_string}
     {
     }
 
-    color_def_id       id;
-    bklib::utf8_string id_string;
+    bklib::string_id<color_def_id> id;
     bklib::utf8_string short_name;
     color4             color;
 };
 
 inline color_def_id get_id(color_def const& def) noexcept {
-    return def.id;
+    return color_def_id { def.id.hash };
 }
 
 using color_dictionary = bklib::dictionary<color_def>;

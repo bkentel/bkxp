@@ -44,7 +44,7 @@ TEST_CASE("color") {
     ) {
         auto const ptr = dic.find(bkrl::color_def_id {bklib::djb2_hash(id)});
         REQUIRE(ptr);
-        REQUIRE(ptr->id_string  == id);
+        REQUIRE(ptr->id == id);
         REQUIRE(ptr->short_name == short_name);
         REQUIRE(ptr->color[0] == c[0]);
         REQUIRE(ptr->color[1] == c[1]);

@@ -10,7 +10,18 @@ namespace bklib {
 //
 //--------------------------------------------------------------------------------------------------
 template <typename Container, typename Predicate>
-decltype(auto) find_if(Container&& c, Predicate&& p) {
+inline bool all_of(Container&& c, Predicate&& p) {
+    using std::begin;
+    using std::end;
+
+    return std::all_of(begin(c), end(c), std::forward<Predicate>(p));
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
+template <typename Container, typename Predicate>
+inline decltype(auto) find_if(Container&& c, Predicate&& p) {
     static_assert(!std::is_rvalue_reference<Container&&>::value, "bad reference type");
 
     using std::begin;

@@ -51,11 +51,11 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 
         REQUIRE(ptr);
         REQUIRE(ptr->position() == p);
-        REQUIRE(ptr->def() == cdef.id);
+        REQUIRE(ptr->def() == get_id(cdef));
 
         auto const c = map.remove_creature_at(p);
         REQUIRE(c.position() == p);
-        REQUIRE(ptr->def() == cdef.id);
+        REQUIRE(ptr->def() == get_id(cdef));
         REQUIRE(!map.creature_at(p));
     }
 
@@ -66,7 +66,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
         auto const ptr = map.creature_at(p);
         REQUIRE(ptr);
         REQUIRE(!generate_creature(random, map, factory, cdef, p));
-        REQUIRE(ptr->def() == cdef.id);
+        REQUIRE(ptr->def() == get_id(cdef));
     }
 }
 
@@ -92,8 +92,8 @@ TEST_CASE("map items", "[map][item][bkrl]") {
         REQUIRE(std::distance(ptr->begin(), ptr->end()) == 2);
 
         auto it = std::begin(*ptr);
-        REQUIRE(it->def() == idef1.id);
-        REQUIRE((++it)->def() == idef0.id);
+        REQUIRE(it->def() == get_id(idef1));
+        REQUIRE((++it)->def() == get_id(idef0));
     }
 }
 

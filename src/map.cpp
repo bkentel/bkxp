@@ -126,7 +126,7 @@ private:
             return default_color;
         }
 
-        auto const hash = bklib::djb2_hash(def.symbol_color);
+        auto const hash = def.symbol_color.hash;
         auto const id = color_def_id {hash};
 
         if (auto const cdef = colors_->find(id)) {

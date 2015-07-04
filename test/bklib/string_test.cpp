@@ -7,32 +7,51 @@
 #include <catch/catch.hpp>
 
 #include "bklib/string.hpp"
-#include <algorithm>
-#include <iterator>
+#include "bklib/algorithm.hpp"
 
-TEST_CASE("default constructed string hashes", "[bklib][string]") {
-    bklib::string_id<struct tag_test> id;
+TEST_CASE("string_id", "[bklib][string]") {
+    using test_id_t = bklib::string_id<struct tag_test>;
 
-    REQUIRE(id.hash == 0);
-    for (auto const& e : id.hash_string) {
-        REQUIRE(e == 0);
+    SECTION("default constructed string hashes") {
+        test_id_t id;
+
+        REQUIRE(id.hash == 0);
+        auto const result = bklib::all_of(id.hash_string, [](auto const& e) { return e == 0; });
+        REQUIRE(result);
+    }
+
+    SECTION("maximum size") {
+        constexpr char const string[] = "0123456789A";
+        constexpr auto const hash = bklib::static_djb2_hash(string);
+
+        test_id_t const id {string};
+
+        REQUIRE(id.hash == hash);
+        REQUIRE(id.hash_string.back() == 0);
+
+        auto const result = std::equal(begin(id.hash_string), end(id.hash_string), std::begin(string));
+        REQUIRE(result);
+    }
+
+    SECTION("overlong string hashes") {
+        constexpr char const string[] = "this is too long";
+        constexpr auto const hash = bklib::static_djb2_hash(string);
+
+        test_id_t const id {string};
+
+        REQUIRE(id.hash == hash);
+        REQUIRE(id.hash_string.back() == 0);
+
+        auto const result = std::mismatch(
+            begin(id.hash_string), end(id.hash_string)
+          , std::begin(string), std::end(string));
+
+        auto const a = distance(begin(id.hash_string), result.first);
+        auto const b = std::distance(std::begin(string), result.second);
+
+        REQUIRE(a == b);
+        REQUIRE(a == sizeof(id.hash_string) - 1);
     }
 }
-
-TEST_CASE("string constructed string hashes", "[bklib][string]") {
-    constexpr char string[] = "test";
-
-    bklib::string_id<struct tag_test> id {string};
-
-    REQUIRE(id.hash == bklib::static_djb2_hash(string));
-    REQUIRE(std::equal(std::begin(string), std::end(string), id.hash_string.data()));
-
-    SECTION("compare") {
-        bklib::string_id<struct tag_test> id2 {std::string {"test"}};
-        REQUIRE(id  == id2);
-        REQUIRE(id2 == id);
-    }
-}
-
 
 #endif // BK_NO_UNIT_TESTS

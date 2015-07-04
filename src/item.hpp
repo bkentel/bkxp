@@ -32,17 +32,17 @@ enum class item_type : int16_t {
 struct item_def : definition_base {
     using id_type = item_def_id;
 
-    explicit item_def(bklib::utf8_string id_string)
-      : definition_base {std::move(id_string)}
-      , id {bklib::djb2_hash(this->id_string)}
+    explicit item_def(bklib::utf8_string def_id_string)
+      : definition_base {std::move(def_id_string)}
+      , id {id_string}
     {
     }
 
-    item_def_id id;
+    bklib::string_id<item_def_id> id;
 };
 
 inline item_def_id get_id(item_def const& def) noexcept {
-    return def.id;
+    return item_def_id {def.id.hash};
 }
 
 //--------------------------------------------------------------------------------------------------

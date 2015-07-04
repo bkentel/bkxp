@@ -13,4 +13,8 @@
 		<DisplayString>x {{{left}, {right} ⇒ {right - left}}} y {{{top}, {bottom} ⇒ {bottom - top}}}</DisplayString>
 	</Type>
 
+	<Type Name="bklib::string_id&lt;*&gt;">
+		<DisplayString>[{hash,x}] {(char const*)hash_string._Elems,s8}</DisplayString>
+	</Type>
+
 </AutoVisualizer>
