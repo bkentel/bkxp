@@ -282,6 +282,8 @@ inline decltype(auto) find_door(door::state const state) noexcept {
         switch (state) {
         case door::state::open :   return d.is_open();
         case door::state::closed : return d.is_closed();
+        default:
+            break;
         }
 
         return false;
@@ -511,6 +513,12 @@ void bkrl::game::do_show_inventory()
 bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 {
     switch (cmd.type) {
+    case command_type::invalid: break;
+    case command_type::scroll:  break;
+    case command_type::cancel:  break;
+    case command_type::yes:     break;
+    case command_type::no:      break;
+    case command_type::use:     break;
     case command_type::zoom:
         on_zoom(cmd.data0, cmd.data0);
         break;
@@ -559,7 +567,7 @@ void bkrl::game::debug_print(int const mx, int const my) const
 
     auto const& ter = current_map_.at(p);
     printf("cell (%d, %d)\n", x(p), y(p));
-    printf("  type = %d::%d\n", ter.type, ter.variant);
+    printf("  type = %d::%d\n", static_cast<int16_t>(ter.type), ter.variant);
 
     if (auto const& c = current_map_.creature_at(p)) {
         printf("  creature present\n");

@@ -4,7 +4,7 @@
 
 //--------------------------------------------------------------------------------------------------
 
-#if defined(BOOST_COMP_MSVC_AVAILABLE) && !(BOOST_COMP_GNUC)
+#if defined(BOOST_COMP_MSVC_AVAILABLE) && !defined(BOOST_COMP_GNUC_AVAILABLE)
 #   define BK_DO_DEBUG_BREAK __debugbreak
 #elif defined(BOOST_ARCH_X86_AVAILABLE)
 void __inline__ BK_DO_DEBUG_BREAK() noexcept {
@@ -21,3 +21,9 @@ void __inline__ BK_DO_DEBUG_BREAK() noexcept {
 
 #define BK_PRECONDITION(COND) BK_ASSERT(COND)
 #define BK_PRECONDITION_SAFE(COND) BK_ASSERT(COND)
+
+#if defined (BOOST_COMP_CLANG_AVAILABLE)
+#   define BK_FALLTHROUGH [[clang::fallthrough]];
+#else
+#   define BK_FALLTHROUGH
+#endif

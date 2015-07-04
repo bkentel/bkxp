@@ -192,13 +192,6 @@ TEST_CASE("bsp_layout split", "[bkrl]") {
 
     bkrl::random_t random;
 
-    auto const check_aspect = [](int const len, int const w, int const h, double const aspect) {
-        auto const a = static_cast<double>(w) / static_cast<double>(len);
-        auto const b = static_cast<double>(w) / static_cast<double>(h - len);
-        return (a <= aspect && a >= 1.0)
-            && (b <= aspect && b >= 1.0);
-    };
-
     SECTION("aspect case 7") {
         constexpr auto const w      = 7;
         constexpr auto const h      = 11;

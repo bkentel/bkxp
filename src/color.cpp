@@ -86,6 +86,8 @@ struct color_def_parser final : bklib::json_parser_base {
         case state::color_array0: color_r = val; cur_state = state::color_array1;    break;
         case state::color_array1: color_g = val; cur_state = state::color_array2;    break;
         case state::color_array2: color_b = val; cur_state = state::color_array_end; break;
+        case state::none:            BK_FALLTHROUGH
+        case state::color_array_end: BK_FALLTHROUGH
         default:
             return def_result;
         }

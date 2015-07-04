@@ -44,6 +44,8 @@ TEST_CASE("command values", "[bkrl][command]") {
         case ct::drop           : BK_CHECK_VAL(drop); break;
         case ct::show_inventory : BK_CHECK_VAL(show_inventory); break;
         case ct::get            : BK_CHECK_VAL(get); break;
+        default:
+            break;
     }
 
     #undef BK_CHECK_VAL
