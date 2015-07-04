@@ -159,6 +159,19 @@ void bkrl::detail::renderer_impl::draw_cell(
 }
 
 //----------------------------------------------------------------------------------------------
+void bkrl::detail::renderer_impl::draw_cell(
+    int const cell_x, int const cell_y
+  , int const tile_index
+  , color4 const color
+) {
+    color4 old;
+    SDL_GetTextureColorMod(tile_texture_.handle(), &old[0], &old[1], &old[2]);
+    SDL_SetTextureColorMod(tile_texture_.handle(), color[0], color[1], color[2]);
+    draw_cell(cell_x, cell_y, tile_index);
+    SDL_SetTextureColorMod(tile_texture_.handle(), old[0], old[1], old[2]);
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::draw_rect(rect_t const src, rect_t const dst)
 {
     static_assert(sizeof(rect_t) == sizeof(SDL_Rect), "");

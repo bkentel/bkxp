@@ -8,6 +8,7 @@ namespace bkrl {
 template <typename Tag>
 using id_t = bklib::tagged_value<uint32_t, Tag>;
 
+using color_def_id         = id_t<struct tag_color_def_id>;
 using item_def_id          = id_t<struct tag_item_def_id>;
 using item_instance_id     = id_t<struct tag_item_instance_id>;
 using creature_def_id      = id_t<struct tag_creature_def_id>;

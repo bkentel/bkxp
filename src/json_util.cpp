@@ -98,6 +98,8 @@ struct def_parser final : bklib::json_parser_base {
         handler = def_handler_;
         state_ = state::expect_finish;
 
+        handler->StartObject();
+
         return true;
     }
 
@@ -158,14 +160,16 @@ void bkrl::json_parse_definitions(
         return;
     }
 
-    switch (reader.GetParseErrorCode()) {
-    case rapidjson::kParseErrorDocumentRootNotSingular :
+    auto const result = reader.GetParseErrorCode();
+    if (!result) {
+        return;
+    }
+
+    if (result == rapidjson::kParseErrorDocumentRootNotSingular) {
         if (reader.GetErrorOffset() != json_data.size()) {
             BK_ASSERT(false); //TODO
         }
-        break;
-    default:
+    } else {
         BK_ASSERT(false); //TODO
-        break;
     }
 }

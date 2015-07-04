@@ -1,6 +1,7 @@
 #include "map.hpp"
 #include "renderer.hpp"
 #include "view.hpp"
+#include "color.hpp"
 
 #include "bklib/algorithm.hpp"
 
@@ -30,6 +31,10 @@ class bkrl::map::render_data_t {
 public:
     using point_t = bklib::ipoint2;
 
+    void set_draw_colors(color_dictionary const& colors) {
+        colors_ = &colors;
+    }
+
     void draw(renderer& render, bklib::irect const bounds, view const& v) const {
         auto const r = intersection(bounds, v.screen_to_world());
         if (!r) {
@@ -48,11 +53,11 @@ public:
         }
 
         for (auto const& i : item_data_) {
-            render.draw_cell(i.x, i.y, i.base_index);
+            render.draw_cell(i.x, i.y, i.base_index, i.color);
         }
 
         for (auto const& c : creature_data_) {
-            render.draw_cell(c.x, c.y, c.base_index);
+            render.draw_cell(c.x, c.y, c.base_index, c.color);
         }
     }
 
@@ -69,7 +74,7 @@ public:
             static_cast<int16_t>(x(p))
           , static_cast<int16_t>(y(p))
           , static_cast<uint16_t>(idef.symbol[0])
-          , {255, 255, 255, 255}
+          , get_color_(idef)
         };
 
         update_or_add_(item_data_, p, std::move(data));
@@ -80,7 +85,7 @@ public:
             static_cast<int16_t>(x(p))
           , static_cast<int16_t>(y(p))
           , static_cast<uint16_t>(cdef.symbol[0])
-          , {255, 255, 255, 255}
+          , get_color_(cdef)
         };
 
         update_or_add_(creature_data_, p, std::move(data));
@@ -113,6 +118,26 @@ public:
         clear_at_(creature_data_, p);
     }
 private:
+    template <typename T>
+    color4 get_color_(T const& def) const {
+        auto default_color = color4 {255, 255, 255, 255};
+
+        if (!colors_) {
+            return default_color;
+        }
+
+        auto const hash = bklib::djb2_hash(def.symbol_color);
+        auto const id = color_def_id {hash};
+
+        if (auto const cdef = colors_->find(id)) {
+            return cdef->color;
+        } else {
+            // TODO log this
+        }
+
+        return default_color;
+    }
+
     template <typename Container>
     static void clear_at_(Container& c, point_t const p) {
         auto const it = bklib::find_if(c, find_by_pos(p));
@@ -141,6 +166,8 @@ private:
     chunk_t<terrain_render_data_t>      terrain_data_;
     std::vector<creature_render_data_t> creature_data_;
     std::vector<item_render_data_t>     item_data_;
+
+    color_dictionary const* colors_ = nullptr;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -151,6 +178,12 @@ bkrl::map::map()
 
 //--------------------------------------------------------------------------------------------------
 bkrl::map::~map() = default;
+
+//--------------------------------------------------------------------------------------------------
+void  bkrl::map::set_draw_colors(color_dictionary const& colors)
+{
+    render_data_->set_draw_colors(colors);
+}
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::draw(renderer& render, view const& v) const

@@ -9,6 +9,7 @@
 #include "map.hpp"
 #include "random.hpp"
 #include "view.hpp"
+#include "color.hpp"
 
 #include "bklib/string.hpp"
 #include "bklib/math.hpp"
@@ -108,6 +109,7 @@ private:
     text_renderer       text_renderer_;
     view                view_;
     command_translator  command_translator_;
+    color_dictionary    color_dictionary_;
     creature_dictionary creature_dictionary_;
     item_dictionary     item_dictionary_;
     creature_factory    creature_factory_;

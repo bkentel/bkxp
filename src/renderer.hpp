@@ -55,6 +55,7 @@ private:
     int cols_;
 };
 
+using color4 = std::array<uint8_t, 4>;
 
 class renderer {
 public:
@@ -85,6 +86,7 @@ public:
 
     void draw_filled_rect(rect_t r);
     void draw_cell(int cell_x, int cell_y, int tile_index);
+    void draw_cell(int cell_x, int cell_y, int tile_index, color4 color);
 
     void draw_rect(rect_t src, rect_t dst);
 private:
@@ -101,13 +103,13 @@ struct terrain_render_data_t {
 struct creature_render_data_t {
     int16_t x, y;
     uint16_t base_index;
-    std::array<uint8_t, 4> color;
+    color4 color;
 };
 
 struct item_render_data_t {
     int16_t x, y;
     uint16_t base_index;
-    std::array<uint8_t, 4> color;
+    color4 color;
 };
 
 } //namespace bkrl

@@ -14,12 +14,18 @@
 #include <functional>
 #include <cstdint>
 
+namespace bklib {
+    template <typename Definition> class dictionary;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class renderer;
 class view;
+
+struct color_def;
 
 constexpr size_t size_block = 16;
 constexpr size_t size_chunk = size_block * size_block;
@@ -112,6 +118,7 @@ public:
     map();
     ~map();
 
+    void set_draw_colors(bklib::dictionary<color_def> const& colors);
     void draw(renderer& render, view const& v) const;
     void advance(random_state& random);
 

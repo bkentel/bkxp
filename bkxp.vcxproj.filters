@@ -112,6 +112,9 @@
     <ClInclude Include="src\json_util.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\color.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -223,6 +226,12 @@
     </ClCompile>
     <ClCompile Include="test\bklib\utility_test.cpp">
       <Filter>test\bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\color.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\color_test.cpp">
+      <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
