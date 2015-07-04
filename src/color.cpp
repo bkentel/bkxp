@@ -114,14 +114,12 @@ struct color_def_parser final : bklib::json_parser_base {
 
         auto const key_hash = static_cast<field>(bklib::djb2_hash(str, str + len));
         switch (key_hash) {
-        case field::id:         get_string(id);         break;
-        case field::short_name: get_string(short_name); break;
-        case field::value:      cur_state = state::color_array_beg; break;
-        default:
-            return def_result;
+        case field::id:         get_string(id);         return true;
+        case field::short_name: get_string(short_name); return true;
+        case field::value:      cur_state = state::color_array_beg; return true;
         }
 
-        return true;
+        return def_result;
     }
 
     bool on_start_object() override final {

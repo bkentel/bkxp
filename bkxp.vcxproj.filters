@@ -233,6 +233,9 @@
     <ClCompile Include="test\color_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
+    <ClCompile Include="src\bklib\exception.cpp">
+      <Filter>bklib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bklib.natvis" />

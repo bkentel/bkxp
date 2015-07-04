@@ -46,6 +46,7 @@
     <ClInclude Include="src\view.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\bklib\exception.cpp" />
     <ClCompile Include="src\bklib\json.cpp" />
     <ClCompile Include="src\bklib\timer.cpp" />
     <ClCompile Include="src\bklib\utility.cpp" />

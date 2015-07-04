@@ -110,6 +110,7 @@ struct def_parser final : bklib::json_parser_base {
         switch (key_from_hash) {
         case key::file_type   : state_ = state::expect_string; break;
         case key::definitions : state_ = state::expect_array;  break;
+        case key::none: BK_FALLTHROUGH
         default:
             return false;
         }

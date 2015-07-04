@@ -5,8 +5,8 @@
 
 namespace bklib {
 
-struct exception_base : virtual std::exception, virtual boost::exception { };
-struct platform_error : virtual exception_base { };
-struct io_error : virtual exception_base { };
+struct exception_base : virtual std::exception, virtual boost::exception { virtual ~exception_base() noexcept; };
+struct platform_error : virtual exception_base { virtual ~platform_error() noexcept; };
+struct io_error : virtual exception_base { virtual ~io_error() noexcept; };
 
 } //namespace bklib

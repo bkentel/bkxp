@@ -103,9 +103,6 @@ void bkrl::game::generate_map()
 
     m.update_render_data();
 
-    constexpr auto const skeleton_id = creature_def_id {bklib::static_djb2_hash("skeleton")};
-    constexpr auto const zombie_id   = creature_def_id {bklib::static_djb2_hash("zombie")};
-
     for (int i = 0; i < 10; ++i) {
         generate_creature(random_, m, creature_factory_, random_definition(random, creature_dictionary_));
         generate_item(random_, m, item_factory_, random_definition(random, item_dictionary_));

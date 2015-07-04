@@ -16,10 +16,10 @@ namespace {
 struct test_def {
     using id_type = bklib::tagged_value<size_t, test_def>;
 
-    test_def(bklib::utf8_string def_id_string, int const data)
+    test_def(bklib::utf8_string def_id_string, int const def_data)
       : id {bklib::hash_value(def_id_string)}
       , id_string {std::move(def_id_string)}
-      , data {data}
+      , data {def_data}
     {
     }
 

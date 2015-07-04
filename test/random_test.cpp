@@ -39,6 +39,10 @@ TEST_CASE("random", "[bkrl][random]") {
     constexpr auto const iterations = 10000;
     constexpr auto const expected   = iterations / range;
 
+    REQUIRE(range_min >= 0);
+    REQUIRE(range_max >= 0);
+    REQUIRE(range_max >= range_min);
+
     SECTION("random range") {
         for (auto n = 0; n < iterations; ++n) {
             auto const i = bkrl::random_range(random, range_min, range_max);
@@ -99,8 +103,9 @@ TEST_CASE("random", "[bkrl][random]") {
         std::transform(begin(p), end(p), begin(p), [=](double n) { return iterations * n / 36.0; });
 
         for (auto i = range_min; i <= range_max; ++i) {
-            double const delta = result[i + 2] - p[i];
-            REQUIRE(0.05 > delta / p[i]);
+            auto const j = static_cast<size_t>(i);
+            double const delta = result[j + 2] - p[j];
+            REQUIRE(0.05 > delta / p[j]);
         }
     }
 
