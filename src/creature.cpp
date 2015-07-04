@@ -162,8 +162,8 @@ bkrl::creature::creature(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature_factory::creature_factory(creature_dictionary const& dic)
-  : next_id_ {0}
-  , dic_     {&dic}
+  : dic_     {&dic}
+  , next_id_ {0}
 {
 }
 
@@ -268,7 +268,8 @@ bool bkrl::move_by(creature& c, map& m, bklib::ivec2 const v)
     auto const& ter = m.at(to);
 
     switch (ter.type) {
-    case terrain_type::empty:
+    case terrain_type::stair: BK_FALLTHROUGH
+    case terrain_type::empty: BK_FALLTHROUGH
     case terrain_type::floor:
         break;
     case terrain_type::door:
@@ -276,6 +277,8 @@ bool bkrl::move_by(creature& c, map& m, bklib::ivec2 const v)
             return false;
         }
         break;
+    case terrain_type::wall: BK_FALLTHROUGH
+    case terrain_type::rock: BK_FALLTHROUGH
     default:
         return false;
     }
