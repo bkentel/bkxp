@@ -46,7 +46,7 @@ TEST_CASE("string_id", "[bklib][string]") {
             begin(id.hash_string), end(id.hash_string)
           , std::begin(string), std::end(string));
 
-        auto const a = distance(begin(id.hash_string), result.first);
+        auto const a = std::distance(begin(id.hash_string), result.first);
         auto const b = std::distance(std::begin(string), result.second);
 
         REQUIRE(a == b);
