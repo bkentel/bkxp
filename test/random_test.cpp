@@ -104,7 +104,7 @@ TEST_CASE("random", "[bkrl][random]") {
 
         for (auto i = range_min; i <= range_max; ++i) {
             auto const j = static_cast<size_t>(i);
-            double const delta = result[j + 2] - p[j];
+            double const delta = result[i + 2] - p[j];
             REQUIRE(0.05 > delta / p[j]);
         }
     }

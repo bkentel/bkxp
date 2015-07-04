@@ -8,6 +8,7 @@
 
 int run_unit_tests();
 
+namespace {
 #if !defined(BK_TESTS_ONLY)
 void run_game() {
     bkrl::game game;
@@ -16,6 +17,7 @@ void run_game() {
 void run_game() {
 }
 #endif
+} //namespace
 
 int main(int const argc, char const* argv[]) try {
     using namespace bklib::literals;
