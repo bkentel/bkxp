@@ -125,7 +125,7 @@ struct placement_result_t {
         return where;
     }
 
-    bklib::ipoint2 where   {{0, 0}};
+    bklib::ipoint2 where   = bklib::ipoint2 {0, 0};
     bool           success {false};
 };
 
