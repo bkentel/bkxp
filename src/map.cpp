@@ -192,7 +192,7 @@ void bkrl::map::draw(renderer& render, view const& v) const
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::advance(random_state& random)
+void bkrl::map::advance(random_t& random)
 {
     bkrl::advance(random, *this, creatures_);
 }
@@ -256,16 +256,6 @@ void bkrl::map::place_item_at(
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::place_item_at(
-    random_state& random
-  , item_def const& def
-  , item_factory& factory
-  , bklib::ipoint2 const p
-) {
-    place_item_at(factory.create(random, def), def, p);
-}
-
-//--------------------------------------------------------------------------------------------------
 void bkrl::map::place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 const p)
 {
     if (auto const maybe_items = items_at(p)) {
@@ -295,16 +285,6 @@ void bkrl::map::place_creature_at(
 
     creatures_.insert(p, std::move(c));
     render_data_->update_or_add(def, p);
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::map::place_creature_at(
-    random_state& random
-  , creature_def const& def
-  , creature_factory& factory
-  , bklib::ipoint2 p
-) {
-    place_creature_at(factory.create(random, def, p), def, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -389,54 +369,73 @@ bkrl::item_pile const* bkrl::map::items_at(bklib::ipoint2 const p) const
 }
 
 //--------------------------------------------------------------------------------------------------
+bool bkrl::map::can_place_item_at(bklib::ipoint2 const p) const
+{
+    switch (at(p).type) {
+    case terrain_type::empty: BK_FALLTHROUGH
+    case terrain_type::floor: BK_FALLTHROUGH
+    case terrain_type::stair:
+        break;
+    case terrain_type::rock: BK_FALLTHROUGH
+    case terrain_type::wall: BK_FALLTHROUGH
+    case terrain_type::door: BK_FALLTHROUGH
+    default:
+        return false;
+    }
+
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature const* bkrl::map::creature_at(bklib::ipoint2 const p) const
 {
     return creatures_.at(p);
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::generate_creature(
-    random_state&        random
+bool bkrl::map::can_place_creature_at(bklib::ipoint2 const p) const
+{
+    return !creature_at(p);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::placement_result_t
+bkrl::generate_creature(
+    random_t&            random
   , map&                 m
   , creature_factory&    factory
   , creature_def const&  def
   , bklib::ipoint2 const p
 ) {
-    if (m.creature_at(p)) {
-        return false;
+    auto c = factory.create(random, def, p);
+
+    auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
+        return can_place_at(m, q, c);
+    });
+
+    if (!!result) {
+        c.move_to(result);
+        m.place_creature_at(std::move(c), def, result);
     }
 
-    m.place_creature_at(random, def, factory, p);
-
-    return true;
+    return result;
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::generate_creature(
-    random_state&       random
+bkrl::placement_result_t
+bkrl::generate_creature(
+    random_t&           random
   , map&                m
   , creature_factory&   factory
   , creature_def const& def
 ) {
-    auto& rnd = random[random_stream::creature];
-
-    for (int i = 0; i < 10; ++i) {
-        bklib::ipoint2 const p {
-            random_range(rnd, 0, 50)
-          , random_range(rnd, 0, 50)
-        };
-
-        if (generate_creature(random, m, factory, def, p)) {
-            return true;
-        }
-    }
-
-    return false;
+    return generate_creature(random, m, factory, def, random_point(random, m.bounds()));
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::generate_creature(
-    random_state&         random
+bkrl::placement_result_t
+bkrl::generate_creature(
+    random_t&             random
   , map&                  m
   , creature_factory&     factory
   , creature_def_id const def
@@ -446,12 +445,13 @@ bool bkrl::generate_creature(
         return generate_creature(random, m, factory, *maybe_def, p);
     }
 
-    return false;
+    return {};
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::generate_creature(
-    random_state&         random
+bkrl::placement_result_t
+bkrl::generate_creature(
+    random_t&             random
   , map&                  m
   , creature_factory&     factory
   , creature_def_id const def
@@ -460,43 +460,56 @@ bool bkrl::generate_creature(
         return generate_creature(random, m, factory, *maybe_def);
     }
 
-    return false;
+    return {};
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::generate_item(
-    random_state&        random
+bkrl::placement_result_t
+bkrl::generate_item(
+    random_t&            random
   , map&                 m
   , item_factory&        factory
   , item_def const&      def
   , bklib::ipoint2 const p
 ) {
-    m.place_item_at(random, def, factory, p);
-    return true;
+    auto i = factory.create(random, def);
+
+    auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
+        return can_place_at(m, q, i);
+    });
+
+    if (!!result) {
+        m.place_item_at(std::move(i), def, result);
+    }
+
+    return result;
 }
 
 //--------------------------------------------------------------------------------------------------
-bool bkrl::generate_item(
-    random_state&   random
+bkrl::placement_result_t
+bkrl::generate_item(
+    random_t&       random
   , map&            m
   , item_factory&   factory
   , item_def const& def
 ) {
-    auto& rnd = random[random_stream::item];
-
-    bklib::ipoint2 const p {
-        random_range(rnd, 0, 50)
-      , random_range(rnd, 0, 50)
-    };
-
-    return generate_item(random, m, factory, def, p);
+    return generate_item(random, m, factory, def, random_point(random, m.bounds()));
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 //--------------------------------------------------------------------------------------------------
-void bkrl::advance(random_state& random, map& m)
+void bkrl::advance(random_t& random, map& m)
 {
     m.advance(random);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::can_place_at(map const& m, bklib::ipoint2 const p, creature const& c)
+{
+    return m.can_place_creature_at(p) && c.can_enter_terrain(m.at(p));
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::can_place_at(map const& m, bklib::ipoint2 const p, item const& i)
+{
+    return m.can_place_item_at(p) && i.can_place_on(m.at(p));
 }

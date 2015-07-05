@@ -23,6 +23,7 @@ class map;
 struct creature_def;
 class creature;
 class creature_factory;
+struct terrain_entry;
 
 //--------------------------------------------------------------------------------------------------
 //!
@@ -107,6 +108,8 @@ public:
     bool can_get_items(item_pile const& ip) const;
     bool can_get_item(item const& i) const;
 
+    bool can_enter_terrain(terrain_entry const& ter) const;
+
     void get_item(item&& i);
     void get_items(item_pile&& ip);
 
@@ -143,8 +146,8 @@ public:
     explicit creature_factory(creature_dictionary const& dic);
     ~creature_factory() noexcept;
 
-    creature create(random_state& random, creature_def_id def, bklib::ipoint2 p);
-    creature create(random_state& random, creature_def const& def, bklib::ipoint2 p);
+    creature create(random_t& random, creature_def_id def, bklib::ipoint2 p);
+    creature create(random_t& random, creature_def const& def, bklib::ipoint2 p);
 
     creature_dictionary const& dictionary() const noexcept {
         return *dic_;
@@ -156,8 +159,8 @@ private:
 
 void load_definitions(creature_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);
 
-void advance(random_state& random, map& m, creature& c);
-void advance(random_state& random, map& m, creature_map& cmap);
+void advance(random_t& random, map& m, creature& c);
+void advance(random_t& random, map& m, creature_map& cmap);
 
 bool move_by(creature& c, map& m, bklib::ivec2 v);
 

@@ -1,6 +1,7 @@
 #include "item.hpp"
 
 #include "json_util.hpp"
+#include "terrain.hpp"
 #include "bklib/json.hpp"
 
 #include <unordered_map>
@@ -77,6 +78,12 @@ struct item_def_parser final : bklib::json_parser_base {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
+bool bkrl::item::can_place_on(terrain_entry const&) const
+{
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::item::item(
     item_instance_id const  id
   , item_def         const& def
@@ -87,7 +94,7 @@ bkrl::item::item(
 }
 
 //--------------------------------------------------------------------------------------------------
-bkrl::item bkrl::item_factory::create(random_state& random, item_def const& def)
+bkrl::item bkrl::item_factory::create(random_t& random, item_def const& def)
 {
     return item {item_instance_id {++next_id_}, def};
 }

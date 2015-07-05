@@ -110,6 +110,41 @@ void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
     block.for_each_cell(std::forward<Function>(f), x, y);
 }
 
+//----------------------------------------------------------------------------------------------
+struct placement_result_t {
+    constexpr placement_result_t() noexcept = default;
+    constexpr placement_result_t(bklib::ipoint2 const p, bool const ok) noexcept
+      : where {p}, success {ok}
+    {
+    }
+
+    constexpr explicit operator bool() const noexcept { return success; }
+
+    operator bklib::ipoint2() const noexcept {
+        BK_ASSERT(success);
+        return where;
+    }
+
+    bklib::ipoint2 where   {0, 0};
+    bool           success {false};
+};
+
+inline bool operator==(placement_result_t const lhs, bklib::ipoint2 const rhs) noexcept {
+    return lhs.where == rhs;
+}
+
+inline bool operator==(bklib::ipoint2 const lhs, placement_result_t const rhs) noexcept {
+    return rhs == lhs;
+}
+
+inline bool operator!=(placement_result_t const lhs, bklib::ipoint2 const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+inline bool operator!=(bklib::ipoint2 const lhs, placement_result_t const rhs) noexcept {
+    return !(rhs == lhs);
+}
+
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
@@ -120,7 +155,7 @@ public:
 
     void set_draw_colors(bklib::dictionary<color_def> const& colors);
     void draw(renderer& render, view const& v) const;
-    void advance(random_state& random);
+    void advance(random_t& random);
 
     void move_creature_to(creature& c, bklib::ipoint2 p);
     void move_creature_to(creature_instance_id id, bklib::ipoint2 p);
@@ -132,8 +167,6 @@ public:
     //! @pre @p p must be a valid map position.
     //----------------------------------------------------------------------------------------------
     void place_item_at(item&& itm, item_def const& def, bklib::ipoint2 p);
-    void place_item_at(random_state& random, item_def const& def, item_factory& factory, bklib::ipoint2 p);
-
     void place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 p);
 
     //----------------------------------------------------------------------------------------------
@@ -141,7 +174,6 @@ public:
     //! @pre a creature must not already exist at @p p.
     //----------------------------------------------------------------------------------------------
     void place_creature_at(creature&& c, creature_def const& def, bklib::ipoint2 p);
-    void place_creature_at(random_state& random, creature_def const& def, creature_factory& factory, bklib::ipoint2 p);
 
     void update_render_data(bklib::ipoint2 p);
     void update_render_data(int x, int y);
@@ -162,8 +194,12 @@ public:
     item_pile*       items_at(bklib::ipoint2 p);
     item_pile const* items_at(bklib::ipoint2 p) const;
 
+    bool can_place_item_at(bklib::ipoint2 p) const;
+
     creature*       creature_at(bklib::ipoint2 p);
     creature const* creature_at(bklib::ipoint2 p) const;
+
+    bool can_place_creature_at(bklib::ipoint2 p) const;
 
     bklib::irect bounds() const noexcept {
         return {0, 0, size_chunk, size_chunk};
@@ -212,8 +248,8 @@ struct find_around_result {
 template <typename Map, typename Predicate>
 find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred)
 {
-    constexpr int const dx[] = {-1,  0,  1, -1,  0,  1, -1,  0,  1};
-    constexpr int const dy[] = {-1, -1, -1,  0,  0,  0,  1,  1,  1};
+    constexpr int const dx[] = {-1,  0,  1, -1,  1, -1,  0,  1, 0};
+    constexpr int const dy[] = {-1, -1, -1,  0,  0,  1,  1,  1, 0};
 
     find_around_result result {};
 
@@ -232,6 +268,34 @@ find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred
 
     return result;
 }
+
+//----------------------------------------------------------------------------------------------
+//! Predicate(bklib::point2)
+//----------------------------------------------------------------------------------------------
+template <typename Map, typename Predicate>
+placement_result_t find_first_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred)
+{
+    constexpr int const dx[] = {0, -1,  0,  1, -1,  1, -1,  0,  1};
+    constexpr int const dy[] = {0, -1, -1, -1,  0,  0,  1,  1,  1};
+
+    auto const bounds = m.bounds();
+
+    for (auto i = 0u; i < 9u; ++i) {
+        auto const q = p + bklib::ivec2 {dx[i], dy[i]};
+        if (!bklib::intersects(q, bounds)) {
+            continue;
+        }
+
+        if (pred(q)) {
+            return placement_result_t {q, true};
+        }
+    }
+
+    return placement_result_t {p, false};
+}
+
+bool can_place_at(map const& m, bklib::ipoint2 const p, creature const& c);
+bool can_place_at(map const& m, bklib::ipoint2 const p, item const& c);
 
 //----------------------------------------------------------------------------------------------
 //! Call f(item_pile&) creating a new item_pile at @p in the map @p m if it doesn't already exist.
@@ -253,25 +317,25 @@ void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, F
     }
 }
 
-void advance(random_state& random, map& m);
+void advance(random_t& random, map& m);
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m
 //! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
-bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def_id def, bklib::ipoint2 p);
-bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def_id def);
-bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
-bool generate_creature(random_state& random, map& m, creature_factory& factory, creature_def const& def);
+placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def_id def, bklib::ipoint2 p);
+placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def_id def);
+placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
+placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def const& def);
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m.
 //! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
-bool generate_item(random_state& random, map& m, item_factory& factory, item_def_id def, bklib::ipoint2 p);
-bool generate_item(random_state& random, map& m, item_factory& factory, item_def_id def);
-bool generate_item(random_state& random, map& m, item_factory& factory, item_def const& def, bklib::ipoint2 p);
-bool generate_item(random_state& random, map& m, item_factory& factory, item_def const& def);
+placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def_id def, bklib::ipoint2 p);
+placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def_id def);
+placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def const& def, bklib::ipoint2 p);
+placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def const& def);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl
