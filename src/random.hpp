@@ -98,14 +98,26 @@ private:
 
 //--------------------------------------------------------------------------------------------------
 //! @pre lo <= hi
-//! @pre abs(lo) + abs(hi) <= std::numeric_limits<int>::max()
+//! @pre abs(hi - lo) <= std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
 inline int random_range(random_t& random, int const lo, int const hi) noexcept {
-    return boost::random::uniform_int_distribution<int> {lo, hi}(random);
+    return lo + boost::random::uniform_int_distribution<int> {0, hi - lo}(random);
 }
 
 inline int random_range(random_t& random, bklib::range<int> const r) noexcept {
     return random_range(random, r.lo, r.hi);
+}
+
+//--------------------------------------------------------------------------------------------------
+//! @pre r is a proper rectangle
+//! @pre r.width()  <= std::numeric_limits<int>::max()
+//! @pre r.height() <= std::numeric_limits<int>::max()
+//--------------------------------------------------------------------------------------------------
+inline bklib::ipoint2 random_point(random_t& random, bklib::irect const r) noexcept {
+    return {
+        random_range(random, r.left, r.right - 1)
+      , random_range(random, r.top,  r.bottom - 1)
+    };
 }
 
 //--------------------------------------------------------------------------------------------------

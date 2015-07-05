@@ -104,8 +104,8 @@ void bkrl::game::generate_map()
     m.update_render_data();
 
     for (int i = 0; i < 10; ++i) {
-        generate_creature(random_, m, creature_factory_, random_definition(random, creature_dictionary_));
-        generate_item(random_, m, item_factory_, random_definition(random, item_dictionary_));
+        generate_creature(random, m, creature_factory_, random_definition(random, creature_dictionary_));
+        generate_item(random, m, item_factory_, random_definition(random, item_dictionary_));
     }
 
     creature_def def {"player"};
@@ -113,7 +113,7 @@ void bkrl::game::generate_map()
     def.symbol.assign("@");
 
     bklib::ipoint2 const p {0, 0};
-    m.place_creature_at(creature_factory_.create(random_, def, p), def, p);
+    m.place_creature_at(creature_factory_.create(random, def, p), def, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ void bkrl::game::render()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    current_map_.advance(random_);
+    current_map_.advance(random_[random_stream::creature]); //TODO
 }
 
 //--------------------------------------------------------------------------------------------------

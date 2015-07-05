@@ -8,6 +8,27 @@
 
 #include "map.hpp"
 
+namespace {
+
+void require_at(bkrl::map const& m, bklib::ipoint2 const p, bkrl::creature_def const& def) {
+    auto const ptr = m.creature_at(p);
+    REQUIRE(ptr);
+    REQUIRE(ptr->def() == get_id(def));
+}
+
+void require_at(bkrl::map const& m, bklib::ipoint2 const p, bkrl::item_def const& def) {
+    auto const ptr = m.items_at(p);
+    REQUIRE(ptr);
+
+    auto const it = std::find_if(std::begin(*ptr), std::end(*ptr), [&](auto const& i) {
+        return i.def() == get_id(def);
+    });
+
+    REQUIRE(it != std::end(*ptr));
+}
+
+} //namespace
+
 TEST_CASE("map terrain", "[map][terrain][bkrl]") {
     bkrl::map map;
 
@@ -29,7 +50,7 @@ TEST_CASE("map terrain", "[map][terrain][bkrl]") {
 }
 
 TEST_CASE("map creatures", "[map][creature][bkrl]") {
-    bkrl::random_state random;
+    bkrl::random_t random;
     bkrl::map map;
     bkrl::creature_dictionary dic;
     bkrl::creature_factory factory {dic};
@@ -61,17 +82,30 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 
     SECTION("generate at same location") {
         REQUIRE(!map.creature_at(p));
-        REQUIRE(generate_creature(random, map, factory, cdef, p));
+        {
+            // The first creature should be placed exactly as requested
+            auto const result = generate_creature(random, map, factory, cdef, p);
+            REQUIRE(!!result);
+            REQUIRE(result == p);
+            require_at(map, p, cdef);
+        }
 
-        auto const ptr = map.creature_at(p);
-        REQUIRE(ptr);
-        REQUIRE(!generate_creature(random, map, factory, cdef, p));
-        REQUIRE(ptr->def() == get_id(cdef));
+        {
+            // The second creature placed at the same location should succeed, but be
+            // moved to an adjacent location.
+            auto const result = generate_creature(random, map, factory, cdef, p);
+            REQUIRE(!!result);
+            REQUIRE(result != p);
+            require_at(map, result, cdef);
+
+            auto const d = std::abs(std::sqrt(2) - bklib::distance(result.where, p));
+            REQUIRE(d >= 0.0);
+        }
     }
 }
 
 TEST_CASE("map items", "[map][item][bkrl]") {
-    bkrl::random_state random;
+    bkrl::random_t random;
     bkrl::item_factory factory;
     bkrl::map map;
 

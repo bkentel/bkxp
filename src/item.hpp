@@ -18,6 +18,7 @@ namespace bkrl {
 struct item_def;
 class item;
 class item_factory;
+struct terrain_entry;
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -58,6 +59,8 @@ public:
 
     item_instance_id id()  const noexcept { return id_; }
     item_def_id      def() const noexcept { return def_; }
+
+    bool can_place_on(terrain_entry const& ter) const;
 
     void update();
 private:
@@ -117,7 +120,7 @@ inline void move_item(item_pile& src, item_pile& dst, int const index) {
 //--------------------------------------------------------------------------------------------------
 class item_factory {
 public:
-    item create(random_state& random, item_def const& def);
+    item create(random_t& random, item_def const& def);
 private:
     item_instance_id::value_type next_id_;
 };

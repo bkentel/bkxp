@@ -125,6 +125,28 @@ bool bkrl::creature::can_get_item(item const& i) const
 }
 
 //--------------------------------------------------------------------------------------------------
+bool bkrl::creature::can_enter_terrain(terrain_entry const& ter) const
+{
+    switch (ter.type) {
+    case terrain_type::stair: BK_FALLTHROUGH
+    case terrain_type::empty: BK_FALLTHROUGH
+    case terrain_type::floor:
+        break;
+    case terrain_type::door:
+        if (!door {ter}.is_open()) {
+            return false;
+        }
+        break;
+    case terrain_type::wall: BK_FALLTHROUGH
+    case terrain_type::rock: BK_FALLTHROUGH
+    default:
+        return false;
+    }
+
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::creature::get_item(item&& i)
 {
     items_.insert(std::move(i));
@@ -172,7 +194,7 @@ bkrl::creature_factory::~creature_factory() noexcept = default;
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::creature_factory::create(
-    random_state&         random
+    random_t&             random
   , creature_def_id const def
   , bklib::ipoint2  const p
 ) {
@@ -184,8 +206,8 @@ bkrl::creature bkrl::creature_factory::create(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::creature_factory::create(
-    random_state& random
-  , creature_def const& def
+    random_t&            random
+  , creature_def const&  def
   , bklib::ipoint2 const p
 ) {
     return creature {creature_instance_id {++next_id_}, def, p};
@@ -224,28 +246,26 @@ void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view co
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::advance(random_state& random, map& m, creature& c)
+void bkrl::advance(random_t& random, map& m, creature& c)
 {
     if (c.is_player()) {
         return;
     }
 
-    auto& rnd = random[random_stream::creature];
-
-    if (!x_in_y_chance(rnd, 1, 3)) {
+    if (!x_in_y_chance(random, 1, 3)) {
         return;
     }
 
     bklib::ivec2 const v {
-        random_range(rnd, -1, 1)
-      , random_range(rnd, -1, 1)
+        random_range(random, -1, 1)
+      , random_range(random, -1, 1)
     };
 
     move_by(c, m, v);
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::advance(random_state& random, map& m, creature_map& cmap)
+void bkrl::advance(random_t& random, map& m, creature_map& cmap)
 {
     cmap.for_each_data([&](creature& c) {
         advance(random, m, c);
@@ -266,20 +286,7 @@ bool bkrl::move_by(creature& c, map& m, bklib::ivec2 const v)
     }
 
     auto const& ter = m.at(to);
-
-    switch (ter.type) {
-    case terrain_type::stair: BK_FALLTHROUGH
-    case terrain_type::empty: BK_FALLTHROUGH
-    case terrain_type::floor:
-        break;
-    case terrain_type::door:
-        if (!door {ter}.is_open()) {
-            return false;
-        }
-        break;
-    case terrain_type::wall: BK_FALLTHROUGH
-    case terrain_type::rock: BK_FALLTHROUGH
-    default:
+    if (!c.can_enter_terrain(ter)) {
         return false;
     }
 
