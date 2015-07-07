@@ -22,7 +22,32 @@ struct creature_def_parser final : bklib::json_parser_base {
       , description  = "description"_hash
       , symbol       = "symbol"_hash
       , symbol_color = "symbol_color"_hash
+      , tags         = "tags"_hash
     };
+
+    creature_def_parser()
+      : tag_parser {bkrl::json_make_tag_parser(
+          [&](auto&& beg, auto&& end, auto&& dup) { return on_finish_tags(beg, end, dup); })
+      }
+      , def_ {""}
+    {
+        tag_parser->parent = this;
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bool on_finish_tags(
+        bkrl::json_make_tag_parser_traits::iterator_t const beg
+      , bkrl::json_make_tag_parser_traits::iterator_t const end
+      , bkrl::json_make_tag_parser_traits::iterator_t const dup
+    ) {
+        def_.tags.assign(beg, end);
+
+        if (end != dup) {
+            return true; //TODO ignore duplicate tags
+        }
+
+        return true;
+    }
 
     //----------------------------------------------------------------------------------------------
     bool on_key(const char* const str, size_type const len, bool const) override final {
@@ -33,11 +58,12 @@ struct creature_def_parser final : bklib::json_parser_base {
 
         auto const key_hash = static_cast<field>(bklib::djb2_hash(str, str + len));
         switch (key_hash) {
-        case field::id:           get_string(id);           break;
-        case field::name:         get_string(name);         break;
-        case field::description:  get_string(description);  break;
-        case field::symbol:       get_string(symbol);       break;
-        case field::symbol_color: get_string(symbol_color); break;
+        case field::id:           get_string(def_.id_string);   break;
+        case field::name:         get_string(def_.name);        break;
+        case field::description:  get_string(def_.description); break;
+        case field::symbol:       get_string(def_.symbol);      break;
+        case field::symbol_color: get_string(symbol_color_);    break;
+        case field::tags:         handler = tag_parser.get();   break;
         default:
             return false;
         }
@@ -61,14 +87,18 @@ struct creature_def_parser final : bklib::json_parser_base {
     }
 
     //----------------------------------------------------------------------------------------------
+    bkrl::creature_def get_result() {
+        def_.id.reset(def_.id_string);
+        def_.symbol_color.reset(symbol_color_);
+        return def_;
+    }
+
     //----------------------------------------------------------------------------------------------
     bklib::json_string_parser string_parser {this};
+    std::unique_ptr<bklib::json_parser_base> tag_parser;
 
-    bklib::utf8_string id;
-    bklib::utf8_string name;
-    bklib::utf8_string description;
-    bklib::utf8_string symbol;
-    bklib::utf8_string symbol_color;
+    bklib::utf8_string symbol_color_;
+    bkrl::creature_def def_;
 };
 } //namespace
 
@@ -229,15 +259,7 @@ void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view co
     };
 
     json_parse_definitions(data, select_handler, [&] {
-        creature_def def {std::move(creature_handler.id)};
-
-        def.name         = std::move(creature_handler.name);
-        def.description  = std::move(creature_handler.description);
-        def.symbol       = std::move(creature_handler.symbol);
-        def.symbol_color.reset(creature_handler.symbol_color);
-
-        dic.insert_or_replace(std::move(def)); // TODO duplicates
-
+        dic.insert_or_replace(creature_handler.get_result()); // TODO duplicates
         return true;
     });
 }

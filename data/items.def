@@ -1,22 +1,32 @@
 { "file_type": "items"
 , "definitions": [
-    { "id": "weapon_sword_short"
+    { "id": "WEAPON_SWORD_SHORT"
     , "name": "short sword"
     , "description": "A simple short sword."
     , "symbol": "/"
     , "symbol_color": "grey"
+    , "tags": ["WEAPON", "WEAPON_EDGED"]
     }
-  , { "id": "weapon_dagger"
+  , { "id": "WEAPON_DAGGER"
     , "name": "dagger"
     , "description": "A simple dagger."
     , "symbol": "/"
     , "symbol_color": "grey"
+    , "tags": ["WEAPON", "WEAPON_STAB"]
     }
-  , { "id": "armor_rags"
+  , { "id": "ARMOR_RAGS"
     , "name": "torn rags"
     , "description": "A set of frayed rags."
     , "symbol": "["
     , "symbol_color": "grey"
+    , "tags": ["ARMOR", "ARMOR_CHEST", "MATERIAL_CLOTH"]
+    }
+  , { "id": "CHEST_SMALL"
+    , "name": "small chest"
+    , "description": "A small chest used to hold valuables."
+    , "symbol": "-"
+    , "symbol_color": "red"
+    , "tags": ["CONTAINER"]
     }
   ]
 }

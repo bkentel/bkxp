@@ -9,6 +9,14 @@
 #include "json_util.hpp"
 #include "creature.hpp"
 
+TEST_CASE("json tag parser", "[json][bkrl]") {
+    bklib::utf8_string_view const json {R"(
+        { "file_type": "test"
+        , "definitions": []
+        }
+    )"};
+}
+
 TEST_CASE("json definition parser", "[json][bkrl]") {
     bklib::utf8_string_view const json {R"(
         { "file_type": "test"
@@ -40,12 +48,14 @@ TEST_CASE("json creature definition parser", "[creature][json][bkrl]") {
             , "description": "desc0"
             , "symbol": "sym0"
             , "symbol_color": "color0"
+            , "tags": ["tag00", "tag01"]
             }
           , { "id": "id1"
             , "name": "name1"
             , "description": "desc1"
             , "symbol": "sym1"
             , "symbol_color": "color1"
+            , "tags": ["tag10", "tag11"]
             }
           ]
         }

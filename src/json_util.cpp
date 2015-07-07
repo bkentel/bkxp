@@ -7,6 +7,51 @@
 namespace {
 
 //--------------------------------------------------------------------------------------------------
+//! JSON parser for tags
+//!
+//! ["tag0", "tag1", ...]
+//--------------------------------------------------------------------------------------------------
+struct tag_parser final : public bklib::json_parser_base {
+    using json_parser_base::json_parser_base;
+
+    explicit tag_parser(bkrl::json_make_tag_parser_traits::callback_t&& on_finish)
+      : on_finish_ {std::move(on_finish)}
+    {
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bool on_string(const char* const str, size_type const len, bool) override final {
+        tags_.emplace_back(bklib::utf8_string_view {str, len});
+        return true;
+    }
+
+    bool on_start_array() override final {
+        tags_.clear();
+        return true;
+    }
+
+    bool on_end_array(size_type) override final {
+        std::sort(begin(tags_), end(tags_));
+        auto const beg = std::begin(tags_);
+        auto const end = std::end(tags_);
+        auto const dup = std::unique(beg, end);
+
+        if (on_finish_) {
+            on_finish_(beg, end, dup);
+        }
+
+        if (parent) {
+            return parent->on_finished();
+        }
+
+        return true;
+    }
+
+    bkrl::json_make_tag_parser_traits::callback_t on_finish_;
+    bkrl::tag_list tags_;
+};
+
+//--------------------------------------------------------------------------------------------------
 //! JSON parser for definition files
 //!
 //! { "file_type": "my_file_type"
@@ -173,4 +218,11 @@ void bkrl::json_parse_definitions(
     } else {
         BK_ASSERT(false); //TODO
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::json_make_tag_parser_traits::result_t
+bkrl::json_make_tag_parser(json_make_tag_parser_traits::callback_t on_finish)
+{
+    return std::make_unique<tag_parser>(std::move(on_finish));
 }

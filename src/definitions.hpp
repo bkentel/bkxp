@@ -1,11 +1,14 @@
 #pragma once
 
 #include "random.hpp"
+#include "identifier.hpp"
 
 #include "bklib/string.hpp"
 #include "bklib/dictionary.hpp"
 #include "bklib/assert.hpp"
 #include "bklib/utility.hpp"
+
+#include <vector>
 
 namespace bkrl {
 
@@ -17,6 +20,9 @@ namespace detail {
 static constexpr detail::load_from_string_t const load_from_string {};
 static constexpr detail::load_from_file_t   const load_from_file   {};
 
+using tag_list = std::vector<bklib::string_id<def_tag_id>>;
+
+//--------------------------------------------------------------------------------------------------
 struct definition_base {
     explicit definition_base(bklib::utf8_string&& def_id_string)
       : id_string {std::move(def_id_string)}
@@ -28,6 +34,7 @@ struct definition_base {
     bklib::utf8_string description;
     bklib::utf8_string symbol;
     bklib::string_id<color_def_id> symbol_color;
+    tag_list tags;
 };
 
 //--------------------------------------------------------------------------------------------------
