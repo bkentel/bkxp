@@ -54,12 +54,6 @@ struct creature_def_parser final : bklib::json_parser_base {
     }
 
     //----------------------------------------------------------------------------------------------
-    bool on_finished() override final {
-        handler = this;
-        return true;
-    }
-
-    //----------------------------------------------------------------------------------------------
     bkrl::creature_def get_result() {
         return def_;
     }

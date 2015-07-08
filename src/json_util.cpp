@@ -15,8 +15,9 @@ using namespace bklib::literals;
 //! ["tag0", "tag1", ...]
 //--------------------------------------------------------------------------------------------------
 struct tag_parser final : public bklib::json_parser_base {
-    explicit tag_parser(bkrl::json_make_tag_parser_traits::callback_t&& on_finish)
-      : json_parser_base {}
+    tag_parser(bklib::json_parser_base* const parent_parser
+             , bkrl::json_make_tag_parser_traits::callback_t&& on_finish
+    ) : json_parser_base {parent_parser}
       , on_finish_ {std::move(on_finish)}
     {
     }
@@ -35,13 +36,14 @@ struct tag_parser final : public bklib::json_parser_base {
 
     //----------------------------------------------------------------------------------------------
     bool on_end_array(size_type) override final {
-        std::sort(begin(tags_), end(tags_));
         auto const beg = std::begin(tags_);
         auto const end = std::end(tags_);
-        auto const dup = std::unique(beg, end);
+
+        std::sort(beg, end);
+        auto const uend = std::unique(beg, end);
 
         if (on_finish_) {
-            auto const result = on_finish_(beg, end, dup); // TODO
+            auto const result = on_finish_(beg, uend, end); // TODO
         }
 
         if (parent) {
@@ -170,6 +172,10 @@ struct def_parser final : bklib::json_parser_base {
 
     //----------------------------------------------------------------------------------------------
     bool on_end_object(size_type const) override final {
+        if (state_ == state::expect_finish) {
+            return on_finished();
+        }
+
         handler = this;
 
         if (key_ != key::none) {
@@ -217,7 +223,7 @@ struct base_def_parser final : bklib::json_parser_base {
     };
 
     auto make_tag_parser() {
-        return bkrl::json_make_tag_parser([&](auto&& beg, auto&& end, auto&& dup) {
+        return bkrl::json_make_tag_parser(this, [&](auto&& beg, auto&& end, auto&& dup) {
             return on_finish_tags(beg, end, dup);
         });
     }
@@ -262,7 +268,7 @@ struct base_def_parser final : bklib::json_parser_base {
         case field::tags:         handler = tag_parser.get();    break;
         default:
             if (parent) {
-                parent->on_finished();
+                parent->handler = parent;
                 return parent->Key(str, len, copy);
             }
             return def_result;
@@ -288,7 +294,7 @@ struct base_def_parser final : bklib::json_parser_base {
     //----------------------------------------------------------------------------------------------
     bool on_end_object(size_type const size) override final {
         if (parent) {
-            parent->on_finished();
+            parent->handler = parent;
             return parent->EndObject(size);
         }
 
@@ -346,9 +352,11 @@ void bkrl::json_parse_definitions(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::json_make_tag_parser_traits::result_t
-bkrl::json_make_tag_parser(json_make_tag_parser_traits::callback_t on_finish)
-{
-    return std::make_unique<tag_parser>(std::move(on_finish));
+bkrl::json_make_tag_parser(
+    bklib::json_parser_base* const parent
+  , json_make_tag_parser_traits::callback_t on_finish
+) {
+    return std::make_unique<tag_parser>(parent, std::move(on_finish));
 }
 
 //--------------------------------------------------------------------------------------------------

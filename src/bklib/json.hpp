@@ -130,4 +130,9 @@ struct json_string_parser final : public json_parser_base {
     utf8_string* out {}; //!< output destination for the read string.
 };
 
+//--------------------------------------------------------------------------------------------------
+//! Parse json from a string
+//--------------------------------------------------------------------------------------------------
+bool json_parse_string(json_parser_base& parser, utf8_string_view json);
+
 } //namespace bklib

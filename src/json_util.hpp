@@ -1,7 +1,10 @@
 #pragma once
 
 #include "definitions.hpp"
+
 #include "bklib/string.hpp"
+#include "bklib/json.hpp"
+
 #include <functional>
 #include <memory>
 #include <vector>
@@ -34,7 +37,10 @@ struct json_make_tag_parser_traits {
 };
 
 json_make_tag_parser_traits::result_t
-json_make_tag_parser(json_make_tag_parser_traits::callback_t on_finish);
+json_make_tag_parser(
+    bklib::json_parser_base* parent
+  , json_make_tag_parser_traits::callback_t on_finish
+);
 
 //--------------------------------------------------------------------------------------------------
 //!
