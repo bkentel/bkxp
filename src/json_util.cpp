@@ -222,7 +222,7 @@ struct base_def_parser final : bklib::json_parser_base {
       , tags         = "tags"_hash
     };
 
-    auto make_tag_parser() {
+    std::unique_ptr<bklib::json_parser_base> make_tag_parser() {
         return bkrl::json_make_tag_parser(this, [&](auto&& beg, auto&& end, auto&& dup) {
             return on_finish_tags(beg, end, dup);
         });

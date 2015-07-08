@@ -24,13 +24,8 @@ struct creature_def_parser final : bklib::json_parser_base {
     };
 
     //----------------------------------------------------------------------------------------------
-    bool on_key(const char* const str, size_type const len, bool const) override final {
-        switch (bkrl::hash_to_enum<field>(str, len)) {
-        default:
-            return false;
-        }
-
-        return true;
+    bool on_key(const char* const , size_type const , bool const) override final {
+        return false;
     }
 
     //----------------------------------------------------------------------------------------------
