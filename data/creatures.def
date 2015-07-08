@@ -21,5 +21,12 @@
     , "symbol_color": "grey"
     , "tags": ["UNDEAD", "EVIL"]
     }
+  , { "id": "GHOST"
+    , "name": "ghost"
+    , "description": "The non-corporeal remains of a once living being."
+    , "symbol": "g"
+    , "symbol_color": "grey"
+    , "tags": ["INVISIBLE", "ETHEREAL", "UNDEAD", "EVIL"]
+    }
   ]
 }

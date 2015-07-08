@@ -17,53 +17,15 @@ struct creature_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class field : uint32_t {
-        id           = "id"_hash
-      , name         = "name"_hash
-      , description  = "description"_hash
-      , symbol       = "symbol"_hash
-      , symbol_color = "symbol_color"_hash
-      , tags         = "tags"_hash
     };
 
-    creature_def_parser()
-      : tag_parser {bkrl::json_make_tag_parser(
-          [&](auto&& beg, auto&& end, auto&& dup) { return on_finish_tags(beg, end, dup); })
-      }
-      , def_ {""}
-    {
-        tag_parser->parent = this;
-    }
-
-    //----------------------------------------------------------------------------------------------
-    bool on_finish_tags(
-        bkrl::json_make_tag_parser_traits::iterator_t const beg
-      , bkrl::json_make_tag_parser_traits::iterator_t const end
-      , bkrl::json_make_tag_parser_traits::iterator_t const dup
-    ) {
-        def_.tags.assign(beg, end);
-
-        if (end != dup) {
-            return true; //TODO ignore duplicate tags
-        }
-
-        return true;
-    }
+    enum class state {
+        base
+    };
 
     //----------------------------------------------------------------------------------------------
     bool on_key(const char* const str, size_type const len, bool const) override final {
-        auto const get_string = [this](bklib::utf8_string& out) {
-            handler = &string_parser;
-            string_parser.out = &out;
-        };
-
-        auto const key_hash = static_cast<field>(bklib::djb2_hash(str, str + len));
-        switch (key_hash) {
-        case field::id:           get_string(def_.id_string);   break;
-        case field::name:         get_string(def_.name);        break;
-        case field::description:  get_string(def_.description); break;
-        case field::symbol:       get_string(def_.symbol);      break;
-        case field::symbol_color: get_string(symbol_color_);    break;
-        case field::tags:         handler = tag_parser.get();   break;
+        switch (bkrl::hash_to_enum<field>(str, len)) {
         default:
             return false;
         }
@@ -72,7 +34,18 @@ struct creature_def_parser final : bklib::json_parser_base {
     }
 
     //----------------------------------------------------------------------------------------------
+    bool on_start_object() override final {
+        def_.id.reset("");
+
+        current_state_ = state::base;
+        handler = base_parser_.get();
+        return true;
+    }
+
+    //----------------------------------------------------------------------------------------------
     bool on_end_object(size_type const) override final {
+        def_.id.reset(def_.id_string);
+
         if (parent) {
             return parent->on_finished();
         }
@@ -88,18 +61,15 @@ struct creature_def_parser final : bklib::json_parser_base {
 
     //----------------------------------------------------------------------------------------------
     bkrl::creature_def get_result() {
-        def_.id.reset(def_.id_string);
-        def_.symbol_color.reset(symbol_color_);
         return def_;
     }
 
     //----------------------------------------------------------------------------------------------
-    bklib::json_string_parser string_parser {this};
-    std::unique_ptr<bklib::json_parser_base> tag_parser;
-
-    bklib::utf8_string symbol_color_;
-    bkrl::creature_def def_;
+    bkrl::creature_def def_ {""};
+    std::unique_ptr<bklib::json_parser_base> base_parser_ {bkrl::json_make_base_def_parser(this, def_)};
+    state current_state_ {state::base};
 };
+
 } //namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -5,6 +5,7 @@
     , "description": "A simple short sword."
     , "symbol": "/"
     , "symbol_color": "grey"
+    , "weight": 2000
     , "tags": ["WEAPON", "WEAPON_EDGED"]
     }
   , { "id": "WEAPON_DAGGER"
@@ -12,6 +13,7 @@
     , "description": "A simple dagger."
     , "symbol": "/"
     , "symbol_color": "grey"
+    , "weight": 800
     , "tags": ["WEAPON", "WEAPON_STAB"]
     }
   , { "id": "ARMOR_RAGS"
@@ -19,6 +21,7 @@
     , "description": "A set of frayed rags."
     , "symbol": "["
     , "symbol_color": "grey"
+    , "weight": 1200
     , "tags": ["ARMOR", "ARMOR_CHEST", "MATERIAL_CLOTH"]
     }
   , { "id": "CHEST_SMALL"
@@ -26,6 +29,7 @@
     , "description": "A small chest used to hold valuables."
     , "symbol": "-"
     , "symbol_color": "red"
+    , "weight": 5000
     , "tags": ["CONTAINER"]
     }
   ]

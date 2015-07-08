@@ -4,11 +4,8 @@
 #include "terrain.hpp"
 #include "bklib/json.hpp"
 
-#include <unordered_map>
-
-using namespace bklib::literals;
-
 namespace {
+using namespace bklib::literals;
 
 //----------------------------------------------------------------------------------------------
 //
@@ -17,62 +14,57 @@ struct item_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class field : uint32_t {
-        id           = "id"_hash
-      , name         = "name"_hash
-      , description  = "description"_hash
-      , symbol       = "symbol"_hash
-      , symbol_color = "symbol_color"_hash
-      , tags         = "tags"_hash
+        weight = "weight"_hash
     };
 
-    item_def_parser()
-      : tag_parser {bkrl::json_make_tag_parser(
-          [&](auto&& beg, auto&& end, auto&& dup) { return on_finish_tags(beg, end, dup); })
-      }
-      , def_ {""}
-    {
-        tag_parser->parent = this;
-    }
+    enum class state {
+        base, weight
+    };
 
     //----------------------------------------------------------------------------------------------
-    bool on_finish_tags(
-        bkrl::json_make_tag_parser_traits::iterator_t const beg
-      , bkrl::json_make_tag_parser_traits::iterator_t const end
-      , bkrl::json_make_tag_parser_traits::iterator_t const dup
-    ) {
-        def_.tags.assign(beg, end);
-
-        if (end != dup) {
-            return true; //TODO ignore duplicate tags
+    bool on_key(const char* const str, size_type const len, bool const) override final {
+        switch (bkrl::hash_to_enum<field>(str, len)) {
+        case field::weight: current_state_ = state::weight; break;
+        default:
+            return false;
         }
 
         return true;
     }
 
     //----------------------------------------------------------------------------------------------
-    bool on_key(const char* const str, size_type const len, bool const) override final {
-        auto const get_string = [this](bklib::utf8_string& out) {
-            handler = &string_parser;
-            string_parser.out = &out;
-        };
+    bool on_uint(unsigned const n) override final {
+        if (current_state_ == state::weight) {
+            using weight_t = decltype(bkrl::item_def::weight);
 
-        auto const key_hash = static_cast<field>(bklib::djb2_hash(str, str + len));
-        switch (key_hash) {
-        default:
-            return false;
-        case field::id:           get_string(def_.id_string);   break;
-        case field::name:         get_string(def_.name);        break;
-        case field::description:  get_string(def_.description); break;
-        case field::symbol:       get_string(def_.symbol);      break;
-        case field::symbol_color: get_string(symbol_color_);    break;
-        case field::tags:         handler = tag_parser.get();   break;
+            if (n > static_cast<unsigned>(std::numeric_limits<weight_t>::max())) {
+                return def_result; //TODO
+            }
+
+            def_.weight = static_cast<weight_t>(n);
+            handler = base_parser_.get();
+            current_state_ = state::base;
+        } else {
+            return def_result;
         }
 
+        return true;
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bool on_start_object() override final {
+        def_.id.reset("");
+        def_.weight = 1;
+
+        current_state_ = state::base;
+        handler = base_parser_.get();
         return true;
     }
 
     //----------------------------------------------------------------------------------------------
     bool on_end_object(size_type const) override final {
+        def_.id.reset(def_.id_string);
+
         if (parent) {
             return parent->on_finished();
         }
@@ -88,20 +80,15 @@ struct item_def_parser final : bklib::json_parser_base {
 
     //----------------------------------------------------------------------------------------------
     bkrl::item_def get_result() {
-        def_.id.reset(def_.id_string);
-        def_.symbol_color.reset(symbol_color_);
         return def_;
     }
 
     //----------------------------------------------------------------------------------------------
-    bklib::json_string_parser string_parser {this};
-    std::unique_ptr<bklib::json_parser_base> tag_parser;
-
-    bklib::utf8_string symbol_color_;
-    bkrl::item_def def_;
+    bkrl::item_def def_ {""};
+    std::unique_ptr<bklib::json_parser_base> base_parser_ {bkrl::json_make_base_def_parser(this, def_)};
+    state current_state_ {state::base};
 };
 } //namespace
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::item
