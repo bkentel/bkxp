@@ -4,11 +4,8 @@
 #include "terrain.hpp"
 #include "bklib/json.hpp"
 
-#include <unordered_map>
-
-using namespace bklib::literals;
-
 namespace {
+using namespace bklib::literals;
 
 //----------------------------------------------------------------------------------------------
 //
@@ -17,36 +14,57 @@ struct item_def_parser final : bklib::json_parser_base {
     using json_parser_base::json_parser_base;
 
     enum class field : uint32_t {
-        id           = "id"_hash
-      , name         = "name"_hash
-      , description  = "description"_hash
-      , symbol       = "symbol"_hash
-      , symbol_color = "symbol_color"_hash
+        weight = "weight"_hash
+    };
+
+    enum class state {
+        base, weight
     };
 
     //----------------------------------------------------------------------------------------------
     bool on_key(const char* const str, size_type const len, bool const) override final {
-        auto const get_string = [this](bklib::utf8_string& out) {
-            handler = &string_parser;
-            string_parser.out = &out;
-        };
-
-        auto const key_hash = static_cast<field>(bklib::djb2_hash(str, str + len));
-        switch (key_hash) {
+        switch (bkrl::hash_to_enum<field>(str, len)) {
+        case field::weight: current_state_ = state::weight; break;
         default:
             return false;
-        case field::id:           get_string(id);           break;
-        case field::name:         get_string(name);         break;
-        case field::description:  get_string(description);  break;
-        case field::symbol:       get_string(symbol);       break;
-        case field::symbol_color: get_string(symbol_color); break;
         }
 
         return true;
     }
 
     //----------------------------------------------------------------------------------------------
+    bool on_uint(unsigned const n) override final {
+        if (current_state_ == state::weight) {
+            using weight_t = decltype(bkrl::item_def::weight);
+
+            if (n > static_cast<unsigned>(std::numeric_limits<weight_t>::max())) {
+                return def_result; //TODO
+            }
+
+            def_.weight = static_cast<weight_t>(n);
+            handler = base_parser_.get();
+            current_state_ = state::base;
+        } else {
+            return def_result;
+        }
+
+        return true;
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bool on_start_object() override final {
+        def_.id.reset("");
+        def_.weight = 1;
+
+        current_state_ = state::base;
+        handler = base_parser_.get();
+        return true;
+    }
+
+    //----------------------------------------------------------------------------------------------
     bool on_end_object(size_type const) override final {
+        def_.id.reset(def_.id_string);
+
         if (parent) {
             return parent->on_finished();
         }
@@ -55,23 +73,16 @@ struct item_def_parser final : bklib::json_parser_base {
     }
 
     //----------------------------------------------------------------------------------------------
-    bool on_finished() override final {
-        handler = this;
-        return true;
+    bkrl::item_def get_result() {
+        return def_;
     }
 
     //----------------------------------------------------------------------------------------------
-    //----------------------------------------------------------------------------------------------
-    bklib::json_string_parser string_parser {this};
-
-    bklib::utf8_string id;
-    bklib::utf8_string name;
-    bklib::utf8_string description;
-    bklib::utf8_string symbol;
-    bklib::utf8_string symbol_color;
+    bkrl::item_def def_ {""};
+    std::unique_ptr<bklib::json_parser_base> base_parser_ {bkrl::json_make_base_def_parser(this, def_)};
+    state current_state_ {state::base};
 };
 } //namespace
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::item
@@ -104,26 +115,8 @@ void bkrl::load_definitions(item_dictionary& dic, bklib::utf8_string_view const 
 {
     item_def_parser item_handler;
 
-    auto const select_handler = [&](auto const& string) -> bklib::json_parser_base* {
-        if (string == "items") {
-            return &item_handler;
-        } else {
-            BK_ASSERT(false);
-        }
-
-        return nullptr;
-    };
-
-    json_parse_definitions(data, select_handler, [&] {
-        item_def def {std::move(item_handler.id)};
-
-        def.name         = std::move(item_handler.name);
-        def.description  = std::move(item_handler.description);
-        def.symbol       = std::move(item_handler.symbol);
-        def.symbol_color.reset(item_handler.symbol_color);
-
-        dic.insert_or_replace(std::move(def)); // TODO duplicates
-
+    json_parse_definitions(data, json_make_select_handler("items", item_handler), [&] {
+        dic.insert_or_replace(item_handler.get_result()); // TODO duplicates
         return true;
     });
 }

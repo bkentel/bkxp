@@ -40,6 +40,7 @@ struct item_def : definition_base {
     }
 
     bklib::string_id<item_def_id> id;
+    int32_t weight;
 };
 
 inline item_def_id get_id(item_def const& def) noexcept {

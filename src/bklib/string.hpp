@@ -112,6 +112,10 @@ inline bool operator==(string_id_base const& lhs, bklib::utf8_string_view const 
     return rhs == lhs;
 }
 
+inline bool operator<(string_id_base const& lhs, string_id_base const rhs) noexcept {
+    return lhs.hash < rhs.hash;
+}
+
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
