@@ -191,17 +191,7 @@ void bkrl::load_definitions(
 ) {
     color_def_parser color_handler;
 
-    auto const select_handler = [&](auto const& string) -> bklib::json_parser_base* {
-        if (string == "colors") {
-            return &color_handler;
-        } else {
-            BK_ASSERT(false);
-        }
-
-        return nullptr;
-    };
-
-    json_parse_definitions(data, select_handler, [&] {
+    json_parse_definitions(data, json_make_select_handler("colors", color_handler), [&] {
         dic.insert_or_replace(color_handler.get_result()); // TODO duplicates
         return true;
     });

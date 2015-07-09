@@ -207,17 +207,7 @@ void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view co
 {
     creature_def_parser creature_handler;
 
-    auto const select_handler = [&](auto const& string) -> bklib::json_parser_base* {
-        if (string == "creatures") {
-            return &creature_handler;
-        } else {
-            BK_ASSERT(false);
-        }
-
-        return nullptr;
-    };
-
-    json_parse_definitions(data, select_handler, [&] {
+    json_parse_definitions(data, json_make_select_handler("creatures", creature_handler), [&] {
         dic.insert_or_replace(creature_handler.get_result()); // TODO duplicates
         return true;
     });

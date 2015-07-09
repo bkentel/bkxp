@@ -222,9 +222,10 @@ struct base_def_parser final : bklib::json_parser_base {
       , tags         = "tags"_hash
     };
 
+    using tag_it = bkrl::json_make_tag_parser_traits::iterator_t const;
+
     std::unique_ptr<bklib::json_parser_base> make_tag_parser() {
-        using it_t = bkrl::json_make_tag_parser_traits::iterator_t const;
-        return bkrl::json_make_tag_parser(this, [&](it_t beg, it_t end, it_t dup) {
+        return bkrl::json_make_tag_parser(this, [&](tag_it beg, tag_it end, tag_it dup) {
             return on_finish_tags(beg, end, dup);
         });
     }
@@ -239,11 +240,7 @@ struct base_def_parser final : bklib::json_parser_base {
     }
 
     //----------------------------------------------------------------------------------------------
-    bool on_finish_tags(
-        bkrl::json_make_tag_parser_traits::iterator_t const beg
-      , bkrl::json_make_tag_parser_traits::iterator_t const end
-      , bkrl::json_make_tag_parser_traits::iterator_t const dup
-    ) {
+    bool on_finish_tags(tag_it beg, tag_it end, tag_it dup) {
         def_->tags.assign(beg, end);
 
         if (end != dup) {
@@ -261,6 +258,7 @@ struct base_def_parser final : bklib::json_parser_base {
         };
 
         switch (current_field_ = bkrl::hash_to_enum<field>(str, len)) {
+        case field::none:         BK_ASSERT(false);              break;
         case field::id:           get_string(def_->id_string);   break;
         case field::name:         get_string(def_->name);        break;
         case field::description:  get_string(def_->description); break;
@@ -318,7 +316,7 @@ struct base_def_parser final : bklib::json_parser_base {
 
     bklib::utf8_string symbol_color_;
     bkrl::definition_base* def_;
-    field current_field_ {field::none };
+    field current_field_ {field::none};
 };
 
 } //namespace

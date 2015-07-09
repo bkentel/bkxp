@@ -115,17 +115,7 @@ void bkrl::load_definitions(item_dictionary& dic, bklib::utf8_string_view const 
 {
     item_def_parser item_handler;
 
-    auto const select_handler = [&](auto const& string) -> bklib::json_parser_base* {
-        if (string == "items") {
-            return &item_handler;
-        } else {
-            BK_ASSERT(false);
-        }
-
-        return nullptr;
-    };
-
-    json_parse_definitions(data, select_handler, [&] {
+    json_parse_definitions(data, json_make_select_handler("items", item_handler), [&] {
         dic.insert_or_replace(item_handler.get_result()); // TODO duplicates
         return true;
     });
