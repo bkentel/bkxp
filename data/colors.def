@@ -1,14 +1,14 @@
 { "file_type": "colors"
 , "definitions": [
-    { "id": "white"
+    { "id": "WHITE"
     , "short_name": "w"
     , "value": [255, 255, 255]
     }
-  , { "id": "red"
+  , { "id": "RED"
     , "short_name": "r"
     , "value": [255, 0, 0]
     }
-  , { "id": "grey"
+  , { "id": "GREY"
     , "short_name": "gy"
     , "value": [127, 127, 127]
     }

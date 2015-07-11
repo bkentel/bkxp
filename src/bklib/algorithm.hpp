@@ -9,6 +9,17 @@ namespace bklib {
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
+template <typename C0, typename C1>
+inline bool equal(C0 const& c0, C1 const& c1) {
+    using std::begin;
+    using std::end;
+
+    return std::equal(begin(c0), end(c0), begin(c1), end(c1));
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
 template <typename Container, typename Predicate>
 inline bool all_of(Container&& c, Predicate&& p) {
     using std::begin;

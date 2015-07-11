@@ -82,9 +82,6 @@
     <ClInclude Include="src\bklib\spatial_map.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
-    <ClInclude Include="src\bklib\json.hpp">
-      <Filter>bklib</Filter>
-    </ClInclude>
     <ClInclude Include="src\text.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
@@ -109,10 +106,10 @@
     <ClInclude Include="src\definitions.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
-    <ClInclude Include="src\json_util.hpp">
+    <ClInclude Include="src\color.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
-    <ClInclude Include="src\color.hpp">
+    <ClInclude Include="src\json.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
   </ItemGroup>
@@ -212,12 +209,6 @@
     <ClCompile Include="test\bsp_layout_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
-    <ClCompile Include="src\bklib\json.cpp">
-      <Filter>bklib</Filter>
-    </ClCompile>
-    <ClCompile Include="src\json_util.cpp">
-      <Filter>bkrl</Filter>
-    </ClCompile>
     <ClCompile Include="test\command_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
@@ -235,6 +226,9 @@
     </ClCompile>
     <ClCompile Include="src\bklib\exception.cpp">
       <Filter>bklib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\json.cpp">
+      <Filter>bkrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

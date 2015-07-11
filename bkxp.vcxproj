@@ -17,7 +17,6 @@
     <ClInclude Include="src\bklib\exception.hpp" />
     <ClInclude Include="src\bklib\flag_set.hpp" />
     <ClInclude Include="src\bklib\hash.hpp" />
-    <ClInclude Include="src\bklib\json.hpp" />
     <ClInclude Include="src\bklib\math.hpp" />
     <ClInclude Include="src\bklib\scope_guard.hpp" />
     <ClInclude Include="src\bklib\spatial_map.hpp" />
@@ -33,7 +32,7 @@
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\identifier.hpp" />
     <ClInclude Include="src\item.hpp" />
-    <ClInclude Include="src\json_util.hpp" />
+    <ClInclude Include="src\json.hpp" />
     <ClInclude Include="src\map.hpp" />
     <ClInclude Include="src\message_log.hpp" />
     <ClInclude Include="src\pch.hpp" />
@@ -47,7 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bklib\exception.cpp" />
-    <ClCompile Include="src\bklib\json.cpp" />
     <ClCompile Include="src\bklib\timer.cpp" />
     <ClCompile Include="src\bklib\utility.cpp" />
     <ClCompile Include="src\bsp_layout.cpp" />
@@ -62,7 +60,7 @@
     <ClCompile Include="src\direction.cpp" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\item.cpp" />
-    <ClCompile Include="src\json_util.cpp" />
+    <ClCompile Include="src\json.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\message_log.cpp" />

@@ -16,7 +16,7 @@ using color4 = std::array<uint8_t, 4>;
 struct color_def {
     using id_type = color_def_id;
 
-    explicit color_def(bklib::utf8_string_view id_string)
+    explicit color_def(bklib::utf8_string_view const id_string)
       : id {id_string}
     {
     }

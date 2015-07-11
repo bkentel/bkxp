@@ -1,65 +1,9 @@
 #include "creature.hpp"
 #include "map.hpp"
 
-#include "json_util.hpp"
-#include "bklib/json.hpp"
+#include "json.hpp"
 
 #include <functional>
-
-using namespace bklib::literals;
-
-namespace {
-
-//----------------------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------------------
-struct creature_def_parser final : bklib::json_parser_base {
-    using json_parser_base::json_parser_base;
-
-    enum class field : uint32_t {
-    };
-
-    enum class state {
-        base
-    };
-
-    //----------------------------------------------------------------------------------------------
-    bool on_key(const char* const , size_type const , bool const) override final {
-        return false;
-    }
-
-    //----------------------------------------------------------------------------------------------
-    bool on_start_object() override final {
-        def_.id.reset("");
-
-        current_state_ = state::base;
-        handler = base_parser_.get();
-        return true;
-    }
-
-    //----------------------------------------------------------------------------------------------
-    bool on_end_object(size_type const) override final {
-        def_.id.reset(def_.id_string);
-
-        if (parent) {
-            return parent->on_finished();
-        }
-
-        return true;
-    }
-
-    //----------------------------------------------------------------------------------------------
-    bkrl::creature_def get_result() {
-        return def_;
-    }
-
-    //----------------------------------------------------------------------------------------------
-    bkrl::creature_def def_ {""};
-    std::unique_ptr<bklib::json_parser_base> base_parser_ {bkrl::json_make_base_def_parser(this, def_)};
-    state current_state_ {state::base};
-};
-
-} //namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::creature
@@ -205,10 +149,8 @@ bkrl::creature bkrl::creature_factory::create(
 //--------------------------------------------------------------------------------------------------
 void bkrl::load_definitions(creature_dictionary& dic, bklib::utf8_string_view const data, detail::load_from_string_t)
 {
-    creature_def_parser creature_handler;
-
-    json_parse_definitions(data, json_make_select_handler("creatures", creature_handler), [&] {
-        dic.insert_or_replace(creature_handler.get_result()); // TODO duplicates
+    load_definitions<creature_def>(data, [&](creature_def const& def) {
+        dic.insert_or_replace(def); // TODO duplicates
         return true;
     });
 }
