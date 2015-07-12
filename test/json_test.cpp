@@ -6,148 +6,123 @@
 
 #include <catch/catch.hpp>
 
-#include "json_util.hpp"
+#include "json.hpp"
 #include "definitions.hpp"
+#include "item.hpp"
+#include "creature.hpp"
+#include "color.hpp"
 
-TEST_CASE("json definition parser", "[json][bkrl]") {
-    bklib::utf8_string_view const json {R"(
-        { "file_type": "test"
-        , "definitions": []
-        }
-    )"};
+#include "bklib/algorithm.hpp"
 
-    auto select_handler_count = 0;
-    auto const select_handler = [&](bklib::utf8_string_view const file_type) {
-        REQUIRE(file_type == "test");
-        ++select_handler_count;
-        return static_cast<bklib::json_parser_base*>(nullptr);
-    };
+//
+// TODO need more tests for edge cases
+//
 
-    auto parsed_count = 0;
-    bkrl::json_parse_definitions(json, select_handler, [&] {
-        ++parsed_count;
-        return true;
+namespace {
+
+bkrl::tag_list make_tag_list(std::initializer_list<char const*> const ilist) {
+    bkrl::tag_list result;
+    result.reserve(ilist.size());
+
+    std::transform(begin(ilist), end(ilist), std::back_inserter(result), [](char const* const s) {
+        return bkrl::tag_list::value_type {s};
     });
 
-    REQUIRE(select_handler_count == 1);
-    REQUIRE(parsed_count == 0);
+    std::sort(begin(result), end(result));
+
+    return result;
 }
 
-TEST_CASE("json tag parser", "[json][bkrl]") {
-    auto const do_test = [&](
-        bklib::utf8_string_view const json
-      , int const expected_unique
-      , int const expected_duplicate
-      , bkrl::tag_list&& expected_tags
-    ) {
-        using it_t = bkrl::json_make_tag_parser_traits::iterator_t const;
+} //namespace
 
-        REQUIRE(static_cast<int>(expected_tags.size()) == expected_unique);
-        std::sort(std::begin(expected_tags), std::end(expected_tags));
-
-        auto const parser = bkrl::json_make_tag_parser(nullptr, [&](it_t beg, it_t end, it_t dup) {
-            REQUIRE(std::distance(beg, end) == expected_unique);
-            REQUIRE(std::distance(end, dup) == expected_duplicate);
-
-            REQUIRE(std::equal(beg, end, std::begin(expected_tags)));
-
-            return true;
-        });
-
-        REQUIRE(bklib::json_parse_string(*parser, json));
-    };
-
-    using tag_t = bkrl::tag_list::value_type;
-
-    SECTION("no tags") {
-        bklib::utf8_string_view const json {R"(
-            []
-        )"};
-
-        do_test(json, 0, 0, bkrl::tag_list {});
-    }
-
-    SECTION("one tag") {
-        bklib::utf8_string_view const json {R"(
-            ["tag0"]
-        )"};
-
-        do_test(json, 1, 0, bkrl::tag_list {tag_t {"tag0"}});
-    }
-
-    SECTION("multiple tag") {
-        bklib::utf8_string_view const json {R"(
-            ["tag0", "tag1", "tag2"]
-        )"};
-
-        do_test(json, 3, 0, bkrl::tag_list {tag_t {"tag0"}, tag_t {"tag1"}, tag_t {"tag2"}});
-    }
-
-    SECTION("multiple duplicates") {
-        bklib::utf8_string_view const json {R"(
-            ["tag0", "tag0", "tag0", "tag1", "tag1", "tag1"]
-        )"};
-
-        do_test(json, 2, 4, bkrl::tag_list {tag_t {"tag0"}, tag_t {"tag1"}});
-    }
-}
-
-TEST_CASE("json base definition parser", "[json][bkrl]") {
-    bklib::utf8_string_view const json {R"(
-        { "file_type": "test"
-        , "definitions": [
-            { "id": "id0"
-            , "name": "name0"
-            , "description": "desc0"
-            , "symbol": "sym0"
-            , "symbol_color": "color0"
-            , "tags": ["tag00", "tag01"]
-            }
-          , { "id": "id1"
-            , "name": "name1"
-            , "description": "desc1"
-            , "symbol": "sym1"
-            , "symbol_color": "color1"
-            , "tags": ["tag10", "tag11"]
-            }
-          ]
+TEST_CASE("valid item_def parser", "[json][bkrl][item]") {
+    bklib::utf8_string_view const json {R"({
+      "file_type": "items"
+    , "definitions": [
+        { "id": "test_id"
+        , "name": "test_name"
+        , "description": "test_desc"
+        , "symbol": "test_symbol"
+        , "symbol_color": "test_color"
+        , "weight": 123
+        , "tags": ["tag0", "tag1"]
         }
-    )"};
+      ]
+    })"};
 
-    bkrl::definition_base def {""};
-    auto const parser = bkrl::json_make_base_def_parser(nullptr, def);
+    using bkrl::item_def;
 
-    auto const select_handler = [&](bklib::utf8_string_view const file_type) {
-        REQUIRE(file_type == "test");
-        return parser.get();
-    };
+    auto const n = bkrl::load_definitions<item_def>(json, [&](item_def const& def) {
+        REQUIRE(def.id_string    == "test_id");
+        REQUIRE(def.id           == "test_id");
+        REQUIRE(def.name         == "test_name");
+        REQUIRE(def.description  == "test_desc");
+        REQUIRE(def.symbol       == "test_symbol");
+        REQUIRE(def.symbol_color == "test_color");
+        REQUIRE(def.weight       == 123);
 
-    auto const check_values = [&](auto const id, auto const name, auto const desc, auto const sym, auto const sym_color) {
-        REQUIRE(def.id_string    == id);
-        REQUIRE(def.name         == name);
-        REQUIRE(def.description  == desc);
-        REQUIRE(def.symbol       == sym);
-        REQUIRE(def.symbol_color == sym_color);
-        REQUIRE(def.tags.size()  == 2);
-    };
-
-    int count = 0;
-
-    bkrl::json_parse_definitions(json, select_handler, [&] {
-        if (count == 0) {
-            check_values("id0", "name0", "desc0", "sym0", "color0");
-        } else if (count == 1) {
-            check_values("id1", "name1", "desc1", "sym1", "color1");
-        } else {
-            FAIL();
-        }
-
-        ++count;
+        REQUIRE(equal(def.tags, make_tag_list({"tag0", "tag1"})));
 
         return true;
     });
 
-    REQUIRE(count == 2);
+    REQUIRE(n == 1);
+}
+
+TEST_CASE("valid creature_def parser", "[json][bkrl][creature]") {
+    bklib::utf8_string_view const json {R"({
+      "file_type": "creatures"
+    , "definitions": [
+        { "id": "test_id"
+        , "name": "test_name"
+        , "description": "test_desc"
+        , "symbol": "test_symbol"
+        , "symbol_color": "test_color"
+        , "tags": ["tag0", "tag1"]
+        }
+      ]
+    })"};
+
+    using bkrl::creature_def;
+
+    auto const n = bkrl::load_definitions<creature_def>(json, [&](creature_def const& def) {
+        REQUIRE(def.id_string    == "test_id");
+        REQUIRE(def.id           == "test_id");
+        REQUIRE(def.name         == "test_name");
+        REQUIRE(def.description  == "test_desc");
+        REQUIRE(def.symbol       == "test_symbol");
+        REQUIRE(def.symbol_color == "test_color");
+
+        REQUIRE(equal(def.tags, make_tag_list({"tag0", "tag1"})));
+
+        return true;
+    });
+
+    REQUIRE(n == 1);
+}
+
+TEST_CASE("valid color_def parser", "[json][bkrl][color]") {
+    bklib::utf8_string_view const json {R"({
+      "file_type": "colors"
+    , "definitions": [
+        { "id": "test_id"
+        , "short_name": "test_short_name"
+        , "value": [0, 1, 2, 3]
+        }
+      ]
+    })"};
+
+    using bkrl::color_def;
+
+    auto const n = bkrl::load_definitions<color_def>(json, [&](color_def const& def) {
+        REQUIRE(def.id           == "test_id");
+        REQUIRE(def.short_name   == "test_short_name");
+        REQUIRE(bklib::equal(def.color, bkrl::color4 {0, 1, 2, 3}));
+
+        return true;
+    });
+
+    REQUIRE(n == 1);
 }
 
 #endif // BK_NO_UNIT_TESTS

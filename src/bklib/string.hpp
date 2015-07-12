@@ -86,6 +86,11 @@ struct string_id_base {
         set_hash_string_(string);
     }
 
+    void reset() noexcept {
+        hash = 0;
+        hash_string[0] = '\0';
+    }
+
     void reset(utf8_string_view const string) noexcept {
         hash = djb2_hash(string);
         set_hash_string_(string);
@@ -93,14 +98,11 @@ struct string_id_base {
 
     uint32_t             hash;
     std::array<char, 12> hash_string;
-
 private:
     void set_hash_string_(utf8_string_view const string) noexcept {
         size_t const size = std::min(hash_string.size() - 1, string.size());
-        if (size) {
-            std::copy_n(string.data(), size, hash_string.data());
-            hash_string[size] = '\0';
-        }
+        std::copy_n(string.data(), size, hash_string.data());
+        hash_string[size] = '\0';
     }
 };
 
