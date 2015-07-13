@@ -4,28 +4,28 @@
     , "name": "adventurer"
     , "description": "A seeker of fame and fortune."
     , "symbol": "h"
-    , "symbol_color": "red"
+    , "symbol_color": "RED"
     , "tags": ["LIVING"]
     }
   , { "id": "SKELETON"
     , "name": "skeleton"
     , "description": "A magically animated pile of bones."
     , "symbol": "s"
-    , "symbol_color": "white"
+    , "symbol_color": "WHITE"
     , "tags": ["UNDEAD", "EVIL"]
     }
   , { "id": "ZOMBIE"
     , "name": "zombie"
     , "description": "A magically animated corpse."
     , "symbol": "z"
-    , "symbol_color": "grey"
+    , "symbol_color": "GREY"
     , "tags": ["UNDEAD", "EVIL"]
     }
   , { "id": "GHOST"
     , "name": "ghost"
     , "description": "The non-corporeal remains of a once living being."
     , "symbol": "g"
-    , "symbol_color": "grey"
+    , "symbol_color": "GREY"
     , "tags": ["INVISIBLE", "ETHEREAL", "UNDEAD", "EVIL"]
     }
   ]

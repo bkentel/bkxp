@@ -4,7 +4,7 @@
     , "name": "short sword"
     , "description": "A simple short sword."
     , "symbol": "/"
-    , "symbol_color": "grey"
+    , "symbol_color": "GREY"
     , "weight": 2000
     , "tags": ["WEAPON", "WEAPON_EDGED"]
     }
@@ -12,7 +12,7 @@
     , "name": "dagger"
     , "description": "A simple dagger."
     , "symbol": "/"
-    , "symbol_color": "grey"
+    , "symbol_color": "GREY"
     , "weight": 800
     , "tags": ["WEAPON", "WEAPON_STAB"]
     }
@@ -20,7 +20,7 @@
     , "name": "torn rags"
     , "description": "A set of frayed rags."
     , "symbol": "["
-    , "symbol_color": "grey"
+    , "symbol_color": "GREY"
     , "weight": 1200
     , "tags": ["ARMOR", "ARMOR_CHEST", "MATERIAL_CLOTH"]
     }
@@ -28,7 +28,7 @@
     , "name": "small chest"
     , "description": "A small chest used to hold valuables."
     , "symbol": "-"
-    , "symbol_color": "red"
+    , "symbol_color": "RED"
     , "weight": 5000
     , "tags": ["CONTAINER"]
     }
