@@ -26,6 +26,7 @@
     <ClInclude Include="src\bsp_layout.hpp" />
     <ClInclude Include="src\color.hpp" />
     <ClInclude Include="src\commands.hpp" />
+    <ClInclude Include="src\context.hpp" />
     <ClInclude Include="src\creature.hpp" />
     <ClInclude Include="src\definitions.hpp" />
     <ClInclude Include="src\direction.hpp" />

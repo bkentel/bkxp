@@ -7,6 +7,7 @@
 #include <catch/catch.hpp>
 
 #include "map.hpp"
+#include "bklib/dictionary.hpp"
 
 namespace {
 
@@ -53,7 +54,8 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
     bkrl::random_t random;
     bkrl::map map;
     bkrl::creature_dictionary dic;
-    bkrl::creature_factory factory {dic};
+    bkrl::definitions defs {&dic, nullptr, nullptr};
+    bkrl::creature_factory factory;
 
     bkrl::creature_def const cdef {"test"};
 
@@ -63,7 +65,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 
     SECTION("add, find and remove creature") {
         REQUIRE(!map.creature_at(p));
-        REQUIRE(generate_creature(random, map, factory, cdef, p));
+        REQUIRE(generate_creature(random, map, defs, factory, cdef, p));
         REQUIRE(map.creature_at(p));
 
         auto const ptr = map.find_creature([&](bkrl::creature const& c) {
@@ -84,7 +86,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
         REQUIRE(!map.creature_at(p));
         {
             // The first creature should be placed exactly as requested
-            auto const result = generate_creature(random, map, factory, cdef, p);
+            auto const result = generate_creature(random, map, defs, factory, cdef, p);
             REQUIRE(!!result);
             REQUIRE(result == p);
             require_at(map, p, cdef);
@@ -93,7 +95,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
         {
             // The second creature placed at the same location should succeed, but be
             // moved to an adjacent location.
-            auto const result = generate_creature(random, map, factory, cdef, p);
+            auto const result = generate_creature(random, map, defs, factory, cdef, p);
             REQUIRE(!!result);
             REQUIRE(result != p);
             require_at(map, result, cdef);
@@ -107,6 +109,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 TEST_CASE("map items", "[map][item][bkrl]") {
     bkrl::random_t random;
     bkrl::item_factory factory;
+    bkrl::definitions defs {nullptr, nullptr, nullptr};
     bkrl::map map;
 
     bkrl::item_def const idef0 {"test0"};
@@ -116,8 +119,8 @@ TEST_CASE("map items", "[map][item][bkrl]") {
         bklib::ipoint2 const p {10, 10};
 
         REQUIRE(!map.items_at(p));
-        REQUIRE(generate_item(random, map, factory, idef0, p));
-        REQUIRE(generate_item(random, map, factory, idef1, p));
+        REQUIRE(generate_item(random, map, defs, factory, idef0, p));
+        REQUIRE(generate_item(random, map, defs, factory, idef1, p));
 
         auto const ptr = map.items_at(p);
         REQUIRE(ptr);

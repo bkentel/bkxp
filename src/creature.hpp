@@ -7,23 +7,25 @@
 
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
-#include "bklib/hash.hpp"
-#include "bklib/spatial_map.hpp"
 #include "bklib/flag_set.hpp"
-#include "bklib/dictionary.hpp"
 
 #include <vector>
+
+namespace bklib { template <typename T> class spatial_map_2d; }
+namespace bklib { template <typename T> class dictionary; }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class map;
-
+struct context;
+class  map;
 struct creature_def;
-class creature;
-class creature_factory;
+class  creature;
+class  creature_factory;
 struct terrain_entry;
+using  creature_map = bklib::spatial_map_2d<creature>;
+using  creature_dictionary = bklib::dictionary<creature_def>;
 
 //--------------------------------------------------------------------------------------------------
 //!
@@ -41,7 +43,7 @@ using creature_flags = bklib::flag_set<creature_flag>;
 //! The "template" to create an instance of a creature.
 //--------------------------------------------------------------------------------------------------
 struct creature_def : definition_base {
-    using id_type = creature_def_id;
+    using id_type = def_id_t<tag_creature>;
 
     explicit creature_def(bklib::utf8_string def_id_string)
       : definition_base {std::move(def_id_string)}
@@ -49,12 +51,12 @@ struct creature_def : definition_base {
     {
     }
 
-    bklib::string_id<creature_def_id> id;
-    creature_flags  flags;
+    id_type        id;
+    creature_flags flags;
 };
 
-inline creature_def_id get_id(creature_def const& def) noexcept {
-    return creature_def_id {def.id.hash};
+inline auto const& get_id(creature_def const& def) noexcept {
+    return def.id;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -102,8 +104,8 @@ public:
 
     bklib::ipoint2 position() const noexcept;
 
-    creature_instance_id id() const noexcept;
-    creature_def_id def() const noexcept;
+    instance_id_t<tag_creature> id() const noexcept;
+    def_id_t<tag_creature> def() const noexcept;
 
     bool can_get_items(item_pile const& ip) const;
     bool can_get_item(item const& i) const;
@@ -120,18 +122,15 @@ public:
         return items_;
     }
 private:
-    creature(creature_instance_id id, creature_def const& def, bklib::ipoint2 p);
+    creature(instance_id_t<tag_creature> id, creature_def const& def, bklib::ipoint2 p);
 
-    creature_instance_id id_;
-    creature_def_id      def_;
+    instance_id_t<tag_creature> id_;
+    def_id_t<tag_creature>      def_;
     bklib::ipoint2       pos_;
     creature_stats       stats_;
     item_pile            items_;
     creature_flags       flags_;
 };
-
-using creature_map = bklib::spatial_map_2d<creature>;
-using creature_dictionary = bklib::dictionary<creature_def>;
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -143,26 +142,18 @@ public:
     creature_factory(creature_factory&&) = default;
     creature_factory& operator=(creature_factory&&) = default;
 
-    explicit creature_factory(creature_dictionary const& dic);
+    creature_factory();
     ~creature_factory() noexcept;
 
-    creature create(random_t& random, creature_def_id def, bklib::ipoint2 p);
     creature create(random_t& random, creature_def const& def, bklib::ipoint2 p);
-
-    creature_dictionary const& dictionary() const noexcept {
-        return *dic_;
-    }
 private:
-    creature_dictionary const* dic_;
-    creature_instance_id::value_type next_id_;
+    instance_id_t<tag_creature>::type next_id_;
 };
 
-void load_definitions(creature_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);
-
-void advance(random_t& random, map& m, creature& c);
-void advance(random_t& random, map& m, creature_map& cmap);
-
 bool move_by(creature& c, map& m, bklib::ivec2 v);
+
+void advance(context& ctx, map& m, creature& c);
+void advance(context& ctx, map& m, creature_map& cmap);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl

@@ -7,6 +7,7 @@
 #include "random.hpp"
 
 #include "bklib/math.hpp"
+#include "bklib/spatial_map.hpp"
 
 #include <array>
 #include <bitset>
@@ -14,17 +15,13 @@
 #include <functional>
 #include <cstdint>
 
-namespace bklib {
-    template <typename Definition> class dictionary;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class renderer;
-class view;
-
+struct context;
+class  renderer;
+class  view;
 struct color_def;
 
 constexpr size_t size_block = 16;
@@ -155,10 +152,10 @@ public:
 
     void set_draw_colors(bklib::dictionary<color_def> const& colors);
     void draw(renderer& render, view const& v) const;
-    void advance(random_t& random);
+    void advance(context& ctx);
 
     void move_creature_to(creature& c, bklib::ipoint2 p);
-    void move_creature_to(creature_instance_id id, bklib::ipoint2 p);
+    void move_creature_to(instance_id_t<tag_creature> id, bklib::ipoint2 p);
 
     creature const* find_creature(std::function<bool (creature const&)> const& predicate) const;
     creature* find_creature(std::function<bool (creature const&)> const& predicate);
@@ -317,25 +314,21 @@ void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, F
     }
 }
 
-void advance(random_t& random, map& m);
-
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m
 //! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
-placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def_id def, bklib::ipoint2 p);
-placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def_id def);
-placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
-placement_result_t generate_creature(random_t& random, map& m, creature_factory& factory, creature_def const& def);
+placement_result_t generate_creature(random_t& random, map& m, definitions const& defs, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
+placement_result_t generate_creature(random_t& random, map& m, definitions const& defs, creature_factory& factory, creature_def const& def);
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m.
 //! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
-placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def_id def, bklib::ipoint2 p);
-placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def_id def);
-placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def const& def, bklib::ipoint2 p);
-placement_result_t generate_item(random_t& random, map& m, item_factory& factory, item_def const& def);
+placement_result_t generate_item(random_t& random, map& m, definitions const& defs, item_factory& factory, item_def const& def, bklib::ipoint2 p);
+placement_result_t generate_item(random_t& random, map& m, definitions const& defs, item_factory& factory, item_def const& def);
+
+void advance(context& ctx, map& m);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl

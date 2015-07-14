@@ -112,6 +112,9 @@
     <ClInclude Include="src\json.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\context.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

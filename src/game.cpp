@@ -1,5 +1,7 @@
 #include "game.hpp"
 #include "direction.hpp"
+#include "json.hpp"
+#include "context.hpp"
 
 #include "bsp_layout.hpp"
 
@@ -18,7 +20,8 @@ bkrl::game::game()
   , color_dictionary_ {}
   , creature_dictionary_ {}
   , item_dictionary_ {}
-  , creature_factory_(creature_dictionary_)
+  , definitions_ {&creature_dictionary_, &item_dictionary_, &color_dictionary_}
+  , creature_factory_()
   , item_factory_()
   , current_map_()
 
@@ -104,8 +107,8 @@ void bkrl::game::generate_map()
     m.update_render_data();
 
     for (int i = 0; i < 10; ++i) {
-        generate_creature(random, m, creature_factory_, random_definition(random, creature_dictionary_));
-        generate_item(random, m, item_factory_, random_definition(random, item_dictionary_));
+        generate_creature(random, m, definitions_, creature_factory_, random_definition(random, creature_dictionary_));
+        generate_item(random, m, definitions_, item_factory_, random_definition(random, item_dictionary_));
     }
 
     creature_def def {"player"};
@@ -138,7 +141,8 @@ void bkrl::game::render()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    current_map_.advance(random_[random_stream::creature]); //TODO
+    context ctx {random_, definitions_};
+    bkrl::advance(ctx, current_map_);
 }
 
 //--------------------------------------------------------------------------------------------------

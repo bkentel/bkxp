@@ -14,7 +14,7 @@
 namespace {
 
 struct test_def {
-    using id_type = bklib::tagged_value<size_t, test_def>;
+    using id_type = bklib::tagged_value<test_def, size_t>;
 
     test_def(bklib::utf8_string def_id_string, int const def_data)
       : id {bklib::hash_value(def_id_string)}
@@ -47,7 +47,7 @@ TEST_CASE("new test case") {
     auto const expect_result = [](bool const ok, bklib::utf8_string_view const id, int const data, auto const& result) {
         REQUIRE(result.second == ok);
         REQUIRE(result.first->id_string == id);
-        REQUIRE(result.first->id.value == bklib::djb2_hash(id));
+        REQUIRE(static_cast<size_t>(result.first->id) == bklib::djb2_hash(id));
         REQUIRE(result.first->data == data);
     };
 

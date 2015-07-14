@@ -14,7 +14,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
     constexpr int iterations = 10;
 
     using point_t = bklib::ipoint2;
-    using id_t = bklib::tagged_value<int, struct tag_test_data>;
+    using id_t = bklib::tagged_value<struct tag_test_data, int>;
 
     struct test_data {
         id_t    id;
@@ -32,7 +32,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
 
     auto const find_by_id = [](int const i) {
         return [i](test_data const& data) {
-            return data.id.value == i;
+            return static_cast<int>(data.id) == i;
         };
     };
 
@@ -48,7 +48,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
         for (int i = 0; i < iterations; ++i) {
             auto const ptr = map.find(find_by_id(i));
             REQUIRE(!!ptr);
-            REQUIRE(ptr->id.value == i);
+            REQUIRE(static_cast<int>(ptr->id) == i);
 
             auto const& p = ptr->pos;
             REQUIRE(x(p) == index_to_point_x(i));
@@ -64,7 +64,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
         for (int i = 0; i < iterations; ++i) {
             auto const ptr = map.at(index_to_point(i));
             REQUIRE(!!ptr);
-            REQUIRE(ptr->id.value == i);
+            REQUIRE(static_cast<int>(ptr->id) == i);
 
             auto const& p = ptr->pos;
             REQUIRE(x(p) == index_to_point_x(i));
@@ -84,7 +84,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
         REQUIRE(map.relocate(data.pos, to, data));
         data.pos = to;
 
-        REQUIRE(map.at(to)->id.value == 0);
+        REQUIRE(static_cast<int>(map.at(to)->id) == 0);
         REQUIRE(!map.at(index_to_point(0)));
     }
 
@@ -93,7 +93,7 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
         auto const p = index_to_point(i);
         auto const result = map.remove(p);
 
-        REQUIRE(result.id.value == i);
+        REQUIRE(static_cast<int>(result.id) == i);
         REQUIRE(result.pos == p);
         REQUIRE(!map.at(p));
     }

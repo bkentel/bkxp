@@ -2,12 +2,15 @@
 #include "renderer.hpp"
 #include "view.hpp"
 #include "color.hpp"
+#include "context.hpp"
 
 #include "bklib/algorithm.hpp"
+#include "bklib/dictionary.hpp"
 
 namespace {
 
-inline decltype(auto) find_creature_by_id(bkrl::creature_instance_id const id) noexcept {
+inline decltype(auto)
+find_creature_by_id(bkrl::instance_id_t<bkrl::tag_creature> const id) noexcept {
     return [id](bkrl::creature const& c) noexcept {
         return c.id() == id;
     };
@@ -126,10 +129,7 @@ private:
             return default_color;
         }
 
-        auto const hash = def.symbol_color.hash;
-        auto const id = color_def_id {hash};
-
-        if (auto const cdef = colors_->find(id)) {
+        if (auto const cdef = colors_->find(def.symbol_color)) {
             return cdef->color;
         } else {
             // TODO log this
@@ -192,9 +192,10 @@ void bkrl::map::draw(renderer& render, view const& v) const
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::advance(random_t& random)
+void bkrl::map::advance(context& ctx)
 {
-    bkrl::advance(random, *this, creatures_);
+    bkrl::advance(ctx, *this, items_);
+    bkrl::advance(ctx, *this, creatures_);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -212,8 +213,8 @@ void bkrl::map::move_creature_to(creature& c, bklib::ipoint2 const to)
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::map::move_creature_to(
-    creature_instance_id const id
-  , bklib::ipoint2       const p
+    instance_id_t<tag_creature> const id
+  , bklib::ipoint2              const p
 ) {
     auto const ptr = creatures_.find(find_creature_by_id(id));
     BK_ASSERT(ptr);
@@ -401,11 +402,12 @@ bool bkrl::map::can_place_creature_at(bklib::ipoint2 const p) const
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
 bkrl::generate_creature(
-    random_t&            random
-  , map&                 m
-  , creature_factory&    factory
-  , creature_def const&  def
-  , bklib::ipoint2 const p
+    random_t&                random
+  , map&                     m
+  , definitions       const& defs
+  , creature_factory&        factory
+  , creature_def      const& def
+  , bklib::ipoint2    const  p
 ) {
     auto c = factory.create(random, def, p);
 
@@ -426,51 +428,22 @@ bkrl::placement_result_t
 bkrl::generate_creature(
     random_t&           random
   , map&                m
+  , definitions const&  defs
   , creature_factory&   factory
   , creature_def const& def
 ) {
-    return generate_creature(random, m, factory, def, random_point(random, m.bounds()));
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::placement_result_t
-bkrl::generate_creature(
-    random_t&             random
-  , map&                  m
-  , creature_factory&     factory
-  , creature_def_id const def
-  , bklib::ipoint2 const  p
-) {
-    if (auto const maybe_def = factory.dictionary().find(def)) {
-        return generate_creature(random, m, factory, *maybe_def, p);
-    }
-
-    return {};
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::placement_result_t
-bkrl::generate_creature(
-    random_t&             random
-  , map&                  m
-  , creature_factory&     factory
-  , creature_def_id const def
-) {
-    if (auto const maybe_def = factory.dictionary().find(def)) {
-        return generate_creature(random, m, factory, *maybe_def);
-    }
-
-    return {};
+    return generate_creature(random, m, defs, factory, def, random_point(random, m.bounds()));
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
 bkrl::generate_item(
-    random_t&            random
-  , map&                 m
-  , item_factory&        factory
-  , item_def const&      def
-  , bklib::ipoint2 const p
+    random_t&             random
+  , map&                  m
+  , definitions    const& defs
+  , item_factory&         factory
+  , item_def       const& def
+  , bklib::ipoint2 const  p
 ) {
     auto i = factory.create(random, def);
 
@@ -488,18 +461,13 @@ bkrl::generate_item(
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
 bkrl::generate_item(
-    random_t&       random
-  , map&            m
-  , item_factory&   factory
-  , item_def const& def
+    random_t&            random
+  , map&                 m
+  , definitions   const& defs
+  , item_factory&        factory
+  , item_def      const& def
 ) {
-    return generate_item(random, m, factory, def, random_point(random, m.bounds()));
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::advance(random_t& random, map& m)
-{
-    m.advance(random);
+    return generate_item(random, m, defs, factory, def, random_point(random, m.bounds()));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -512,4 +480,10 @@ bool bkrl::can_place_at(map const& m, bklib::ipoint2 const p, creature const& c)
 bool bkrl::can_place_at(map const& m, bklib::ipoint2 const p, item const& i)
 {
     return m.can_place_item_at(p) && i.can_place_on(m.at(p));
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::advance(context& ctx, map& m)
+{
+    m.advance(ctx);
 }
