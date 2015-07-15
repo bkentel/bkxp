@@ -12,6 +12,7 @@ CPPFLAGS += -std=c++14
 
 SRC_DIR_BKXP        = src
 SRC_DIR_BKLIB       = src/bklib
+SRC_DIR_EXTERNAL    = src/external
 SRC_DIR_BKXP_TESTS  = test
 SRC_DIR_BKLIB_TESTS = test/bklib
 
@@ -47,6 +48,7 @@ endif
 
 SRCS  = $(wildcard $(SRC_DIR_BKXP)/*.cpp)
 SRCS += $(wildcard $(SRC_DIR_BKLIB)/*.cpp)
+SRCS += $(wildcard $(SRC_DIR_EXTERNAL)/*.cc)
 SRCS += $(wildcard $(SRC_DIR_BKXP_TESTS)/*.cpp)
 SRCS += $(wildcard $(SRC_DIR_BKLIB_TESTS)/*.cpp)
 
