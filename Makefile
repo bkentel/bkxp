@@ -52,7 +52,8 @@ SRCS += $(wildcard $(SRC_DIR_EXTERNAL)/*.cc)
 SRCS += $(wildcard $(SRC_DIR_BKXP_TESTS)/*.cpp)
 SRCS += $(wildcard $(SRC_DIR_BKLIB_TESTS)/*.cpp)
 
-OBJS = $(subst .cpp,.o,$(SRCS))
+OBJS  = $(subst .cpp,.o,$(filter %.cpp,$(SRCS)))
+OBJS += $(subst .cc,.o,$(filter %.cc,$(SRCS)))
 
 all: bkxp
 

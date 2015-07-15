@@ -66,7 +66,7 @@ before_script:
   ############################################################################
   - cd ${TRAVIS_BUILD_DIR}
   
-  - CLANG_RT_DIR="${DEPS_DIR}/llvm/build/lib/clang/3.7.0/"
+  - CLANG_RT_DIR="${DEPS_DIR}/llvm/build/lib/clang/3.8.0/"
   
   - if [ "$COMPILER" = "g++" ]; then export CPPFLAGS="-g -fsanitize=undefined,address" LDFLAGS="-v -fsanitize=undefined,address"; fi
   - if [ "$COMPILER" = "clang++" ]; then export CPPFLAGS="-g -flto -fsanitize=undefined,address -fsanitize-blacklist=blacklist.txt" LDFLAGS="-v -flto -resource-dir=${CLANG_RT_DIR} -fsanitize=undefined,address"; fi

@@ -55,7 +55,7 @@ using fmt::internal::Arg;
 #if __GNUC__ && !__EXCEPTIONS
 # define FMT_EXCEPTIONS 0
 #endif
-#if _MSC_VER && !_HAS_EXCEPTIONS
+#if defined(_MSC_VER) && !_HAS_EXCEPTIONS
 # define FMT_EXCEPTIONS 0
 #endif
 #ifndef FMT_EXCEPTIONS
@@ -84,7 +84,36 @@ using fmt::internal::Arg;
 # define FMT_FUNC
 #endif
 
-#if _MSC_VER
+#ifdef __GNUC__
+# if FMT_GCC_VERSION >= 406
+#  pragma GCC diagnostic push
+// Disable the warning about "long long" which is sometimes reported even
+// when using __extension__.
+#  pragma GCC diagnostic ignored "-Wlong-long"
+// Disable the warning about declaration shadowing because it affects too
+// many valid cases.
+#  pragma GCC diagnostic ignored "-Wshadow"
+#  pragma GCC diagnostic ignored "-Wswitch-enum"
+#  pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#  pragma GCC diagnostic ignored "-Wswitch-default"
+# endif
+#endif
+
+#ifdef __clang__
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wdocumentation"
+# pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
+# pragma clang diagnostic ignored "-Wweak-vtables"
+# pragma clang diagnostic ignored "-Wshadow"
+# pragma clang diagnostic ignored "-Wformat-nonliteral"
+# pragma clang diagnostic ignored "-Wsign-conversion"
+# pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+# pragma clang diagnostic ignored "-Wunused-member-function"
+# pragma clang diagnostic ignored "-Wswitch-enum"
+# pragma clang diagnostic ignored "-Wmissing-noreturn"
+#endif
+
+#if defined(_MSC_VER)
 # pragma warning(push)
 # pragma warning(disable: 4127)  // conditional expression is constant
 # pragma warning(disable: 4702)  // unreachable code
@@ -1103,7 +1132,7 @@ const Char *fmt::BasicFormatter<Char>::format(
       spec.fill_ = '0';
       ++s;
     }
-    
+
     // Parse width.
     if ('0' <= *s && *s <= '9') {
       spec.width_ = parse_nonnegative_int(s);
@@ -1313,6 +1342,15 @@ template int fmt::internal::CharTraits<wchar_t>::format_float(
 
 #endif  // FMT_HEADER_ONLY
 
-#if _MSC_VER
+// Restore warnings.
+#if FMT_GCC_VERSION >= 406
+# pragma GCC diagnostic pop
+#endif
+
+#ifdef __clang__
+# pragma clang diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
 # pragma warning(pop)
 #endif

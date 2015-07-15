@@ -41,7 +41,7 @@
 #include <sstream>
 #include <map>
 
-#if _SECURE_SCL
+#if defined(_SECURE_SCL) && (_SECURE_SCL + 0)
 # include <iterator>
 #endif
 
@@ -92,6 +92,8 @@ inline uint32_t clzll(uint64_t x) {
 // Disable the warning about declaration shadowing because it affects too
 // many valid cases.
 #  pragma GCC diagnostic ignored "-Wshadow"
+#  pragma GCC diagnostic ignored "-Wswitch-enum"
+#  pragma GCC diagnostic ignored "-Wformat-nonliteral"
 # endif
 # if __cplusplus >= 201103L || defined __GXX_EXPERIMENTAL_CXX0X__
 #  define FMT_HAS_GXX_CXX11 1
@@ -103,6 +105,13 @@ inline uint32_t clzll(uint64_t x) {
 #ifdef __clang__
 # pragma clang diagnostic push
 # pragma clang diagnostic ignored "-Wdocumentation"
+# pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
+# pragma clang diagnostic ignored "-Wweak-vtables"
+# pragma clang diagnostic ignored "-Wshadow"
+# pragma clang diagnostic ignored "-Wformat-nonliteral"
+# pragma clang diagnostic ignored "-Wsign-conversion"
+# pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+# pragma clang diagnostic ignored "-Wunused-member-function"
 #endif
 
 #ifdef __GNUC_LIBSTD__
@@ -154,8 +163,9 @@ inline uint32_t clzll(uint64_t x) {
 
 // Define FMT_USE_NOEXCEPT to make C++ Format use noexcept (C++11 feature).
 #ifndef FMT_NOEXCEPT
-# if FMT_USE_NOEXCEPT || FMT_HAS_FEATURE(cxx_noexcept) || \
-   (FMT_GCC_VERSION >= 408 && FMT_HAS_GXX_CXX11)
+# if defined(FMT_USE_NOEXCEPT) && (FMT_USE_NOEXCEPT + 0) || \
+    FMT_HAS_FEATURE(cxx_noexcept) || \
+    (FMT_GCC_VERSION >= 408 && FMT_HAS_GXX_CXX11) || _MSC_VER >= 1900
 #  define FMT_NOEXCEPT noexcept
 # else
 #  define FMT_NOEXCEPT throw()
@@ -164,7 +174,8 @@ inline uint32_t clzll(uint64_t x) {
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
-#if FMT_USE_DELETED_FUNCTIONS || FMT_HAS_FEATURE(cxx_deleted_functions) || \
+#if defined(FMT_USE_DELETED_FUNCTIONS) && (FMT_USE_DELETED_FUNCTIONS + 0) || \
+  FMT_HAS_FEATURE(cxx_deleted_functions) || \
   (FMT_GCC_VERSION >= 404 && FMT_HAS_GXX_CXX11) || _MSC_VER >= 1800
 # define FMT_DELETED_OR_UNDEFINED  = delete
 # define FMT_DISALLOW_COPY_AND_ASSIGN(TypeName) \
@@ -207,7 +218,7 @@ void format(BasicFormatter<Char> &f, const Char *&format_str, const T &value);
 /**
   \rst
   A string reference. It can be constructed from a C string or ``std::string``.
-  
+
   You can use one of the following typedefs for common character types:
 
   +------------+-------------------------+
@@ -348,7 +359,7 @@ namespace internal {
 // to avoid dynamic memory allocation.
 enum { INLINE_BUFFER_SIZE = 500 };
 
-#if _SECURE_SCL
+#if defined(_SECURE_SCL) && (_SECURE_SCL + 0)
 // Use checked iterator to avoid warnings on MSVC.
 template <typename T>
 inline stdext::checked_array_iterator<T*> make_ptr(T *ptr, std::size_t size) {
@@ -566,12 +577,13 @@ inline int isinfinity(long double x) {
 template <typename Char>
 class BasicCharTraits {
  public:
-#if _SECURE_SCL
+#if defined(_SECURE_SCL) && (_SECURE_SCL + 0)
   typedef stdext::checked_array_iterator<Char*> CharPtr;
 #else
   typedef Char *CharPtr;
 #endif
   static Char cast(wchar_t value) { return static_cast<Char>(value); }
+  static Char cast(int value) { return static_cast<Char>(value); }
 };
 
 template <typename Char>
@@ -667,11 +679,11 @@ struct BasicData {
 typedef BasicData<> Data;
 
 #if FMT_GCC_VERSION >= 400 || FMT_HAS_BUILTIN(__builtin_clz)
-# define FMT_BUILTIN_CLZ(n) __builtin_clz(n)
+# define FMT_BUILTIN_CLZ(n) static_cast<uint32_t>(__builtin_clz(n))
 #endif
 
 #if FMT_GCC_VERSION >= 400 || FMT_HAS_BUILTIN(__builtin_clzll)
-# define FMT_BUILTIN_CLZLL(n) __builtin_clzll(n)
+# define FMT_BUILTIN_CLZLL(n) static_cast<uint64_t>(__builtin_clzll(n))
 #endif
 
 #ifdef FMT_BUILTIN_CLZLL
@@ -680,8 +692,8 @@ typedef BasicData<> Data;
 inline unsigned count_digits(uint64_t n) {
   // Based on http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog10
   // and the benchmark https://github.com/localvoid/cxx-benchmark-count-digits.
-  unsigned t = (64 - FMT_BUILTIN_CLZLL(n | 1)) * 1233 >> 12;
-  return t - (n < Data::POWERS_OF_10_64[t]) + 1;
+  uint64_t t = (64u - FMT_BUILTIN_CLZLL(n | 1u)) * 1233u >> 12u;
+  return static_cast<unsigned>(t - (n < Data::POWERS_OF_10_64[t]) + 1u);
 }
 #else
 // Fallback version of count_digits used when __builtin_clz is not available.
@@ -704,8 +716,8 @@ inline unsigned count_digits(uint64_t n) {
 #ifdef FMT_BUILTIN_CLZ
 // Optional version of count_digits for better performance on 32-bit platforms.
 inline unsigned count_digits(uint32_t n) {
-  uint32_t t = (32 - FMT_BUILTIN_CLZ(n | 1)) * 1233 >> 12;
-  return t - (n < Data::POWERS_OF_10_32[t]) + 1;
+  uint32_t t = (32u - FMT_BUILTIN_CLZ(n | 1u)) * 1233u >> 12u;
+  return t - (n < Data::POWERS_OF_10_32[t]) + 1u;
 }
 #endif
 
@@ -859,7 +871,7 @@ class IsConvertibleToInt {
 
   static yes &convert(fmt::ULongLong);
   static no &convert(...);
-  
+
  public:
   enum { value = (sizeof(convert(get())) == sizeof(yes)) };
 };
@@ -1134,8 +1146,11 @@ class ArgVisitor {
   Result visit(const Arg &arg) {
     switch (arg.type) {
     default:
-      FMT_ASSERT(false, "invalid argument type");
-      return Result();
+        break;
+    case Arg::NONE:
+        break;
+    case Arg::NAMED_ARG:
+        break;
     case Arg::INT:
       return FMT_DISPATCH(visit_int(arg.int_value));
     case Arg::UINT:
@@ -1166,6 +1181,9 @@ class ArgVisitor {
     case Arg::CUSTOM:
       return FMT_DISPATCH(visit_custom(arg.custom));
     }
+
+    FMT_ASSERT(false, "invalid argument type");
+    return Result();
   }
 };
 
@@ -1328,7 +1346,7 @@ class BasicFormatter : private internal::FormatterBase {
   BasicWriter<Char> &writer_;
   const Char *start_;
   internal::ArgMap<Char> map_;
-  
+
   FMT_DISALLOW_COPY_AND_ASSIGN(BasicFormatter);
 
   using FormatterBase::get_arg;
@@ -1799,7 +1817,7 @@ class SystemError : public internal::RuntimeError {
    *error_code* is a system error code as given by ``errno``.
    If *error_code* is not a valid error code such as -1, the system message
    may look like "Unknown error -1" and is platform-dependent.
-   
+
    **Example**::
 
      // This throws a SystemError with the description
@@ -1847,7 +1865,7 @@ class BasicWriter {
 
   typedef typename internal::CharTraits<Char>::CharPtr CharPtr;
 
-#if _SECURE_SCL
+#if defined(_SECURE_SCL) && (_SECURE_SCL + 0)
   // Returns pointer value.
   static Char *get(CharPtr p) { return p.base(); }
 #else
@@ -1967,7 +1985,7 @@ class BasicWriter {
   /**
     \rst
     Writes formatted data.
-    
+
     *args* is an argument list representing arbitrary arguments.
 
     **Example**::
@@ -2372,7 +2390,7 @@ void BasicWriter<Char>::write_double(
   Char fill = internal::CharTraits<Char>::cast(spec.fill());
   for (;;) {
     std::size_t buffer_size = buffer_.capacity() - offset;
-#if _MSC_VER
+#ifdef _MSC_VER
     // MSVC's vsnprintf_s doesn't work with zero size, so reserve
     // space for at least one extra character to make the size non-zero.
     // Note that the buffer's capacity will increase by more than 1.
@@ -2492,7 +2510,7 @@ typedef BasicMemoryWriter<wchar_t> WMemoryWriter;
   This class template provides operations for formatting and writing data
   into a fixed-size array. For writing into a dynamically growing buffer
   use :class:`fmt::BasicMemoryWriter`.
-  
+
   Any write method will throw ``std::runtime_error`` if the output doesn't fit
   into the array.
 
@@ -2762,7 +2780,7 @@ class FormatInt {
   /**
     Returns the number of characters written to the output buffer.
    */
-  std::size_t size() const { return buffer_ - str_ + BUFFER_SIZE - 1; }
+  std::size_t size() const { return static_cast<std::size_t>(buffer_ - str_ + BUFFER_SIZE - 1); }
 
   /**
     Returns a pointer to the output buffer content. No terminating null

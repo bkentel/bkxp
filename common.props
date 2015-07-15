@@ -12,7 +12,7 @@
       <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
       <CompileAs>CompileAsCpp</CompileAs>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;NOMINMAX;STRICT;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.hpp</PrecompiledHeaderFile>
       <ForcedIncludeFiles>pch.hpp</ForcedIncludeFiles>
