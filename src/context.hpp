@@ -2,6 +2,7 @@
 
 #include "random.hpp"
 #include "definitions.hpp"
+#include "output.hpp"
 
 namespace bkrl {
 
@@ -13,6 +14,7 @@ struct context {
 
     random_state&      random;
     definitions const& data;
+    output&            out;
 };
 
 } //namespace bkrl

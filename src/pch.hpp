@@ -14,6 +14,8 @@
 #   include <SDL2/SDL.h>
 #endif
 
+#include "external/format.h"
+
 #include <boost/exception/all.hpp>
 #include <boost/utility/string_ref.hpp>
 #include <boost/random/uniform_int_distribution.hpp>

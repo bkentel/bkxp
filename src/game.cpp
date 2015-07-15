@@ -28,6 +28,10 @@ bkrl::game::game()
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
 {
+    output_.push([&](bklib::utf8_string_view const str) {
+        display_message(str);
+    });
+
     load_definitions(color_dictionary_, "./data/colors.def", load_from_file);
     load_definitions(item_dictionary_, "./data/items.def", load_from_file);
     load_definitions(creature_dictionary_, "./data/creatures.def", load_from_file);
@@ -141,7 +145,7 @@ void bkrl::game::render()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    context ctx {random_, definitions_};
+    context ctx {random_, definitions_, output_};
     bkrl::advance(ctx, current_map_);
 }
 

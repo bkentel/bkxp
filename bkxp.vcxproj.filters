@@ -16,6 +16,9 @@
     <Filter Include="test\bkrl">
       <UniqueIdentifier>{6cf778a3-d3ea-4e0d-ab72-afdf74bfb15a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="external">
+      <UniqueIdentifier>{625bed0c-4779-4787-b9a2-7595d3a168d9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bklib\math.hpp">
@@ -114,6 +117,12 @@
     </ClInclude>
     <ClInclude Include="src\context.hpp">
       <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\output.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\external\format.h">
+      <Filter>external</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -232,6 +241,9 @@
     </ClCompile>
     <ClCompile Include="src\json.cpp">
       <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\external\format.cc">
+      <Filter>external</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

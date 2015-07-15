@@ -11,28 +11,14 @@
 #include "view.hpp"
 #include "color.hpp"
 #include "definitions.hpp"
+#include "output.hpp"
 
 #include "bklib/string.hpp"
 #include "bklib/math.hpp"
 #include "bklib/timer.hpp"
 #include "bklib/dictionary.hpp"
 
-#include <cstdio>
-
 namespace bkrl {
-
-template <typename T>
-inline decltype(auto) get_arg(T&& arg) noexcept {
-    return std::forward<T>(arg);
-}
-
-inline char const* get_arg(bklib::utf8_string const& s) noexcept {
-    return s.data();
-}
-
-inline char const* get_arg(bklib::utf8_string_view const s) noexcept {
-    return s.data();
-}
 
 //--------------------------------------------------------------------------------------------------
 // Game simulation state.
@@ -49,27 +35,12 @@ public:
     creature& get_player();
     creature const& get_player() const;
 
-    template <size_t N, typename First, typename... Args>
-    void display_message(char const (&format)[N], First&& first, Args&&... args) {
-        display_message_(bklib::utf8_string_view(format, N - 1), std::forward<First>(first), std::forward<Args>(args)...);
-    }
-
-    //TODO use a typesafe printf library for this
-    template <typename... Args>
-    void display_message_(bklib::utf8_string_view const format, Args&&... args) {
-        char buffer[256];
-
-#if defined(BOOST_COMP_MSVC_AVAILABLE) && !(BOOST_COMP_GNUC)
-        auto const result =_snprintf_s(buffer, _TRUNCATE, format.data(), get_arg(std::forward<Args>(args))...);
-#else
-        auto const result = std::snprintf(buffer, 256, format.data(), get_arg(std::forward<Args>(args))...);
-#endif
-        BK_ASSERT(result >= 0);
-
-        display_message(bklib::utf8_string_view {buffer, static_cast<size_t>(result)});
-    }
-
     void display_message(bklib::utf8_string_view msg);
+
+    template <typename Arg0, typename... Args>
+    void display_message(bklib::utf8_string_view const format, Arg0 const& arg0, Args const&... args) {
+        output_.write(format, arg0, args...);
+    }
 
     void on_mouse_over(int x, int y);
     void do_mouse_over(int x, int y);
@@ -118,6 +89,7 @@ private:
     creature_factory    creature_factory_;
     item_factory        item_factory_;
     map                 current_map_;
+    output              output_;
 
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
 
