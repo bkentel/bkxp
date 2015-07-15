@@ -3,7 +3,6 @@
 #include <boost/utility/string_ref.hpp>
 
 #include <string>
-#include <array>
 #include <algorithm>
 #include <cstdint>
 
@@ -68,72 +67,6 @@ inline namespace literals {
 inline constexpr std::uint32_t operator""_hash(char const* const str, std::size_t) noexcept {
     return bklib::static_djb2_hash(str);
 }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-struct string_id_base {
-    string_id_base() noexcept
-      : hash {0}, hash_string {{}}
-    {
-    }
-
-    explicit string_id_base(utf8_string_view const string) noexcept
-      : hash(djb2_hash(string))
-    {
-        set_hash_string_(string);
-    }
-
-    void reset() noexcept {
-        hash = 0;
-        hash_string[0] = '\0';
-    }
-
-    void reset(utf8_string_view const string) noexcept {
-        hash = djb2_hash(string);
-        set_hash_string_(string);
-    }
-
-    uint32_t             hash;
-    std::array<char, 12> hash_string;
-private:
-    void set_hash_string_(utf8_string_view const string) noexcept {
-        size_t const size = std::min(hash_string.size() - 1, string.size());
-        std::copy_n(string.data(), size, hash_string.data());
-        hash_string[size] = '\0';
-    }
-};
-
-inline bool operator==(bklib::utf8_string_view const lhs, string_id_base const& rhs) noexcept {
-    return lhs == bklib::utf8_string_view {rhs.hash_string.data()};
-}
-
-inline bool operator==(string_id_base const& lhs, bklib::utf8_string_view const rhs) noexcept {
-    return rhs == lhs;
-}
-
-inline bool operator<(string_id_base const& lhs, string_id_base const rhs) noexcept {
-    return lhs.hash < rhs.hash;
-}
-
-//--------------------------------------------------------------------------------------------------
-//!
-//--------------------------------------------------------------------------------------------------
-template <typename Tag>
-struct string_id : string_id_base {
-    using string_id_base::string_id_base;
-};
-
-template <typename Tag>
-inline bool operator==(string_id<Tag> const& lhs, string_id<Tag> const& rhs) noexcept {
-    return lhs.hash == rhs.hash;
-}
-
-template <typename Tag>
-inline bool operator!=(string_id<Tag> const& lhs, string_id<Tag> const& rhs) noexcept {
-    return !(lhs == rhs);
 }
 
 } //namespace bklib

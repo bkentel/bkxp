@@ -8,6 +8,8 @@
 #include "bklib/assert.hpp"
 #include "bklib/scope_guard.hpp"
 
+#include "bklib/dictionary.hpp"
+
 #include <rapidjson/reader.h>
 
 #define BK_HASHED_ENUM(name) name = ::bklib::static_djb2_hash(#name)
@@ -853,38 +855,87 @@ int load_definitions_helper(
 
 bkrl::json_error::~json_error() noexcept = default;
 
-template <>
-int bkrl::load_definitions<bkrl::item_def>(
+namespace {
+constexpr char const* const creatures_file_type {"creatures"};
+constexpr char const* const items_file_type     {"items"};
+constexpr char const* const colors_file_type    {"colors"};
+
+} //namespace
+
+int bkrl::load_definitions(
     bklib::utf8_string_view const data
   , std::function<bool (item_def const&)> callback
 ) {
-    constexpr char const* const file_type {"items"};
-
-    return load_definitions_helper<item_def_parser>(data, file_type, [&](auto&& parser) {
+    return load_definitions_helper<item_def_parser>(data, items_file_type, [&](auto&& parser) {
         return callback(parser.result());
     });
 }
 
-template <>
-int bkrl::load_definitions<bkrl::creature_def>(
+int bkrl::load_definitions(
     bklib::utf8_string_view const data
   , std::function<bool (creature_def const&)> callback
 ) {
-    constexpr char const* const file_type {"creatures"};
-
-    return load_definitions_helper<creature_def_parser>(data, file_type, [&](auto&& parser) {
+    return load_definitions_helper<creature_def_parser>(data, creatures_file_type, [&](auto&& parser) {
         return callback(parser.result());
     });
 }
 
-template <>
-int bkrl::load_definitions<bkrl::color_def>(
+int bkrl::load_definitions(
     bklib::utf8_string_view const data
   , std::function<bool (color_def const&)> callback
 ) {
-    constexpr char const* const file_type {"colors"};
-
-    return load_definitions_helper<color_def_parser>(data, file_type, [&](auto&& parser) {
+    return load_definitions_helper<color_def_parser>(data, colors_file_type, [&](auto&& parser) {
         return callback(parser.result());
     });
+}
+
+int bkrl::load_definitions(bklib::dictionary<creature_def>& dic, bklib::utf8_string_view const data, load_from_string_t)
+{
+    return load_definitions_helper<creature_def_parser>(data, creatures_file_type, [&](auto&& parser) {
+        dic.insert_or_replace(parser.result());
+        return true;
+    });
+}
+
+int bkrl::load_definitions(bklib::dictionary<item_def>& dic, bklib::utf8_string_view const data, load_from_string_t)
+{
+    return load_definitions_helper<item_def_parser>(data, items_file_type, [&](auto&& parser) {
+        dic.insert_or_replace(parser.result());
+        return true;
+    });
+}
+
+int bkrl::load_definitions(bklib::dictionary<color_def>& dic, bklib::utf8_string_view const data, load_from_string_t)
+{
+    return load_definitions_helper<color_def_parser>(data, colors_file_type, [&](auto&& parser) {
+        dic.insert_or_replace(parser.result());
+        return true;
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
+namespace {
+template <typename T>
+inline int load_definitions_from_file(
+    bklib::dictionary<T>& dic
+  , bklib::utf8_string_view const filename
+) {
+    auto const buf = bklib::read_file_to_buffer(filename);
+    return bkrl::load_definitions(dic, bklib::utf8_string_view {buf.data(), buf.size()}, bkrl::load_from_string);
+}
+} //namespace
+
+int bkrl::load_definitions(bklib::dictionary<creature_def>& dic, bklib::utf8_string_view const filename, load_from_file_t)
+{
+    return load_definitions_from_file(dic, filename);
+}
+
+int bkrl::load_definitions(bklib::dictionary<item_def>& dic, bklib::utf8_string_view const filename, load_from_file_t)
+{
+    return load_definitions_from_file(dic, filename);
+}
+
+int bkrl::load_definitions(bklib::dictionary<color_def>& dic, bklib::utf8_string_view const filename, load_from_file_t)
+{
+    return load_definitions_from_file(dic, filename);
 }

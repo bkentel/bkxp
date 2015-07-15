@@ -10,10 +10,12 @@
 #include "random.hpp"
 #include "view.hpp"
 #include "color.hpp"
+#include "definitions.hpp"
 
 #include "bklib/string.hpp"
 #include "bklib/math.hpp"
 #include "bklib/timer.hpp"
+#include "bklib/dictionary.hpp"
 
 #include <cstdio>
 
@@ -112,6 +114,7 @@ private:
     color_dictionary    color_dictionary_;
     creature_dictionary creature_dictionary_;
     item_dictionary     item_dictionary_;
+    definitions         definitions_;
     creature_factory    creature_factory_;
     item_factory        item_factory_;
     map                 current_map_;
@@ -123,5 +126,12 @@ private:
 
     bklib::timer::id_t timer_message_log_ {0};
 };
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline decltype(auto) random_definition(random_t& random, bklib::dictionary<T> const& dic) {
+    BK_PRECONDITION(!dic.empty());
+    return random_element(random, dic);
+}
 
 } //namespace bkrl

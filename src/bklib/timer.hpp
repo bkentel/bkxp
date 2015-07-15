@@ -15,7 +15,7 @@ class timer {
 public:
     struct record_t;
 
-    using id_t       = bklib::tagged_value<int, timer>;
+    using id_t       = bklib::tagged_value<timer, int>;
     using callback_t = std::function<void (record_t& r)>;
     using duration_t = std::chrono::microseconds;
 

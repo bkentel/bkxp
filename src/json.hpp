@@ -4,6 +4,8 @@
 #include "bklib/exception.hpp"
 #include <functional>
 
+namespace bklib { template <typename T> class dictionary; }
+
 namespace bkrl { struct item_def; }
 namespace bkrl { struct creature_def; }
 namespace bkrl { struct color_def; }
@@ -49,16 +51,30 @@ using json_error_code   = boost::error_info<json_error::tag_json_error_code, jso
 using json_error_offset = boost::error_info<json_error::tag_json_error_offset, size_t>;
 using json_error_success_count = boost::error_info<json_error::tag_json_error_offset, int>;
 
-template <typename T>
-int load_definitions(bklib::utf8_string_view data, std::function<bool (T const&)> callback);
+enum class load_from_string_t {};
+enum class load_from_file_t   {};
 
-template <>
-int load_definitions<item_def>(bklib::utf8_string_view data, std::function<bool (item_def const&)> callback);
+static constexpr load_from_string_t const load_from_string {};
+static constexpr load_from_file_t   const load_from_file   {};
 
-template <>
-int load_definitions<creature_def>(bklib::utf8_string_view data, std::function<bool (creature_def const&)> callback);
+int load_definitions(bklib::utf8_string_view data, std::function<bool (item_def     const&)> callback);
+int load_definitions(bklib::utf8_string_view data, std::function<bool (creature_def const&)> callback);
+int load_definitions(bklib::utf8_string_view data, std::function<bool (color_def    const&)> callback);
 
-template <>
-int load_definitions<color_def>(bklib::utf8_string_view data, std::function<bool (color_def const&)> callback);
+template <typename T, typename Callback>
+int load_definitions(bklib::utf8_string_view const data, Callback&& callback) {
+    return load_definitions(
+        data
+      , std::function<bool (T const&)> {std::forward<Callback>(callback)}
+    );
+}
+
+int load_definitions(bklib::dictionary<creature_def>& dic, bklib::utf8_string_view data, load_from_string_t);
+int load_definitions(bklib::dictionary<item_def>&     dic, bklib::utf8_string_view data, load_from_string_t);
+int load_definitions(bklib::dictionary<color_def>&    dic, bklib::utf8_string_view data, load_from_string_t);
+
+int load_definitions(bklib::dictionary<creature_def>& dic, bklib::utf8_string_view filename, load_from_file_t);
+int load_definitions(bklib::dictionary<item_def>&     dic, bklib::utf8_string_view filename, load_from_file_t);
+int load_definitions(bklib::dictionary<color_def>&    dic, bklib::utf8_string_view filename, load_from_file_t);
 
 } //namespace bkrl

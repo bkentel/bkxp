@@ -4,47 +4,46 @@
 #include "random.hpp"
 #include "definitions.hpp"
 
+#include "bklib/assert.hpp"
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
-#include "bklib/hash.hpp"
-#include "bklib/spatial_map.hpp"
-#include "bklib/dictionary.hpp"
 
 #include <forward_list>
 #include <array>
 
+namespace bklib { template <typename T> class spatial_map_2d; }
+namespace bklib { template <typename T> class dictionary; }
+
 namespace bkrl {
 
+class  map;
+struct context;
 struct item_def;
-class item;
-class item_factory;
+class  item;
+class  item_pile;
+class  item_factory;
 struct terrain_entry;
-
-//--------------------------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------------------------
-enum class item_type : int16_t {
-    armor, weapon, ring
-};
+using  item_dictionary = bklib::dictionary<item_def>;
+using  item_map = bklib::spatial_map_2d<item_pile>;
 
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
 struct item_def : definition_base {
-    using id_type = item_def_id;
+    using id_type = def_id_t<tag_item>;
 
-    explicit item_def(bklib::utf8_string def_id_string)
-      : definition_base {std::move(def_id_string)}
-      , id {id_string}
+    explicit item_def(bklib::utf8_string identifier)
+      : definition_base {std::move(identifier)}
+      , id {definition_base::id_string}
     {
     }
 
-    bklib::string_id<item_def_id> id;
+    id_type id;
     int32_t weight;
 };
 
-inline item_def_id get_id(item_def const& def) noexcept {
-    return item_def_id {def.id.hash};
+inline auto const& get_id(item_def const& def) noexcept {
+    return def.id;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -58,17 +57,17 @@ public:
     item(item const&) = delete;
     item& operator=(item const&) = delete;
 
-    item_instance_id id()  const noexcept { return id_; }
-    item_def_id      def() const noexcept { return def_; }
+    instance_id_t<tag_item> id()  const noexcept { return id_; }
+    def_id_t<tag_item>      def() const noexcept { return def_; }
 
     bool can_place_on(terrain_entry const& ter) const;
 
     void update();
 private:
-    item(item_instance_id id, item_def const& def);
+    item(instance_id_t<tag_item> id, item_def const& def);
 
-    item_instance_id id_;
-    item_def_id      def_;
+    instance_id_t<tag_item> id_;
+    def_id_t<tag_item>      def_;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -95,6 +94,8 @@ public:
 
     decltype(auto) begin() const { return std::begin(items_); }
     decltype(auto) end()   const { return std::end(items_); }
+    decltype(auto) begin()       { return std::begin(items_); }
+    decltype(auto) end()         { return std::end(items_); }
 
     void move_items_to(item_pile& dst) {
         dst.items_.splice_after(dst.items_.before_begin(), items_);
@@ -123,13 +124,11 @@ class item_factory {
 public:
     item create(random_t& random, item_def const& def);
 private:
-    item_instance_id::value_type next_id_;
+    instance_id_t<tag_item>::type next_id_;
 };
 
-//--------------------------------------------------------------------------------------------------
-using item_dictionary = bklib::dictionary<item_def>;
-using item_map = bklib::spatial_map_2d<item_pile>;
-
-void load_definitions(item_dictionary& dic, bklib::utf8_string_view data, detail::load_from_string_t);
+void advance(context& ctx, map& m, item& item);
+void advance(context& ctx, map& m, item_pile& items);
+void advance(context& ctx, map& m, item_map& imap);
 
 } //namespace bkrl
