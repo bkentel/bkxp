@@ -7,6 +7,8 @@
 #include <catch/catch.hpp>
 
 #include "map.hpp"
+#include "context.hpp"
+#include "output.hpp"
 #include "bklib/dictionary.hpp"
 
 namespace {
@@ -51,21 +53,24 @@ TEST_CASE("map terrain", "[map][terrain][bkrl]") {
 }
 
 TEST_CASE("map creatures", "[map][creature][bkrl]") {
-    bkrl::random_t random;
-    bkrl::map map;
+    bkrl::random_state        random;
     bkrl::creature_dictionary dic;
-    bkrl::definitions defs {&dic, nullptr, nullptr};
-    bkrl::creature_factory factory;
+    bkrl::definitions         defs {&dic, nullptr, nullptr};
+    bkrl::creature_factory    cfactory;
+    bkrl::item_factory        ifactory;
+    bkrl::output              out;
 
     bkrl::creature_def const cdef {"test"};
-
     bklib::ipoint2 const p {10, 10};
-
     REQUIRE(dic.insert_or_discard(cdef).second);
+
+    bkrl::context ctx {random, defs, out, ifactory, cfactory};
+
+    bkrl::map map;
 
     SECTION("add, find and remove creature") {
         REQUIRE(!map.creature_at(p));
-        REQUIRE(generate_creature(random, map, defs, factory, cdef, p));
+        REQUIRE(generate_creature(ctx, map, cdef, p));
         REQUIRE(map.creature_at(p));
 
         auto const ptr = map.find_creature([&](bkrl::creature const& c) {
@@ -86,7 +91,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
         REQUIRE(!map.creature_at(p));
         {
             // The first creature should be placed exactly as requested
-            auto const result = generate_creature(random, map, defs, factory, cdef, p);
+            auto const result = generate_creature(ctx, map, cdef, p);
             REQUIRE(!!result);
             REQUIRE(result == p);
             require_at(map, p, cdef);
@@ -95,7 +100,7 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
         {
             // The second creature placed at the same location should succeed, but be
             // moved to an adjacent location.
-            auto const result = generate_creature(random, map, defs, factory, cdef, p);
+            auto const result = generate_creature(ctx, map, cdef, p);
             REQUIRE(!!result);
             REQUIRE(result != p);
             require_at(map, result, cdef);
@@ -107,20 +112,25 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 }
 
 TEST_CASE("map items", "[map][item][bkrl]") {
-    bkrl::random_t random;
-    bkrl::item_factory factory;
-    bkrl::definitions defs {nullptr, nullptr, nullptr};
-    bkrl::map map;
+    bkrl::random_state        random;
+    bkrl::definitions         defs {nullptr, nullptr, nullptr};
+    bkrl::creature_factory    cfactory;
+    bkrl::item_factory        ifactory;
+    bkrl::output              out;
 
     bkrl::item_def const idef0 {"test0"};
     bkrl::item_def const idef1 {"test1"};
+
+    bkrl::context ctx {random, defs, out, ifactory, cfactory};
+
+    bkrl::map map;
 
     SECTION("generate at same location") {
         bklib::ipoint2 const p {10, 10};
 
         REQUIRE(!map.items_at(p));
-        REQUIRE(generate_item(random, map, defs, factory, idef0, p));
-        REQUIRE(generate_item(random, map, defs, factory, idef1, p));
+        REQUIRE(generate_item(ctx, map, idef0, p));
+        REQUIRE(generate_item(ctx, map, idef1, p));
 
         auto const ptr = map.items_at(p);
         REQUIRE(ptr);

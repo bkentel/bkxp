@@ -1,6 +1,14 @@
 { "file_type": "items"
 , "definitions": [
-    { "id": "WEAPON_SWORD_SHORT"
+    { "id": "CORPSE"
+    , "name": "corpse"
+    , "description": "The corpse of a %s."
+    , "symbol": "%"
+    , "symbol_color": "GREY"
+    , "weight": 2000
+    , "tags": ["CORPSE", "FOOD"]
+    }
+  , { "id": "WEAPON_SWORD_SHORT"
     , "name": "short sword"
     , "description": "A simple short sword."
     , "symbol": "/"

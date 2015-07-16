@@ -61,28 +61,85 @@ inline auto const& get_id(creature_def const& def) noexcept {
 
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------
-template <typename T>
+enum class stat_type {
+    health
+  , stamina
+  , mana
+  , strength
+  , constitution
+  , dexterity
+  , intelligence
+  , wisdom
+  , charisma
+  , luck
+};
+
+template <typename R = int, typename T, typename U>
+inline auto clamped_add(T const lhs, U const rhs) noexcept {
+    static_assert(std::is_integral<R>::value && std::is_signed<R>::value, "");
+    static_assert(std::is_integral<T>::value && std::is_signed<T>::value, "");
+    static_assert(std::is_integral<U>::value && std::is_signed<U>::value, "");
+
+    using type = std::common_type_t<R, T, U>;
+
+    constexpr auto const min = std::numeric_limits<type>::min();
+    constexpr auto const max = std::numeric_limits<type>::max();
+
+    type const a {lhs};
+    type const b {rhs};
+
+    if (a > 0 && b > max - a) {
+        return max; //overflow
+    } else if (a < 0 && b < min - a) {
+        return min; //underflow
+    }
+
+    return a + b;
+};
+
+template <typename T, stat_type Stat>
 struct creature_stat {
+    static_assert(std::is_integral<T>::value, "");
+    static_assert(std::is_signed<T>::value, "");
+
+    using value_type = T;
+    static constexpr auto const type = Stat;
+
+    auto value() const noexcept {
+        return clamped_add(base, modifier);
+    }
+
+    template <typename U>
+    void modify(U const n) noexcept {
+        auto const result = clamped_add(modifier, n);
+        modifier = static_cast<T>(
+            bklib::clamp<decltype(result)>(
+                result
+              , std::numeric_limits<T>::min()
+              , std::numeric_limits<T>::max()
+            )
+        );
+    }
+
     T base     = 1;
     T modifier = 0;
 };
 
 struct creature_stats {
-    creature_stat<int16_t> hp_val;
-    creature_stat<int16_t> sp_val;
-    creature_stat<int16_t> mp_val;
+    creature_stat<int16_t, stat_type::health>  hp_val;
+    creature_stat<int16_t, stat_type::stamina> sp_val;
+    creature_stat<int16_t, stat_type::mana>    mp_val;
 
-    creature_stat<int8_t> str_val;
-    creature_stat<int8_t> con_val;
-    creature_stat<int8_t> dex_val;
-    creature_stat<int8_t> int_val;
-    creature_stat<int8_t> wis_val;
-    creature_stat<int8_t> cha_val;
-    creature_stat<int8_t> luc_val;
+    creature_stat<int8_t, stat_type::strength>     str_val;
+    creature_stat<int8_t, stat_type::constitution> con_val;
+    creature_stat<int8_t, stat_type::dexterity>    dex_val;
+    creature_stat<int8_t, stat_type::intelligence> int_val;
+    creature_stat<int8_t, stat_type::wisdom>       wis_val;
+    creature_stat<int8_t, stat_type::charisma>     cha_val;
+    creature_stat<int8_t, stat_type::luck>         luc_val;
 
     int8_t reserved[6];
 };
-
 //--------------------------------------------------------------------------------------------------
 //! An instance of a creature_def.
 //! Move only.
@@ -98,6 +155,7 @@ public:
     void advance(random_state& random, map& m);
 
     bool is_player() const noexcept;
+    bool is_dead() const noexcept;
 
     void move_by(bklib::ivec2 v) noexcept;
     void move_to(bklib::ipoint2 p) noexcept;
@@ -121,6 +179,8 @@ public:
     item_pile const& item_list() const {
         return items_;
     }
+
+    int modify(stat_type stat, int mod);
 private:
     creature(instance_id_t<tag_creature> id, creature_def const& def, bklib::ipoint2 p);
 
@@ -150,7 +210,9 @@ private:
     instance_id_t<tag_creature>::type next_id_;
 };
 
-bool move_by(creature& c, map& m, bklib::ivec2 v);
+bool move_by(context& ctx, creature& c, map& m, bklib::ivec2 v);
+
+void attack(context& ctx, map& m, creature& att, creature& def);
 
 void advance(context& ctx, map& m, creature& c);
 void advance(context& ctx, map& m, creature_map& cmap);

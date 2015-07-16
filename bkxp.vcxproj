@@ -60,6 +60,7 @@
     <ClCompile Include="src\color.cpp" />
     <ClCompile Include="src\commands.cpp" />
     <ClCompile Include="src\creature.cpp" />
+    <ClCompile Include="src\definitions.cpp" />
     <ClCompile Include="src\direction.cpp" />
     <ClCompile Include="src\external\format.cc" />
     <ClCompile Include="src\game.cpp" />

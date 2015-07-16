@@ -401,15 +401,8 @@ bool bkrl::map::can_place_creature_at(bklib::ipoint2 const p) const
 
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
-bkrl::generate_creature(
-    random_t&                random
-  , map&                     m
-  , definitions       const& defs
-  , creature_factory&        factory
-  , creature_def      const& def
-  , bklib::ipoint2    const  p
-) {
-    auto c = factory.create(random, def, p);
+bkrl::generate_creature(context& ctx, map& m, creature_def const& def, bklib::ipoint2 const p) {
+    auto c = ctx.cfactory.create(ctx.random[random_stream::substantive], def, p);
 
     auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
         return can_place_at(m, q, c);
@@ -425,27 +418,15 @@ bkrl::generate_creature(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
-bkrl::generate_creature(
-    random_t&           random
-  , map&                m
-  , definitions const&  defs
-  , creature_factory&   factory
-  , creature_def const& def
-) {
-    return generate_creature(random, m, defs, factory, def, random_point(random, m.bounds()));
+bkrl::generate_creature(context& ctx, map& m, creature_def const& def)
+{
+    return generate_creature(ctx, m, def, random_point(ctx.random[random_stream::substantive], m.bounds()));
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
-bkrl::generate_item(
-    random_t&             random
-  , map&                  m
-  , definitions    const& defs
-  , item_factory&         factory
-  , item_def       const& def
-  , bklib::ipoint2 const  p
-) {
-    auto i = factory.create(random, def);
+bkrl::generate_item(context& ctx, map& m, item_def const& def, bklib::ipoint2 const p) {
+    auto i = ctx.ifactory.create(ctx.random[random_stream::substantive], def);
 
     auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
         return can_place_at(m, q, i);
@@ -460,14 +441,9 @@ bkrl::generate_item(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
-bkrl::generate_item(
-    random_t&            random
-  , map&                 m
-  , definitions   const& defs
-  , item_factory&        factory
-  , item_def      const& def
-) {
-    return generate_item(random, m, defs, factory, def, random_point(random, m.bounds()));
+bkrl::generate_item(context& ctx, map& m, item_def const& def)
+{
+    return generate_item(ctx, m, def, random_point(ctx.random[random_stream::substantive], m.bounds()));
 }
 
 //--------------------------------------------------------------------------------------------------

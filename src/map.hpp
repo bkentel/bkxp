@@ -318,15 +318,15 @@ void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, F
 //! @pre @p p lies within the bounds of the map @p m
 //! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
-placement_result_t generate_creature(random_t& random, map& m, definitions const& defs, creature_factory& factory, creature_def const& def, bklib::ipoint2 p);
-placement_result_t generate_creature(random_t& random, map& m, definitions const& defs, creature_factory& factory, creature_def const& def);
+placement_result_t generate_creature(context& ctx, map& m, creature_def const& def, bklib::ipoint2 p);
+placement_result_t generate_creature(context& ctx, map& m, creature_def const& def);
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m.
 //! @return true if generation succeeded, false otherwise.
 //----------------------------------------------------------------------------------------------
-placement_result_t generate_item(random_t& random, map& m, definitions const& defs, item_factory& factory, item_def const& def, bklib::ipoint2 p);
-placement_result_t generate_item(random_t& random, map& m, definitions const& defs, item_factory& factory, item_def const& def);
+placement_result_t generate_item(context& ctx, map& m, item_def const& def, bklib::ipoint2 p);
+placement_result_t generate_item(context& ctx, map& m, item_def const& def);
 
 void advance(context& ctx, map& m);
 

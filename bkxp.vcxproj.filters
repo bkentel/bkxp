@@ -245,6 +245,9 @@
     <ClCompile Include="src\external\format.cc">
       <Filter>external</Filter>
     </ClCompile>
+    <ClCompile Include="src\definitions.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bklib.natvis" />

@@ -92,6 +92,8 @@ bkrl::game::game()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::generate_map()
 {
+    context ctx {random_, definitions_, output_, item_factory_, creature_factory_};
+
     auto& m = current_map_;
     auto const bounds = current_map_.bounds();
 
@@ -111,9 +113,11 @@ void bkrl::game::generate_map()
     m.update_render_data();
 
     for (int i = 0; i < 10; ++i) {
-        generate_creature(random, m, definitions_, creature_factory_, random_definition(random, creature_dictionary_));
-        generate_item(random, m, definitions_, item_factory_, random_definition(random, item_dictionary_));
+        generate_creature(ctx, m, random_definition(random, creature_dictionary_));
+        generate_item(ctx, m, random_definition(random, item_dictionary_));
     }
+
+    generate_creature(ctx, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
 
     creature_def def {"player"};
     def.flags.set(creature_flag::is_player);
@@ -145,7 +149,7 @@ void bkrl::game::render()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    context ctx {random_, definitions_, output_};
+    context ctx {random_, definitions_, output_, item_factory_, creature_factory_};
     bkrl::advance(ctx, current_map_);
 }
 
@@ -473,7 +477,9 @@ void bkrl::game::do_wait(int const turns)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    auto const ok = move_by(get_player(), current_map_, bklib::truncate<2>(v));
+    context ctx {random_, definitions_, output_, item_factory_, creature_factory_};
+
+    auto const ok = move_by(ctx, get_player(), current_map_, bklib::truncate<2>(v));
     if (ok) {
         advance();
     }
