@@ -1,10 +1,12 @@
 #pragma once
 
-#include "random.hpp"
-#include "definitions.hpp"
-#include "output.hpp"
-
 namespace bkrl {
+
+class item_factory;
+class creature_factory;
+class output;
+class definitions;
+class random_state;
 
 struct context {
     context(context const&) = delete;
@@ -15,6 +17,9 @@ struct context {
     random_state&      random;
     definitions const& data;
     output&            out;
+
+    item_factory&     ifactory;
+    creature_factory& cfactory;
 };
 
 } //namespace bkrl
