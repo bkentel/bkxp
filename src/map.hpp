@@ -163,8 +163,8 @@ public:
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
     //----------------------------------------------------------------------------------------------
-    void place_item_at(item&& itm, item_def const& def, bklib::ipoint2 p);
-    void place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 p);
+    item_pile* place_item_at(item&& itm, item_def const& def, bklib::ipoint2 p);
+    item_pile* place_items_at(definitions const& defs, item_pile&& pile, bklib::ipoint2 p);
 
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
@@ -300,18 +300,23 @@ bool can_place_at(map const& m, bklib::ipoint2 const p, item const& c);
 //! @pre @p dic has valid entries for any new items added.
 //----------------------------------------------------------------------------------------------
 template <typename Map, typename Function>
-void with_pile_at(item_dictionary const& dic, Map&& m, bklib::ipoint2 const p, Function&& f)
+item_pile* with_pile_at(definitions const& defs, Map&& m, bklib::ipoint2 const p, Function&& f)
 {
     static_assert(std::is_same<map, base_type_of_t<Map>>::value, "");
+
+    if (!m.can_place_item_at(p)) {
+        return nullptr;
+    }
 
     if (auto const maybe_pile = m.items_at(p)) {
         f(*maybe_pile);
         m.update_render_data(p);
-    } else {
-        item_pile pile;
-        f(pile);
-        m.place_items_at(dic, std::move(pile), p);
+        return maybe_pile;
     }
+
+    item_pile pile;
+    f(pile);
+    return m.place_items_at(defs, std::move(pile), p);
 }
 
 //----------------------------------------------------------------------------------------------

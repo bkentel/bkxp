@@ -100,15 +100,30 @@ decltype(auto) to_array(utf8_string_view const src) noexcept {
 template <size_t Extra = 12, typename T = std::uint32_t>
 class hash_id_base {
 public:
+    static_assert(std::is_integral<T>::value, "");
+
     using type = T;
     static constexpr auto const extra = (((Extra + sizeof(T)) % sizeof(size_t) ? 1u : 0u)
                                       + (Extra + sizeof(T)) / sizeof(size_t)) * sizeof(size_t)
                                       - sizeof(T);
 
+    static_assert(extra > 0, "");
+
+    hash_id_base(hash_id_base const&) = default;
+    hash_id_base& operator=(hash_id_base const&) = default;
+    hash_id_base(hash_id_base&&) = default;
+    hash_id_base& operator=(hash_id_base&&) = default;
+
     hash_id_base() noexcept
       : value_  {}
       , string_ {}
     {
+    }
+
+    explicit hash_id_base(T const value) noexcept
+      : value_ {value}
+    {
+        string_[0] = 0;
     }
 
     hash_id_base(utf8_string_view const str) noexcept
@@ -120,6 +135,25 @@ public:
     hash_id_base(char const* const str, size_t const len) noexcept
       : hash_id_base {utf8_string_view {str, len}}
     {
+    }
+
+    template <size_t N>
+    hash_id_base(hash_id_base<N, T> const& other) {
+        *this = other;
+    }
+
+    template <size_t N>
+    hash_id_base& operator=(hash_id_base<N, T> const& rhs) {
+        value_ = rhs.value_;
+
+        auto const n = std::min(string_.size(), rhs.string_.size());
+        std::copy_if(
+            begin(rhs.string_), end(rhs_.string_)
+          , begin(string_)
+          , [n, i = 0u](auto const& c) { return c && i++ < n; }
+        );
+
+        return *this;
     }
 
     void reset() noexcept {
@@ -158,6 +192,11 @@ public:
 
     hash_id_base() noexcept
       : value_ {}
+    {
+    }
+
+    explicit hash_id_base(T const value) noexcept
+      : value_ {value}
     {
     }
 

@@ -15,6 +15,9 @@ struct creature_def;
 struct item_def;
 struct color_def;
 
+enum class random_stream : int;
+class random_state;
+
 class definitions {
 public:
     definitions(bklib::dictionary<creature_def>* const creatures
@@ -29,6 +32,10 @@ public:
     creature_def const* find(def_id_t<tag_creature> id) const;
     item_def     const* find(def_id_t<tag_item>     id) const;
     color_def    const* find(def_id_t<tag_color>    id) const;
+
+    creature_def const* random_creature(random_state& rnd, random_stream stream) const;
+    item_def     const* random_item(random_state& rnd, random_stream stream) const;
+    color_def    const* random_color(random_state& rnd, random_stream stream) const;
 private:
     bklib::dictionary<creature_def>* creature_defs_;
     bklib::dictionary<item_def>*     item_defs_;

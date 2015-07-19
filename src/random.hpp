@@ -52,7 +52,7 @@ using normal_distribution_t = boost::random::normal_distribution<T>;
 template <typename T = double>
 using uniform_real_distribution_t = boost::random::uniform_real_distribution<T>;
 
-enum class random_stream {
+enum class random_stream : int {
     substantive, item, creature,
     stream_count
 };

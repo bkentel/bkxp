@@ -23,3 +23,34 @@ bkrl::definitions::find(def_id_t<tag_color> const id) const
 {
     return color_defs_ ? color_defs_->find(id) : nullptr;
 }
+
+namespace {
+
+template <typename T>
+T const* random_definition(
+    bkrl::random_state&               rnd
+  , bkrl::random_stream         const stream
+  , bklib::dictionary<T> const* const dic
+) {
+    return dic ? std::addressof(bkrl::random_element(rnd[stream], *dic)) : nullptr;
+}
+
+} //namespace
+
+bkrl::creature_def const*
+bkrl::definitions::random_creature(random_state& rnd, random_stream const stream) const
+{
+    return random_definition(rnd, stream, creature_defs_);
+}
+
+bkrl::item_def const*
+bkrl::definitions::random_item(random_state& rnd, random_stream const stream) const
+{
+    return random_definition(rnd, stream, item_defs_);
+}
+
+bkrl::color_def const*
+bkrl::definitions::random_color(random_state& rnd, random_stream const stream) const
+{
+    return random_definition(rnd, stream, color_defs_);
+}

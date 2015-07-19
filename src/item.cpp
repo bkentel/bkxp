@@ -19,8 +19,10 @@ bkrl::item::item(
     instance_id_t<tag_item> const  id
   , item_def                const& def
 )
-  : id_  {id}
-  , def_ {get_id(def)}
+  : data_  {}
+  , flags_ {}
+  , id_    {id}
+  , def_   {get_id(def)}
 {
 }
 

@@ -85,7 +85,7 @@ public:
     void remove_if(Predicate&& predicate, Remove&& do_remove) {
         for (auto i = 0u; i < sorted_.size(); ) {
             auto const& p = sorted_[i];
-            auto const& d = data_[p.second];
+            auto& d = data_[p.second];
             if (predicate(p.first, d)) {
                 auto const size = data_.size();
                 do_remove(p.first, d);

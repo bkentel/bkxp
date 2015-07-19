@@ -412,7 +412,7 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
         return;
     }
 
-    with_pile_at(item_dictionary_, current_map_, where, [&](item_pile& pile) {
+    with_pile_at(definitions_, current_map_, where, [&](item_pile& pile) {
         subject.drop_item(pile);
 
         if (auto const idef = item_dictionary_.find(pile.begin()->def())) {
@@ -582,12 +582,7 @@ void bkrl::game::debug_print(int const mx, int const my) const
 
     if (auto const& c = current_map_.creature_at(p)) {
         printf("  creature present\n");
-
-        if (auto const& cdef = creature_dictionary_.find(c->def())) {
-            printf("  %s\n", cdef->id_string.c_str());
-        } else {
-            printf("  !!unknown creature!!\n");
-        }
+        printf("  %s\n", c->friendly_name(definitions_).c_str());
     }
 
     if (auto const& ip = current_map_.items_at(p)) {
@@ -595,6 +590,15 @@ void bkrl::game::debug_print(int const mx, int const my) const
         for (auto const& i : *ip) {
             if (auto const& idef = item_dictionary_.find(i.def())) {
                 printf("  %s\n", idef->id_string.c_str());
+
+                if (i.flags().test(item_flag::is_corpse)) {
+                    def_id_t<tag_creature> const id {static_cast<uint32_t>(i.data())};
+                    if (auto const cdef = definitions_.find(id)) {
+                        printf("The remains of a %s\n", cdef->name.c_str());
+                    } else {
+                        printf("Corpse (unknown)\n");
+                    }
+                }
             } else {
                 printf("  !!unknown item!!\n");
             }

@@ -237,12 +237,13 @@ bkrl::creature* bkrl::map::find_creature(
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::place_item_at(
+bkrl::item_pile* bkrl::map::place_item_at(
     item&&               itm
   , item_def const&      def
   , bklib::ipoint2 const p
 ) {
     BK_PRECONDITION(intersects(p, bounds()));
+    BK_PRECONDITION(can_place_item_at(p));
 
     auto& pile = [&]() -> decltype(auto) {
         if (auto const existing = items_.at(p)) {
@@ -254,25 +255,27 @@ void bkrl::map::place_item_at(
 
     pile.insert(std::move(itm));
     render_data_->update_or_add(def, p);
+
+    return &pile;
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::map::place_items_at(item_dictionary const& dic, item_pile&& pile, bklib::ipoint2 const p)
+bkrl::item_pile* bkrl::map::place_items_at(definitions const& defs, item_pile&& pile, bklib::ipoint2 const p)
 {
     if (auto const maybe_items = items_at(p)) {
         move_items(pile, *maybe_items);
-        return;
+        return maybe_items;
     }
 
     if (pile.empty()) {
-        return;
+        return nullptr;
     }
 
-    auto const maybe_idef = dic.find(pile.begin()->def());
+    auto const maybe_idef = defs.find(pile.begin()->def());
     BK_PRECONDITION(maybe_idef);
 
     render_data_->update_or_add(*maybe_idef, p);
-    items_.insert(p, std::move(pile));
+    return &items_.insert(p, std::move(pile));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -402,16 +405,26 @@ bool bkrl::map::can_place_creature_at(bklib::ipoint2 const p) const
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
 bkrl::generate_creature(context& ctx, map& m, creature_def const& def, bklib::ipoint2 const p) {
-    auto c = ctx.cfactory.create(ctx.random[random_stream::substantive], def, p);
+    auto& random = ctx.random[random_stream::creature];
+
+    auto c = ctx.cfactory.create(random, def, p);
 
     auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
         return can_place_at(m, q, c);
     });
 
-    if (!!result) {
-        c.move_to(result);
-        m.place_creature_at(std::move(c), def, result);
+    if (!result) {
+        return result;
     }
+
+    c.move_to(result);
+
+    if (auto const idef = ctx.data.random_item(ctx.random, random_stream::creature)) {
+        auto itm = ctx.ifactory.create(random, *idef);
+        c.get_item(std::move(itm));
+    }
+
+    m.place_creature_at(std::move(c), def, result);
 
     return result;
 }

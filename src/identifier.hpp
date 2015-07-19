@@ -6,10 +6,10 @@ namespace bkrl {
 //===--------------------------------------------------------------------------------------------===
 //                          Tags used to discriminate identifiers.
 //===--------------------------------------------------------------------------------------------===
-struct tag_creature;
-struct tag_item;
-struct tag_color;
-struct tag_string_tag;
+struct tag_creature {};
+struct tag_item {};
+struct tag_color {};
+struct tag_string_tag {};
 
 //--------------------------------------------------------------------------------------------------
 //! Simple tagged value (integer) used as unique ids.
