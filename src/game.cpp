@@ -92,7 +92,7 @@ bkrl::game::game()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::generate_map()
 {
-    context ctx {random_, definitions_, output_, item_factory_, creature_factory_};
+    auto ctx = make_context();
 
     auto& m = current_map_;
     auto const bounds = current_map_.bounds();
@@ -149,7 +149,7 @@ void bkrl::game::render()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    context ctx {random_, definitions_, output_, item_factory_, creature_factory_};
+    auto ctx = make_context();
     bkrl::advance(ctx, current_map_);
 }
 
@@ -414,16 +414,7 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
 
     with_pile_at(definitions_, current_map_, where, [&](item_pile& pile) {
         subject.drop_item(pile);
-
-        if (auto const idef = item_dictionary_.find(pile.begin()->def())) {
-            if (idef->name.empty()) {
-                display_message("You dropped the [%s].", idef->id_string);
-            } else {
-                display_message("You dropped the %s.", idef->name);
-            }
-        } else {
-            display_message("You dropped the %s.", "<UNKNOWN>");
-        }
+        display_message("You dropped the %s.", pile.begin()->friendly_name(definitions_));
     });
 }
 
@@ -452,15 +443,7 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
     }
 
     for (auto const& itm : *pile) {
-        if (auto const idef = item_dictionary_.find(itm.def())) {
-            if (idef->name.empty()) {
-                display_message("You picked up the [%s].", idef->id_string);
-            } else {
-                display_message("You picked up the %s.", idef->name);
-            }
-        } else {
-            display_message("You picked up the %s.", "<UNKNOWN>");
-        }
+        display_message("You picked up the %s.", itm.friendly_name(definitions_));
     }
 
     subject.get_items(current_map_.remove_items_at(p));
@@ -477,11 +460,26 @@ void bkrl::game::do_wait(int const turns)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    context ctx {random_, definitions_, output_, item_factory_, creature_factory_};
+    auto ctx = make_context();
+
+    auto const p = get_player().position();
 
     auto const ok = move_by(ctx, get_player(), current_map_, bklib::truncate<2>(v));
-    if (ok) {
-        advance();
+    if (!ok) {
+        return;
+    }
+
+    advance();
+
+    auto const q = get_player().position();
+    if (!distance2(p, q)) {
+        return;
+    }
+
+    if (auto const pile = current_map_.items_at(q)) {
+        for (auto const& i : *pile) {
+            display_message("You see here %s.", i.friendly_name(definitions_));
+        }
     }
 }
 
@@ -505,18 +503,8 @@ void bkrl::game::do_show_inventory()
 
     char i = 0;
     for (auto const& itm : player.item_list()) {
-        auto const& idef = item_dictionary_.find(itm.def());
-        if (idef) {
-            if (!idef->name.empty()) {
-                display_message("[%c] %s", 'a' + i, idef->name);
-            } else {
-                display_message("[%c] [%s]", 'a' + i, idef->id_string);
-            }
-        } else {
-            display_message("[%c] <UNKNOWN>", 'a' + i);
-        }
-
-        ++i;
+        char const cindex = 'a' + i++;
+        display_message("[%c] %s", cindex, itm.friendly_name(definitions_));
     }
 }
 
@@ -572,6 +560,12 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 }
 
 //--------------------------------------------------------------------------------------------------
+bkrl::context bkrl::game::make_context()
+{
+    return {random_, definitions_, output_, item_factory_, creature_factory_};
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::debug_print(int const mx, int const my) const
 {
     bklib::ipoint2 const p {mx, my};
@@ -581,27 +575,14 @@ void bkrl::game::debug_print(int const mx, int const my) const
     printf("  type = %d::%d\n", static_cast<int16_t>(ter.type), ter.variant);
 
     if (auto const& c = current_map_.creature_at(p)) {
-        printf("  creature present\n");
-        printf("  %s\n", c->friendly_name(definitions_).c_str());
+        fmt::printf("  creature present\n");
+        fmt::printf("  %s\n", c->friendly_name(definitions_));
     }
 
     if (auto const& ip = current_map_.items_at(p)) {
-        printf("  item(s) present\n");
+        fmt::printf("  item(s) present\n");
         for (auto const& i : *ip) {
-            if (auto const& idef = item_dictionary_.find(i.def())) {
-                printf("  %s\n", idef->id_string.c_str());
-
-                if (i.flags().test(item_flag::is_corpse)) {
-                    def_id_t<tag_creature> const id {static_cast<uint32_t>(i.data())};
-                    if (auto const cdef = definitions_.find(id)) {
-                        printf("The remains of a %s\n", cdef->name.c_str());
-                    } else {
-                        printf("Corpse (unknown)\n");
-                    }
-                }
-            } else {
-                printf("  !!unknown item!!\n");
-            }
+            fmt::printf("  %s\n", i.friendly_name(definitions_));
         }
     }
 }

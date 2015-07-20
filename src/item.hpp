@@ -82,6 +82,8 @@ public:
 
     uint64_t& data()       noexcept { return data_; };
     uint64_t  data() const noexcept { return data_; };
+
+    bklib::utf8_string friendly_name(definitions const& defs) const;
 private:
     item(instance_id_t<tag_item> id, item_def const& def);
 

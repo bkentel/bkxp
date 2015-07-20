@@ -10,7 +10,7 @@ class random_state;
 
 struct context {
     context(context const&) = delete;
-    context(context&&) = delete;
+    context(context&&) = default;
     context& operator=(context const&) = delete;
     context& operator=(context&&) = delete;
 

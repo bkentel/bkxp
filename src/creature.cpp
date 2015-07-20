@@ -171,11 +171,7 @@ bklib::utf8_string bkrl::creature::friendly_name(definitions const& defs) const
     auto const def = defs.find(id);
 
     if (!def) {
-        if (id.c_str() && id.c_str()[0]) {
-            return fmt::sprintf("[%#08x {%.*s}]", static_cast<uint32_t>(id), id.extra, id.c_str());
-        } else {
-            return fmt::sprintf("[%#08x]", static_cast<uint32_t>(id));
-        }
+        return to_string(id);
     }
 
     if (def->name.empty()) {

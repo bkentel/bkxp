@@ -148,9 +148,9 @@ public:
 
         auto const n = std::min(string_.size(), rhs.string_.size());
         std::copy_if(
-            begin(rhs.string_), end(rhs_.string_)
+            begin(rhs.string_), end(rhs.string_)
           , begin(string_)
-          , [n, i = 0u](auto const& c) { return c && i++ < n; }
+          , [n, i = 0u](auto const& c) mutable noexcept { return c && i++ < n; }
         );
 
         return *this;

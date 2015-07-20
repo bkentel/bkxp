@@ -27,6 +27,40 @@ bkrl::item::item(
 }
 
 //--------------------------------------------------------------------------------------------------
+bklib::utf8_string bkrl::item::friendly_name(definitions const& defs) const
+{
+    auto const id  = def();
+    auto const def = defs.find(id);
+
+    if (!def) {
+        return to_string(id);
+    }
+
+    if (def->name.empty()) {
+        return def->id_string;
+    }
+
+    if (flags().test(item_flag::is_corpse)) {
+        auto const cid = def_id_t<tag_creature>(static_cast<uint32_t>(data()));
+        if (!cid) {
+            return fmt::sprintf("unknown remains");
+        }
+
+        if (auto const cdef = defs.find(cid)) {
+            if (cdef->name.empty()) {
+                return fmt::sprintf("the remains of a nameless entity");
+            }
+
+            return fmt::sprintf("the remains of a %s", cdef->name);
+        }
+
+        return fmt::sprintf("the remains of a %s", to_string(cid));
+    }
+
+    return def->name;
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::item bkrl::item_factory::create(random_t& random, item_def const& def)
 {
     return item {instance_id_t<tag_item> {++next_id_}, def};
