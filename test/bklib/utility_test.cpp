@@ -8,8 +8,40 @@
 #include "bklib/utility.hpp"
 #include "bklib/exception.hpp"
 #include "bklib/scope_guard.hpp"
+#include "bklib/assert.hpp"
 #include <fstream>
 #include <algorithm>
+
+TEST_CASE("pseudo_cast", "[bklib][utility]") {
+    struct test_t {
+        uint32_t a;
+        uint16_t b;
+        uint8_t  c;
+        uint8_t  d;
+    };
+
+    static_assert(sizeof(test_t) == sizeof(uint64_t), "");
+
+    test_t const from {
+        uint32_t {0xABCDEF01}
+      , uint16_t {0x1234}
+      , uint8_t  {0x56}
+      , uint8_t  {0x78}
+    };
+
+    auto const to = bklib::pseudo_cast(from, uint64_t {});
+
+    switch (bklib::get_endian_type()) {
+    case bklib::endian_type::little:  REQUIRE(to == 0x78561234abcdef01); break;
+    case bklib::endian_type::big:     REQUIRE(to == 0x01efcdab34125678); break;
+    case bklib::endian_type::unknown: BK_FALLTHROUGH
+    default:
+        REQUIRE(false); break;
+    }
+
+    auto const reverse_to = bklib::pseudo_cast(to, test_t {});
+    REQUIRE(std::memcmp(&from, &reverse_to, sizeof(test_t)) == 0);
+}
 
 TEST_CASE("to_array", "[bklib][utility]") {
     constexpr auto const len = ptrdiff_t {5};

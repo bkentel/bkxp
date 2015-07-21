@@ -11,6 +11,27 @@
 namespace bklib {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+enum class endian_type {
+    unknown, little, big
+};
+
+namespace detail {
+union endian_test {
+    constexpr inline endian_test(uint32_t const n) noexcept : i {n} {}
+
+    uint32_t i;
+    uint8_t  c[4];
+};
+}
+
+//--------------------------------------------------------------------------------------------------
+//! Technically this relies on UB -- is there another method?
+//! This works under MSVC, GCC and Clang for x86, ARM and PowerPC
+//--------------------------------------------------------------------------------------------------
+constexpr inline endian_type get_endian_type() noexcept {
+    return (detail::endian_test {1}.c[0] == 1) ? endian_type::little : endian_type::little;
+}
+
 //--------------------------------------------------------------------------------------------------
 //! Used for strict-aliasing-safe type punning.
 //! @pre sizeof(from) and sizeof(to) must match.
