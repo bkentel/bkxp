@@ -22,6 +22,10 @@
 		<DisplayString>{def_}</DisplayString>
 	</Type>
 
+	<Type Name="bkrl::item">
+		<DisplayString>{def_}</DisplayString>
+	</Type>
+
 	<Type Name="bkrl::creature_def">
 		<DisplayString>{id_string}</DisplayString>
 	</Type>

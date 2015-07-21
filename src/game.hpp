@@ -73,6 +73,8 @@ public:
 
     command_handler_result on_command(command const& cmd);
 
+    context make_context();
+
     void debug_print(int x, int y) const;
 private:
     bklib::timer        timer_;

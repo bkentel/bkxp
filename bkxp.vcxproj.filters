@@ -248,6 +248,9 @@
     <ClCompile Include="src\definitions.cpp">
       <Filter>bkrl</Filter>
     </ClCompile>
+    <ClCompile Include="src\identifier.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bklib.natvis" />

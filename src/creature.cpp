@@ -106,6 +106,12 @@ void bkrl::creature::drop_item(item_pile& dst, int const i)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::creature::drop_items(item_pile& dst)
+{
+    move_items(items_, dst);
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature::creature(
     instance_id_t<tag_creature> const  id
   , creature_def                const& def
@@ -158,6 +164,23 @@ int bkrl::creature::modify(stat_type const stat, int const mod)
     return 0;
 }
 
+//--------------------------------------------------------------------------------------------------
+bklib::utf8_string bkrl::creature::friendly_name(definitions const& defs) const
+{
+    auto const id  = def();
+    auto const def = defs.find(id);
+
+    if (!def) {
+        return to_string(id);
+    }
+
+    if (def->name.empty()) {
+        return def->id_string;
+    }
+
+    return def->name;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::creature_factory
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,9 +196,9 @@ bkrl::creature_factory::~creature_factory() noexcept = default;
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::creature_factory::create(
-    random_t&            random
-  , creature_def const&  def
-  , bklib::ipoint2 const p
+    random_t&             random
+  , creature_def   const& def
+  , bklib::ipoint2 const  p
 ) {
     return creature {instance_id_t<tag_creature> {++next_id_}, def, p};
 }
@@ -226,15 +249,15 @@ void bkrl::attack(context& ctx, map& m, creature& att, creature& def)
     auto const att_name = att_info ? att_info->name.c_str() : "player";
     auto const def_name = def_info ? def_info->name.c_str() : "player";
     ctx.out.write("The %s attacks the %s.", att_name, def_name);
-
-    if (def.is_dead()) {
-        ctx.out.write("The %s dies.", def_name);
-    }
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::advance(context& ctx, map& m, creature& c)
 {
+    if (c.is_dead()) {
+        return;
+    }
+
     if (c.is_player()) {
         return;
     }
@@ -264,8 +287,53 @@ void bkrl::advance(context& ctx, map& m, creature_map& cmap)
         [](bklib::ipoint2 const, creature const& c) {
             return c.is_dead();
         }
-      , [&](bklib::ipoint2 const p, creature const&) {
-            m.remove_creature_at(p);
+      , [&](bklib::ipoint2 const p, creature& c) {
+            kill(ctx, m, c);
         }
     );
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::kill(context& ctx, map& m, creature& c)
+{
+    if (!c.is_dead()) {
+        BK_ASSERT(false); //TODO
+    }
+
+    ctx.out.write("The %s dies.", c.friendly_name(ctx.data));
+
+    if (!make_corpse(ctx, m, c)) {
+        BK_ASSERT(false); //TODO
+    }
+
+    if (!drop_all(ctx, m, c)) {
+        BK_ASSERT(false); //TODO
+    }
+
+    m.remove_creature_at(c.position());
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::item_pile* bkrl::drop_all(context& ctx, map& m, creature& c)
+{
+    return bkrl::with_pile_at(ctx.data, m, c.position(), [&](item_pile& pile) {
+        c.drop_items(pile);
+    });
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::item_pile* bkrl::make_corpse(context& ctx, map& m, creature const& c)
+{
+    return bkrl::with_pile_at(ctx.data, m, c.position(), [&](item_pile& pile) {
+        auto const corpse_def = ctx.data.find(def_id_t<tag_item> {"CORPSE"});
+        if (!corpse_def) {
+            BK_ASSERT(false); //TODO
+        }
+
+        auto corpse = ctx.ifactory.create(ctx.random[random_stream::item], *corpse_def);
+        corpse.data() = static_cast<uint32_t>(c.def());
+        corpse.flags().set(item_flag::is_corpse);
+
+        pile.insert(std::move(corpse));
+    });
 }

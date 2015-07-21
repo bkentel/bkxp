@@ -7,6 +7,7 @@
 #include "bklib/assert.hpp"
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
+#include "bklib/flag_set.hpp"
 
 #include <forward_list>
 #include <array>
@@ -25,6 +26,18 @@ class  item_factory;
 struct terrain_entry;
 using  item_dictionary = bklib::dictionary<item_def>;
 using  item_map = bklib::spatial_map_2d<item_pile>;
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+enum class item_flag : uint32_t {
+    is_container
+  , is_corpse
+
+  , enum_size
+};
+
+using item_flags = bklib::flag_set<item_flag>;
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -63,9 +76,19 @@ public:
     bool can_place_on(terrain_entry const& ter) const;
 
     void update();
+
+    item_flags& flags()       noexcept { return flags_; }
+    item_flags  flags() const noexcept { return flags_; }
+
+    uint64_t& data()       noexcept { return data_; }
+    uint64_t  data() const noexcept { return data_; }
+
+    bklib::utf8_string friendly_name(definitions const& defs) const;
 private:
     item(instance_id_t<tag_item> id, item_def const& def);
 
+    uint64_t                data_;
+    item_flags              flags_;
     instance_id_t<tag_item> id_;
     def_id_t<tag_item>      def_;
 };

@@ -181,6 +181,8 @@ public:
     }
 
     int modify(stat_type stat, int mod);
+
+    bklib::utf8_string friendly_name(definitions const& defs) const;
 private:
     creature(instance_id_t<tag_creature> id, creature_def const& def, bklib::ipoint2 p);
 
@@ -213,6 +215,10 @@ private:
 bool move_by(context& ctx, creature& c, map& m, bklib::ivec2 v);
 
 void attack(context& ctx, map& m, creature& att, creature& def);
+
+void kill(context& ctx, map& m, creature& c);
+item_pile* make_corpse(context& ctx, map& m, creature const& c);
+item_pile* drop_all(context& ctx, map& m, creature& c);
 
 void advance(context& ctx, map& m, creature& c);
 void advance(context& ctx, map& m, creature_map& cmap);
