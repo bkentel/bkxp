@@ -84,7 +84,7 @@ inline bool operator<(tagged_value<Tag, T> const& lhs, tagged_value<Tag, T> cons
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <size_t N>
-decltype(auto) to_array(utf8_string_view const src) noexcept {
+inline decltype(auto) to_array(utf8_string_view const src) noexcept {
     std::array<char, N> result;
 
     if (auto const n = std::min(N - 1, src.size())) {
@@ -95,6 +95,16 @@ decltype(auto) to_array(utf8_string_view const src) noexcept {
     }
 
     return result;
+}
+
+template <>
+constexpr inline decltype(auto) to_array<0>(utf8_string_view) noexcept {
+    return std::array<char, 0> {};
+}
+
+template <>
+constexpr inline decltype(auto) to_array<1>(utf8_string_view) noexcept {
+    return std::array<char, 1> {0};
 }
 
 template <size_t Extra = 12, typename T = std::uint32_t>

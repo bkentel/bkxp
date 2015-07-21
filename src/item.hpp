@@ -80,8 +80,8 @@ public:
     item_flags& flags()       noexcept { return flags_; }
     item_flags  flags() const noexcept { return flags_; }
 
-    uint64_t& data()       noexcept { return data_; };
-    uint64_t  data() const noexcept { return data_; };
+    uint64_t& data()       noexcept { return data_; }
+    uint64_t  data() const noexcept { return data_; }
 
     bklib::utf8_string friendly_name(definitions const& defs) const;
 private:

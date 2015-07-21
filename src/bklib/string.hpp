@@ -11,6 +11,15 @@ namespace bklib {
 using utf8_string_view = boost::basic_string_ref<char, std::char_traits<char>>;
 using utf8_string      = std::string;
 
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+template <size_t N>
+inline constexpr bklib::utf8_string_view make_string_view(char const (&str)[N]) noexcept {
+    static_assert(N > 0, "");
+    return bklib::utf8_string_view {str, N - 1};
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //--------------------------------------------------------------------------------------------------
 //!
