@@ -12,6 +12,29 @@
 #include <fstream>
 #include <algorithm>
 
+TEST_CASE("tagged_value", "[bklib][utility]") {
+    using type = int;
+    using tagged_t = bklib::tagged_value<struct tag, type>;
+
+    REQUIRE(static_cast<type>(tagged_t {}) == type {});
+    REQUIRE(static_cast<type>(tagged_t {type {1}}) == type {1});
+
+    REQUIRE(!tagged_t {});
+    REQUIRE(!!tagged_t {1});
+
+    constexpr tagged_t const a {1};
+    constexpr tagged_t const b {2};
+
+    REQUIRE(a < b);
+    REQUIRE(!(b < a));
+
+    REQUIRE(a == a);
+    REQUIRE(b == b);
+
+    REQUIRE(a != b);
+    REQUIRE(!(a == b));
+}
+
 TEST_CASE("pseudo_cast", "[bklib][utility]") {
     struct test_t {
         uint32_t a;
