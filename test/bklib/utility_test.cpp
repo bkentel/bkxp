@@ -12,6 +12,116 @@
 #include <fstream>
 #include <algorithm>
 
+TEST_CASE("hash_id", "[bklib][utility]") {
+    struct tag;
+    using id_t = bklib::hash_id<tag>;
+
+    static_assert(bklib::hash_id_base<0>::extra == 0, "");
+    static_assert(bklib::hash_id_base<1>::extra == 4, "");
+    static_assert(bklib::hash_id_base<2>::extra == 4, "");
+    static_assert(bklib::hash_id_base<3>::extra == 4, "");
+    static_assert(bklib::hash_id_base<4>::extra == 4, "");
+    static_assert(bklib::hash_id_base<5>::extra == 4 + sizeof(size_t), "");
+
+    SECTION("default construct") {
+        id_t id;
+
+        for (int i = 0; i < 1; ++i) {
+            REQUIRE(id.c_str());
+            REQUIRE(!id.c_str()[0]);
+            REQUIRE(static_cast<uint32_t>(id) == 0);
+            REQUIRE(!id);
+            id.reset();
+        }
+    }
+
+    SECTION("construct from value") {
+        constexpr auto const value = 100u;
+
+        id_t id {value};
+
+        for (int i = 0; i < 1; ++i) {
+            REQUIRE(id.c_str());
+            REQUIRE(!id.c_str()[0]);
+            REQUIRE(static_cast<uint32_t>(id) == value);
+            REQUIRE(!!id);
+            id.reset(value);
+        }
+    }
+
+    SECTION("construct from string") {
+        constexpr auto const str  = bklib::make_string_view("test string");
+        constexpr auto const hash = bklib::static_djb2_hash(str);
+
+        id_t id {str};
+
+        for (int i = 0; i < 1; ++i) {
+            REQUIRE(str == id.c_str());
+            REQUIRE(static_cast<uint32_t>(id) == hash);
+            REQUIRE(!!id);
+            id.reset(str);
+        }
+    }
+
+    SECTION("construct from string + len") {
+        constexpr auto const str  = bklib::make_string_view("test string");
+        constexpr auto const hash = bklib::static_djb2_hash(str);
+
+        id_t id {str.data(), str.size()};
+
+        for (int i = 0; i < 1; ++i) {
+            REQUIRE(str == id.c_str());
+            REQUIRE(static_cast<uint32_t>(id) == hash);
+            REQUIRE(!!id);
+            id.reset(str.data(), str.size());
+        }
+    }
+
+    SECTION("construct from oversize id") {
+        constexpr auto const str  = bklib::make_string_view("long test string");
+        constexpr auto const hash = bklib::static_djb2_hash(str);
+
+        bklib::hash_id<tag, uint32_t, 24> const id_other {str};
+
+        id_t const id = id_other;
+        REQUIRE(str.substr(0, 11) == id.c_str());
+        REQUIRE(static_cast<uint32_t>(id) == hash);
+        REQUIRE(!!id);
+    }
+
+    SECTION("construct from undersize id") {
+        constexpr auto const str  = bklib::make_string_view("test");
+        constexpr auto const hash = bklib::static_djb2_hash(str);
+
+        bklib::hash_id<tag, uint32_t, 5> const id_other {str};
+
+        id_t const id = id_other;
+        REQUIRE(str.substr(0, 5) == id.c_str());
+        REQUIRE(static_cast<uint32_t>(id) == hash);
+        REQUIRE(!!id);
+    }
+
+    SECTION("comparisons") {
+        constexpr auto const str = bklib::make_string_view("test string");
+
+        REQUIRE(id_t {str} == id_t {str});
+        REQUIRE(id_t {str} == str);
+        REQUIRE(str == id_t {str});
+
+        REQUIRE_FALSE(id_t {str} != id_t {str});
+        REQUIRE_FALSE(id_t {str} != str);
+        REQUIRE_FALSE(str != id_t {str});
+
+        using id2_t = bklib::hash_id<tag, uint32_t, 0>;
+
+        REQUIRE(id_t {str} == id2_t {str});
+        REQUIRE(id2_t {str} == id_t {str});
+
+        REQUIRE_FALSE(id_t {str} != id2_t {str});
+        REQUIRE_FALSE(id2_t {str} != id_t {str});
+    }
+}
+
 TEST_CASE("tagged_value", "[bklib][utility]") {
     using type = int;
     using tagged_t = bklib::tagged_value<struct tag, type>;

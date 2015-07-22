@@ -139,6 +139,7 @@ constexpr inline decltype(auto) to_array<1>(utf8_string_view) noexcept {
 
 template <size_t Extra = 12, typename T = std::uint32_t>
 class hash_id_base {
+    template <size_t, typename> friend class hash_id_base;
 public:
     static_assert(std::is_integral<T>::value, "");
 
@@ -185,19 +186,16 @@ public:
     template <size_t N>
     hash_id_base& operator=(hash_id_base<N, T> const& rhs) {
         value_ = rhs.value_;
-
-        auto const n = std::min(string_.size(), rhs.string_.size());
-        std::copy_if(
-            begin(rhs.string_), end(rhs.string_)
-          , begin(string_)
-          , [n, i = 0u](auto const& c) mutable noexcept { return c && i++ < n; }
-        );
-
+        string_ = to_array<Extra>(utf8_string_view {rhs.string_.data()});
         return *this;
     }
 
     void reset() noexcept {
         *this = hash_id_base {};
+    }
+
+    void reset(T const value) noexcept {
+        *this = hash_id_base {value};
     }
 
     void reset(utf8_string_view const str) noexcept {
