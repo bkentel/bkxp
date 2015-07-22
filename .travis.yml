@@ -18,9 +18,7 @@ install:
   
   - if [ "$COMPILER" = "g++" ]; then export CXX="g++-${COMPILER_GCC}" CC="gcc-${COMPILER_GCC}"; fi
   - if [ "$COMPILER" = "clang++" ]; then export CXX="clang++-${COMPILER_CLANG}" CC="clang-${COMPILER_CLANG}"; fi
-  
-  - if [ "$COMPILER" = "g++" ]; then pip install --user cpp-coveralls; fi
-  
+   
   ############################################################################
   # Install boost, catch, pcg-random, and rapidjson dependencies
   ############################################################################
@@ -65,5 +63,6 @@ addons:
 script: $CXX --version && make -j2 && ./bkxp
 
 after_success:
-  - if [ "$COMPILER" = "g++" ]; then coveralls -b ./ --gcov 'gcov\-5' --gcov-options '\-lp'; fi
+  - if [ "$COMPILER" = "g++" ]; then find "./src" -name "*.cpp" -o -name "*.hpp" -exec gcov-5 {} \; ; fi
+  - if [ "$COMPILER" = "g++" ]; then bash <(curl -s https://codecov.io/bash); fi
   
