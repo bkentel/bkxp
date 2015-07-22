@@ -4,9 +4,13 @@ compiler:
   - clang
   - gcc
 
+cache:
+  directories:
+  - $HOME/build/bkentel/bkxp/deps
+  
 install:
   - DEPS_DIR="${PWD}/deps"
-  - mkdir ${DEPS_DIR} && cd ${DEPS_DIR}
+  - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
    
   - COMPILER="${CXX}"
   - COMPILER_CLANG="3.7"
@@ -18,47 +22,15 @@ install:
   ############################################################################
   # Install boost, catch, pcg-random, and rapidjson dependencies
   ############################################################################
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/core.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/config.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/preprocessor.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/assert.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/static_assert.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/type_traits.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/mpl.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/integer.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/throw_exception.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/smart_ptr.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/exception.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/predef.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/utility.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/tuple.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/boostorg/random.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/philsquared/Catch.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/imneme/pcg-cpp.git
-  - travis_retry git clone --depth 1 --recursive --quiet https://github.com/miloyip/rapidjson.git
+  - bash ../install_boost.sh
   
   # Catch is expected to be accessible from <catch/catch.hpp>
-  - mkdir ./Catch/include/catch && ln ./Catch/single_include/catch.hpp ./Catch/include/catch/catch.hpp
-  
-  ############################################################################
-  # Install a recent CMake
-  ############################################################################
-  - if [ "$COMPILER" = "clang++" ]; then URL_CMAKE=http://www.cmake.org/files/v3.2/cmake-3.2.1-Linux-x86_64.tar.gz; fi
-  - if [ "$COMPILER" = "clang++" ]; then mkdir cmake; fi
-  - if [ "$COMPILER" = "clang++" ]; then travis_retry wget --quiet -O - ${URL_CMAKE} | tar --strip-components=1 -xz -C cmake; fi
-  - if [ "$COMPILER" = "clang++" ]; then export PATH=${PWD}/cmake/bin:${PATH}; fi
-  
+  - mkdir -p ./Catch/include/catch && ln -f ./Catch/single_include/catch.hpp ./Catch/include/catch/catch.hpp
+    
   ############################################################################
   # Install and compile the compiler runtime for clang
   ############################################################################
-  - URL_LLVM=https://github.com/llvm-mirror/llvm/archive/master.tar.gz
-  - URL_LLVM_COMPILER_RT=https://github.com/llvm-mirror/compiler-rt/archive/master.tar.gz
-  - FLAGS_LLVM="-DCMAKE_C_COMPILER=clang-${COMPILER_CLANG} -DCMAKE_CXX_COMPILER=clang++-${COMPILER_CLANG} -DCMAKE_BUILD_TYPE:STRING=Release"
-  
-  - if [ "$COMPILER" = "clang++" ]; then mkdir -p llvm llvm/build llvm/projects/compiler-rt; fi
-  - if [ "$COMPILER" = "clang++" ]; then travis_retry wget --quiet -O - ${URL_LLVM} | tar --strip-components=1 -xz -C llvm; fi
-  - if [ "$COMPILER" = "clang++" ]; then travis_retry wget --quiet -O - ${URL_LLVM_COMPILER_RT} | tar --strip-components=1 -xz -C llvm/projects/compiler-rt; fi
-  - if [ "$COMPILER" = "clang++" ]; then (cd llvm/build && cmake .. ${FLAGS_LLVM} && make compiler-rt -j2); fi
+  - if [ "$COMPILER" = "clang++" ]; then bash ../install_llvm.sh; fi
   
 before_script:
   ############################################################################
