@@ -23,6 +23,8 @@ public:
         active_ = rhs.active_;
 
         rhs.dismiss();
+
+        return *this;
     }
 
     ~scope_guard() {
