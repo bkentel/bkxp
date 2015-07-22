@@ -19,6 +19,8 @@ install:
   - if [ "$COMPILER" = "g++" ]; then export CXX="g++-${COMPILER_GCC}" CC="gcc-${COMPILER_GCC}"; fi
   - if [ "$COMPILER" = "clang++" ]; then export CXX="clang++-${COMPILER_CLANG}" CC="clang-${COMPILER_CLANG}"; fi
   
+  - if [ "$COMPILER" = "g++" ]; then pip install --user cpp-coveralls; fi
+  
   ############################################################################
   # Install boost, catch, pcg-random, and rapidjson dependencies
   ############################################################################
@@ -40,7 +42,7 @@ before_script:
   
   - CLANG_RT_DIR="${DEPS_DIR}/llvm/build/lib/clang/3.8.0/"
   
-  - if [ "$COMPILER" = "g++" ]; then export CPPFLAGS="-g -fsanitize=undefined,address" LDFLAGS="-v -fsanitize=undefined,address"; fi
+  - if [ "$COMPILER" = "g++" ]; then export CPPFLAGS="-g -fsanitize=undefined,address --coverage" LDFLAGS="-v -fsanitize=undefined,address --coverage"; fi
   - if [ "$COMPILER" = "clang++" ]; then export CPPFLAGS="-g -flto -fsanitize=undefined,address -fsanitize-blacklist=blacklist.txt" LDFLAGS="-v -flto -resource-dir=${CLANG_RT_DIR} -fsanitize=undefined,address"; fi
   - if [ "$COMPILER" = "clang++" ]; then export ASAN_OPTIONS=detect_odr_violation=1; fi
   - if [ "$COMPILER" = "clang++" ]; then echo 'src:/usr/bin/\.\./lib/gcc/x86_64-linux-gnu/5\.1\.0/\.\./\.\./\.\./\.\./include/c\+\+/5\.1\.0/bits/ios_base\.h' > blacklist.txt; fi
@@ -61,3 +63,7 @@ addons:
     - binutils-gold
 
 script: $CXX --version && make -j2 && ./bkxp
+
+after_success:
+  - if [ "$COMPILER" = "g++" ]; then coveralls -b ./ --gcov 'gcov\-5' --gcov-options '\-lp'; fi
+  
