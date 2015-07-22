@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="boost::basic_string_ref&lt;*,*&gt;">
+		<DisplayString Condition="len_ ==   strlen(ptr_)">{ptr_,[len_]s8} [equal]</DisplayString>
+		<DisplayString Condition="len_ &gt; strlen(ptr_)">{ptr_,[len_]s8} [more]</DisplayString>
+		<DisplayString Condition="len_ &lt; strlen(ptr_)">{ptr_,s8} [less]</DisplayString>
+	</Type>
+
 	<Type Name="bklib::hash_id&lt;*,*,*&gt;">
 		<DisplayString Condition="$T3 == 0">[{value_, X}]</DisplayString>
-		<DisplayString Condition="$T3 != 0">[{value_, X}⇒{string_._Elems,s8}]</DisplayString>
+		<DisplayString Condition="$T3 != 0">[{value_, X}⇒{string_._Elems,s8b}]</DisplayString>
 	</Type>
 
 	<Type Name="bklib::tagged_value&lt;*,*&gt;">
