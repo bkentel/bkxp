@@ -52,7 +52,7 @@ struct item_def : definition_base {
     }
 
     id_type id;
-    int32_t weight;
+    int32_t weight = 1;
 };
 
 inline auto const& get_id(item_def const& def) noexcept {
