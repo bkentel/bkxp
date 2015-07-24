@@ -265,26 +265,19 @@ void bkrl::detail::system_impl::do_events(bool const wait)
         }
     };
 
-    auto const do_pending = [&] {
-        int n = 0;
-        while (is_running_ && SDL_PollEvent(&event)) {
-            ++n;
+    SDL_ClearError();
+    if (!is_running_ || !wait || SDL_WaitEventTimeout(nullptr, 100)) {
+        while (SDL_PollEvent(&event)) {
             process_event();
-        };
-
-        return n;
-    };
-
-    if (is_running_ && wait) {
-        if (!SDL_WaitEvent(&event)) {
-            BOOST_THROW_EXCEPTION(bklib::platform_error {}
-              << boost::errinfo_api_function {"SDL_WaitEvent"});
         }
-
-        process_event();
+        return;
     }
 
-    do_pending();
+    auto const msg = SDL_GetError();
+    if (*msg) {
+        BOOST_THROW_EXCEPTION(bklib::platform_error {}
+            << boost::errinfo_api_function {"SDL_WaitEvent"});
+    }
 }
 
 //----------------------------------------------------------------------------------------------
