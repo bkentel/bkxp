@@ -26,7 +26,7 @@
     , "description": "The non-corporeal remains of a once living being."
     , "symbol": "g"
     , "symbol_color": "GREY"
-    , "tags": ["INVISIBLE", "ETHEREAL", "UNDEAD", "EVIL"]
+    , "tags": ["NO_CORPSE", "INVISIBLE", "ETHEREAL", "UNDEAD", "EVIL"]
     }
   ]
 }

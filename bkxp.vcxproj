@@ -95,6 +95,7 @@
     <ClCompile Include="test\bsp_layout_test.cpp" />
     <ClCompile Include="test\color_test.cpp" />
     <ClCompile Include="test\command_test.cpp" />
+    <ClCompile Include="test\creature_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />
     <ClCompile Include="test\map_test.cpp" />

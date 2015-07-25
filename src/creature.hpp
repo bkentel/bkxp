@@ -55,6 +55,22 @@ struct creature_def : definition_base {
     creature_flags flags;
 };
 
+constexpr inline bool operator==(creature_def const& lhs, creature_def::id_type const& rhs) noexcept {
+    return lhs.id == rhs;
+}
+
+constexpr inline bool operator==(creature_def::id_type const& lhs, creature_def const& rhs) noexcept {
+    return rhs == lhs;
+}
+
+constexpr inline bool operator!=(creature_def const& lhs, creature_def::id_type const& rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+constexpr inline bool operator!=(creature_def::id_type const& lhs, creature_def const& rhs) noexcept {
+    return !(lhs == rhs);
+}
+
 inline auto const& get_id(creature_def const& def) noexcept {
     return def.id;
 }
@@ -222,6 +238,10 @@ item_pile* drop_all(context& ctx, map& m, creature& c);
 
 void advance(context& ctx, map& m, creature& c);
 void advance(context& ctx, map& m, creature_map& cmap);
+
+bool has_tag(creature_def const& def, def_id_t<tag_string_tag> tag);
+bool has_tag(creature const& c, creature_dictionary const& defs, def_id_t<tag_string_tag> tag);
+bool has_tag(context const& ctx, creature const& c, def_id_t<tag_string_tag> tag);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl
