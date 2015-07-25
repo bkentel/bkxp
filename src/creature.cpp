@@ -348,10 +348,7 @@ bkrl::item_pile* bkrl::make_corpse(context& ctx, map& m, creature const& c)
 //--------------------------------------------------------------------------------------------------
 bool bkrl::has_tag(creature_def const& def, def_id_t<tag_string_tag> const tag)
 {
-    auto const last = std::end(def.tags);
-    auto const it = std::lower_bound(begin(def.tags), last, tag);
-
-    return it != last && *it == tag;
+    return has_tag(def.tags, tag);
 }
 
 //--------------------------------------------------------------------------------------------------

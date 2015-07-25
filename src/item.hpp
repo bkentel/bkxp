@@ -161,9 +161,11 @@ inline void move_item(item_pile& src, item_pile& dst, int const index) {
 //--------------------------------------------------------------------------------------------------
 class item_factory {
 public:
+    item_factory() = default;
+
     item create(random_t& random, item_def const& def);
 private:
-    instance_id_t<tag_item>::type next_id_;
+    instance_id_t<tag_item>::type next_id_ = 0;
 };
 
 void advance(context& ctx, map& m, item& item);

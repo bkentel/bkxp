@@ -25,7 +25,11 @@ bkrl::item::item(
   , id_    {id}
   , def_   {get_id(def)}
 {
-    def.tags()
+    using namespace bklib::literals;
+
+    if (has_tag(def.tags, make_tag("CORPSE"_hash))) {
+        flags().set(item_flag::is_corpse);
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
