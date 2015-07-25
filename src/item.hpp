@@ -55,6 +55,22 @@ struct item_def : definition_base {
     int32_t weight = 1;
 };
 
+constexpr inline bool operator==(item_def const& lhs, item_def::id_type const& rhs) noexcept {
+    return lhs.id == rhs;
+}
+
+constexpr inline bool operator==(item_def::id_type const& lhs, item_def const& rhs) noexcept {
+    return rhs == lhs;
+}
+
+constexpr inline bool operator!=(item_def const& lhs, item_def::id_type const& rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+constexpr inline bool operator!=(item_def::id_type const& lhs, item_def const& rhs) noexcept {
+    return !(lhs == rhs);
+}
+
 inline auto const& get_id(item_def const& def) noexcept {
     return def.id;
 }
@@ -153,5 +169,9 @@ private:
 void advance(context& ctx, map& m, item& item);
 void advance(context& ctx, map& m, item_pile& items);
 void advance(context& ctx, map& m, item_map& imap);
+
+bool has_tag(item_def const& def, def_id_t<tag_string_tag> tag);
+bool has_tag(item const& c, item_dictionary const& defs, def_id_t<tag_string_tag> tag);
+bool has_tag(context const& ctx, item const& c, def_id_t<tag_string_tag> tag);
 
 } //namespace bkrl

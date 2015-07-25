@@ -42,6 +42,11 @@ public:
         BK_PRECONDITION(color_defs_);
         return *color_defs_;
     }
+
+    bklib::dictionary<item_def> const& items() const noexcept {
+        BK_PRECONDITION(item_defs_);
+        return *item_defs_;
+    }
 private:
     bklib::dictionary<creature_def>* creature_defs_;
     bklib::dictionary<item_def>*     item_defs_;
@@ -49,6 +54,12 @@ private:
 };
 
 using tag_list = std::vector<bkrl::def_id_t<tag_string_tag>>;
+
+inline bool has_tag(tag_list const& tags, bkrl::def_id_t<tag_string_tag> const tag) noexcept {
+    auto const last = std::end(tags);
+    auto const it = std::lower_bound(begin(tags), last, tag);
+    return it != last && *it == tag;
+}
 
 //--------------------------------------------------------------------------------------------------
 struct definition_base {
