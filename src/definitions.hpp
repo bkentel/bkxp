@@ -2,6 +2,7 @@
 
 #include "identifier.hpp"
 
+#include "bklib/assert.hpp"
 #include "bklib/string.hpp"
 #include "bklib/utility.hpp"
 
@@ -36,6 +37,11 @@ public:
     creature_def const* random_creature(random_state& rnd, random_stream stream) const;
     item_def     const* random_item(random_state& rnd, random_stream stream) const;
     color_def    const* random_color(random_state& rnd, random_stream stream) const;
+
+    bklib::dictionary<color_def> const& colors() const noexcept {
+        BK_PRECONDITION(color_defs_);
+        return *color_defs_;
+    }
 private:
     bklib::dictionary<creature_def>* creature_defs_;
     bklib::dictionary<item_def>*     item_defs_;

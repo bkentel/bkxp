@@ -303,11 +303,11 @@ void bkrl::kill(context& ctx, map& m, creature& c)
     ctx.out.write("The %s dies.", c.friendly_name(ctx.data));
 
     if (!make_corpse(ctx, m, c)) {
-        BK_ASSERT(false); //TODO
+        BK_DEBUG_BREAK; //TODO
     }
 
     if (!drop_all(ctx, m, c)) {
-        BK_ASSERT(false); //TODO
+        BK_DEBUG_BREAK; //TODO
     }
 
     m.remove_creature_at(c.position());

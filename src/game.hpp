@@ -76,6 +76,9 @@ public:
     context make_context();
 
     void debug_print(int x, int y) const;
+
+    map&       current_map()       noexcept;
+    map const& current_map() const noexcept;
 private:
     bklib::timer        timer_;
     random_state        random_;
@@ -90,7 +93,8 @@ private:
     definitions         definitions_;
     creature_factory    creature_factory_;
     item_factory        item_factory_;
-    map                 current_map_;
+    std::vector<std::unique_ptr<map>> maps_;
+    map*                current_map_;
     output              output_;
 
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
