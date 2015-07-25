@@ -252,6 +252,9 @@
       <Filter>bkrl</Filter>
     </ClCompile>
     <ClCompile Include="test\item_test.cpp">
+		<Filter>test\bkrl</Filter>
+	</ClCompile>
+	<ClCompile Include="test\creature_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>

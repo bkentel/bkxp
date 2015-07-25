@@ -47,13 +47,26 @@ public:
         BK_PRECONDITION(item_defs_);
         return *item_defs_;
     }
+
+    bklib::dictionary<creature_def> const& creatures() const noexcept {
+        BK_PRECONDITION(creature_defs_);
+        return *creature_defs_;
+    }
 private:
     bklib::dictionary<creature_def>* creature_defs_;
     bklib::dictionary<item_def>*     item_defs_;
     bklib::dictionary<color_def>*    color_defs_;
 };
 
-using tag_list = std::vector<bkrl::def_id_t<tag_string_tag>>;
+using tag_list = std::vector<def_id_t<tag_string_tag>>;
+
+inline auto make_tag(bklib::utf8_string_view const str) noexcept {
+    return def_id_t<tag_string_tag> {str};
+}
+
+inline auto make_tag(uint32_t const hash) noexcept {
+    return def_id_t<tag_string_tag> {hash};
+}
 
 inline bool has_tag(tag_list const& tags, bkrl::def_id_t<tag_string_tag> const tag) noexcept {
     auto const last = std::end(tags);

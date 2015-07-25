@@ -265,37 +265,37 @@ public:
 };
 
 template <typename Tag, typename T, size_t E>
-inline bool operator==(hash_id<Tag, T, E> const& lhs, utf8_string_view const rhs) noexcept {
+constexpr inline bool operator==(hash_id<Tag, T, E> const& lhs, utf8_string_view const rhs) noexcept {
     return static_cast<T>(lhs) == djb2_hash(rhs);
 }
 
 template <typename Tag, typename T, size_t E>
-inline bool operator==(utf8_string_view const lhs, hash_id<Tag, T, E> const& rhs) noexcept {
+constexpr inline bool operator==(utf8_string_view const lhs, hash_id<Tag, T, E> const& rhs) noexcept {
     return (rhs == lhs);
 }
 
 template <typename Tag, typename T, size_t E>
-inline bool operator!=(hash_id<Tag, T, E> const& lhs, utf8_string_view const rhs) noexcept {
+constexpr inline bool operator!=(hash_id<Tag, T, E> const& lhs, utf8_string_view const rhs) noexcept {
     return !(lhs == rhs);
 }
 
 template <typename Tag, typename T, size_t E>
-inline bool operator!=(utf8_string_view const lhs, hash_id<Tag, T, E> const& rhs) noexcept {
+constexpr inline bool operator!=(utf8_string_view const lhs, hash_id<Tag, T, E> const& rhs) noexcept {
     return !(lhs == rhs);
 }
 
 template <typename Tag, typename T, size_t E0, size_t E1>
-inline bool operator==(hash_id<Tag, T, E0> const& lhs, hash_id<Tag, T, E1> const& rhs) noexcept {
+constexpr inline bool operator==(hash_id<Tag, T, E0> const& lhs, hash_id<Tag, T, E1> const& rhs) noexcept {
     return static_cast<T>(lhs) == static_cast<T>(rhs);
 }
 
 template <typename Tag, typename T, size_t E0, size_t E1>
-inline bool operator!=(hash_id<Tag, T, E0> const& lhs, hash_id<Tag, T, E1> const& rhs) noexcept {
+constexpr inline bool operator!=(hash_id<Tag, T, E0> const& lhs, hash_id<Tag, T, E1> const& rhs) noexcept {
     return !(lhs == rhs);
 }
 
 template <typename Tag, typename T, size_t E0, size_t E1>
-inline bool operator<(hash_id<Tag, T, E0> const& lhs, hash_id<Tag, T, E1> const& rhs) noexcept {
+constexpr inline bool operator<(hash_id<Tag, T, E0> const& lhs, hash_id<Tag, T, E1> const& rhs) noexcept {
     return static_cast<T>(lhs) < static_cast<T>(rhs);
 }
 
