@@ -49,15 +49,16 @@ addons:
     sources:
     - ubuntu-toolchain-r-test
     - llvm-toolchain-precise
+    - llvm-toolchain-precise-3.7
     packages:
     - cmake
     - gcc-5
     - g++-5
-    - llvm-3.7
-    - llvm-3.7-dev
-    - libllvm3.7
-    - llvm-3.7-runtime
-    - clang-3.7
+    - llvm-3.8
+    - llvm-3.8-dev
+    - libllvm3.8
+    - llvm-3.8-runtime
+    - clang-3.8
     - binutils-gold
 
 script: $CXX --version && make -j2 && ./bkxp
