@@ -300,10 +300,11 @@ void bkrl::kill(context& ctx, map& m, creature& c)
         BK_ASSERT(false); //TODO
     }
 
-    ctx.out.write("The %s dies.", c.friendly_name(ctx.data));
+    auto const& name = c.friendly_name(ctx.data);
+    ctx.out.write("The %s dies.", name);
 
     if (!make_corpse(ctx, m, c)) {
-        BK_DEBUG_BREAK; //TODO
+        ctx.out.write("The %s evaporates into nothingness.", name);
     }
 
     if (!drop_all(ctx, m, c)) {
@@ -324,6 +325,12 @@ bkrl::item_pile* bkrl::drop_all(context& ctx, map& m, creature& c)
 //--------------------------------------------------------------------------------------------------
 bkrl::item_pile* bkrl::make_corpse(context& ctx, map& m, creature const& c)
 {
+    using namespace bklib::literals;
+
+    if (has_tag(ctx, c, make_tag("NO_CORPSE"_hash))) {
+        return nullptr;
+    }
+
     return bkrl::with_pile_at(ctx.data, m, c.position(), [&](item_pile& pile) {
         auto const corpse_def = ctx.data.find(def_id_t<tag_item> {"CORPSE"});
         if (!corpse_def) {
@@ -336,4 +343,29 @@ bkrl::item_pile* bkrl::make_corpse(context& ctx, map& m, creature const& c)
 
         pile.insert(std::move(corpse));
     });
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::has_tag(creature_def const& def, def_id_t<tag_string_tag> const tag)
+{
+    auto const last = std::end(def.tags);
+    auto const it = std::lower_bound(begin(def.tags), last, tag);
+
+    return it != last && *it == tag;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::has_tag(creature const& c, creature_dictionary const& defs, def_id_t<tag_string_tag> const tag)
+{
+    if (auto const def = defs.find(c.def())) {
+        return has_tag(*def, tag);
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::has_tag(context const& ctx, creature const& c, def_id_t<tag_string_tag> const tag)
+{
+    return has_tag(c, ctx.data.creatures(), tag);
 }
