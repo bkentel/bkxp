@@ -25,6 +25,11 @@ bkrl::item::item(
   , id_    {id}
   , def_   {get_id(def)}
 {
+    using namespace bklib::literals;
+
+    if (has_tag(def.tags, make_tag("CORPSE"_hash))) {
+        flags().set(item_flag::is_corpse);
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -86,4 +91,26 @@ void bkrl::advance(context& ctx, map& m, item_map& imap)
     imap.for_each_data([&](item_pile& items) {
         advance(ctx, m, items);
     });
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::has_tag(item_def const& def, def_id_t<tag_string_tag> const tag)
+{
+    return has_tag(def.tags, tag);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::has_tag(item const& c, item_dictionary const& defs, def_id_t<tag_string_tag> const tag)
+{
+    if (auto const def = defs.find(c.def())) {
+        return has_tag(*def, tag);
+    }
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::has_tag(context const& ctx, item const& c, def_id_t<tag_string_tag> const tag)
+{
+    return has_tag(c, ctx.data.items(), tag);
 }
