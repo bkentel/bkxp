@@ -105,6 +105,11 @@ bkrl::game::game()
         }
     };
 
+    system_.on_request_quit = [&] {
+        on_quit();
+        return !system_.is_running();
+    };
+
     ////
 
     using namespace std::chrono_literals;
