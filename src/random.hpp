@@ -97,6 +97,7 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
+//! @returns a uniform random value in [lo, hi].
 //! @pre lo <= hi
 //! @pre abs(hi - lo) <= std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
@@ -118,6 +119,33 @@ inline bklib::ipoint2 random_point(random_t& random, bklib::irect const r) noexc
         random_range(random, r.left, r.right - 1)
       , random_range(random, r.top,  r.bottom - 1)
     };
+}
+
+//--------------------------------------------------------------------------------------------------
+//! @pre r is a proper rectangle
+//! @pre r.width()  <= std::numeric_limits<int>::max()
+//! @pre r.height() <= std::numeric_limits<int>::max()
+//--------------------------------------------------------------------------------------------------
+inline bklib::ipoint2 random_point_border(random_t& random, bklib::irect const r) noexcept {
+    auto const random_y = [&]() noexcept {
+        return random_range(random, r.top, r.bottom - 1);
+    };
+
+    auto const random_x = [&]() noexcept {
+        return random_range(random, r.left, r.right - 1);
+    };
+
+    switch (random_range(random, 0, 3)) {
+    case 0: return {r.left,     random_y()};
+    case 1: return {r.right,    random_y()};
+    case 2: return {random_x(), r.top};
+    case 3: return {random_x(), r.bottom};
+    default:
+        BK_ASSERT(false);
+        break;
+    }
+
+    return {0, 0};
 }
 
 //--------------------------------------------------------------------------------------------------

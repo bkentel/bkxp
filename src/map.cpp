@@ -3,6 +3,7 @@
 #include "view.hpp"
 #include "color.hpp"
 #include "context.hpp"
+#include "bsp_layout.hpp"
 
 #include "bklib/algorithm.hpp"
 #include "bklib/dictionary.hpp"
@@ -174,6 +175,72 @@ private:
 bkrl::map::map()
   : render_data_ {std::make_unique<render_data_t>()}
 {
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::map::map(context& ctx)
+  : map {}
+{
+    set_draw_colors(ctx.data.colors());
+
+    auto& random = ctx.random[random_stream::substantive];
+
+    //
+    // use slightly smaller bounds
+    //
+    auto const map_bounds = [&] {
+        auto result = bounds();
+
+        BK_ASSERT(result.width() > 1 && result.height() > 1);
+
+        result.right  -= 1;
+        result.bottom -= 1;
+
+        return result;
+    }();
+
+    //
+    // generate rooms
+    //
+    bsp_layout layout {map_bounds};
+    layout.generate(random, [&](bklib::irect const region) {
+        if (bkrl::x_in_y_chance(random, 7, 10)) {
+            return;
+        }
+
+        bklib::irect const r {region.left, region.top, region.right + 1, region.bottom + 1};
+
+        fill(r, terrain_type::floor, terrain_type::wall);
+        add_room(room_data_t {region, uint64_t {}});
+    });
+
+    //
+    // add items, creatures, and features
+    //
+    for (auto const& room : rooms_) {
+        // add a random door
+        at(random_point_border(random, room.region)).type = terrain_type::door;
+
+        if (bkrl::x_in_y_chance(random, 7, 10)) {
+            auto const def = ctx.data.random_creature(ctx.random, random_stream::substantive);
+            if (!def) {
+                continue;
+            }
+
+            generate_creature(ctx, *this, *def, random_point(random, room.region));
+        }
+
+        if (bkrl::x_in_y_chance(random, 7, 10)) {
+            auto const def = ctx.data.random_item(ctx.random, random_stream::substantive);
+            if (!def) {
+                continue;
+            }
+
+            generate_item(ctx, *this, *def, random_point(random, room.region));
+        }
+    }
+
+    update_render_data();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -376,10 +443,10 @@ bkrl::item_pile const* bkrl::map::items_at(bklib::ipoint2 const p) const
 bool bkrl::map::can_place_item_at(bklib::ipoint2 const p) const
 {
     switch (at(p).type) {
-    case terrain_type::empty: BK_FALLTHROUGH
     case terrain_type::floor: BK_FALLTHROUGH
     case terrain_type::stair:
         break;
+    case terrain_type::empty: BK_FALLTHROUGH
     case terrain_type::rock: BK_FALLTHROUGH
     case terrain_type::wall: BK_FALLTHROUGH
     case terrain_type::door: BK_FALLTHROUGH
@@ -399,6 +466,18 @@ bkrl::creature const* bkrl::map::creature_at(bklib::ipoint2 const p) const
 //--------------------------------------------------------------------------------------------------
 bool bkrl::map::can_place_creature_at(bklib::ipoint2 const p) const
 {
+    switch (at(p).type) {
+    case terrain_type::floor: BK_FALLTHROUGH
+    case terrain_type::stair:
+        break;
+    case terrain_type::empty: BK_FALLTHROUGH
+    case terrain_type::rock: BK_FALLTHROUGH
+    case terrain_type::wall: BK_FALLTHROUGH
+    case terrain_type::door: BK_FALLTHROUGH
+    default:
+        return false;
+    }
+
     return !creature_at(p);
 }
 
@@ -446,6 +525,7 @@ bkrl::generate_item(context& ctx, map& m, item_def const& def, bklib::ipoint2 co
     });
 
     if (!!result) {
+        BK_ASSERT(can_place_at(m, result, i));
         m.place_item_at(std::move(i), def, result);
     }
 

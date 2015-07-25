@@ -8,6 +8,32 @@
 #include "bklib/string.hpp"
 #include "bklib/scope_guard.hpp"
 
+namespace {
+
+//--------------------------------------------------------------------------------------------------
+bkrl::definitions load_definitions(
+    bkrl::creature_dictionary& creatures
+  , bkrl::item_dictionary&     items
+  , bkrl::color_dictionary&    colors
+) {
+    using namespace bkrl;
+
+    load_definitions(colors,    "./data/colors.def",    load_from_file);
+    load_definitions(items,     "./data/items.def",     load_from_file);
+    load_definitions(creatures, "./data/creatures.def", load_from_file);
+
+    return definitions {&creatures, &items, &colors};
+}
+
+//--------------------------------------------------------------------------------------------------
+std::unique_ptr<bkrl::map> generate_map(bkrl::context& ctx)
+{
+    using namespace bkrl;
+    return std::make_unique<map>(ctx);
+}
+
+} //namespace
+
 //--------------------------------------------------------------------------------------------------
 bkrl::game::game()
   : timer_()
@@ -20,23 +46,29 @@ bkrl::game::game()
   , color_dictionary_ {}
   , creature_dictionary_ {}
   , item_dictionary_ {}
-  , definitions_ {&creature_dictionary_, &item_dictionary_, &color_dictionary_}
+  , definitions_ {::load_definitions(creature_dictionary_, item_dictionary_, color_dictionary_)}
   , creature_factory_()
   , item_factory_()
-  , current_map_()
+  , maps_ {}
+  , current_map_ {nullptr}
 
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
 {
+    //
+    // set up output
+    //
     output_.push([&](bklib::utf8_string_view const str) {
         display_message(str);
     });
 
-    load_definitions(color_dictionary_, "./data/colors.def", load_from_file);
-    load_definitions(item_dictionary_, "./data/items.def", load_from_file);
-    load_definitions(creature_dictionary_, "./data/creatures.def", load_from_file);
-
-    current_map_.set_draw_colors(color_dictionary_);
+    //
+    // set up initial map
+    //
+    auto ctx = make_context();
+    maps_.emplace_back(::generate_map(ctx));
+    current_map_ = maps_.back().get();
+    generate_map();
 
     command_translator_.push_handler([&](command const& cmd) {
         return on_command(cmd);
@@ -80,8 +112,6 @@ bkrl::game::game()
         message_log_.show(message_log::show_type::less);
     });
 
-    generate_map();
-
     while (system_.is_running()) {
         system_.do_events_wait();
         timer_.update();
@@ -94,28 +124,10 @@ void bkrl::game::generate_map()
 {
     auto ctx = make_context();
 
-    auto& m = current_map_;
-    auto const bounds = current_map_.bounds();
+    auto& m = current_map();
+    auto const bounds = m.bounds();
 
     auto& random = random_[random_stream::substantive];
-
-    bsp_layout layout {bklib::irect {bounds.left, bounds.top, bounds.right - 1, bounds.bottom - 1}};
-    layout.generate(random, [&](bklib::irect const r) {
-        if (bkrl::x_in_y_chance(random, 7, 10)) {
-            return;
-        }
-
-        bklib::irect const r0 {r.left, r.top, r.right + 1, r.bottom + 1};
-        m.fill(r0, terrain_type::floor, terrain_type::wall);
-        m.at(r.left + 2, r.top).type = terrain_type::door;
-    });
-
-    m.update_render_data();
-
-    for (int i = 0; i < 10; ++i) {
-        generate_creature(ctx, m, random_definition(random, creature_dictionary_));
-        generate_item(ctx, m, random_definition(random, item_dictionary_));
-    }
 
     generate_creature(ctx, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
 
@@ -138,7 +150,7 @@ void bkrl::game::render()
     renderer_.set_scale(x(scale), y(scale));
     renderer_.set_translation(x(trans), y(trans));
 
-    current_map_.draw(renderer_, view_);
+    current_map().draw(renderer_, view_);
 
     test_layout_.draw(renderer_);
     message_log_.draw(renderer_);
@@ -150,13 +162,13 @@ void bkrl::game::render()
 void bkrl::game::advance()
 {
     auto ctx = make_context();
-    bkrl::advance(ctx, current_map_);
+    bkrl::advance(ctx, current_map());
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::creature& bkrl::game::get_player()
 {
-    return *current_map_.find_creature([&](creature const& c) {
+    return *current_map().find_creature([&](creature const& c) {
         return c.is_player();
     });
 }
@@ -187,7 +199,7 @@ void bkrl::game::do_mouse_over(int const mx, int const my)
     test_layout_.set_position(mx, my);
 
     auto const p = view_.screen_to_world(mx, my);
-    if (p != mouse_last_pos_ && intersects(p, current_map_.bounds())) {
+    if (p != mouse_last_pos_ && intersects(p, current_map().bounds())) {
         debug_print(x(p), y(p));
         mouse_last_pos_ = p;
     }
@@ -309,11 +321,17 @@ void bkrl::game::do_open_close(bklib::ipoint2 const p, command_type const type)
     auto const state = (type == command_type::open)
         ? door::state::open : door::state::closed;
 
-    if (!set_door_state(current_map_, p, state)) {
+    if (!set_door_state(current_map(), p, state)) {
         if (state == door::state::open) {
             display_message("Couldn't open the door.");
         } else if (state == door::state::closed) {
             display_message("Couldn't close the door.");
+        }
+    } else {
+        if (state == door::state::open) {
+            display_message("You open the door.");
+        } else if (state == door::state::closed) {
+            display_message("You close the door.");
         }
     }
 
@@ -331,7 +349,7 @@ void bkrl::game::on_open_close(command_type const type)
     auto const state = (type == command_type::open)
         ? door::state::closed : door::state::open;
 
-    auto const candidates = find_around(current_map_, p, find_door(state));
+    auto const candidates = find_around(current_map(), p, find_door(state));
 
     //
     // Nothing to do.
@@ -375,7 +393,7 @@ void bkrl::game::on_open_close(command_type const type)
         }
 
         auto const q = p + bklib::truncate<2>(direction_vector(cmd));
-        if (current_map_.at(q).type != terrain_type::door) {
+        if (current_map().at(q).type != terrain_type::door) {
             if (type == command_type::open) {
                 display_message("There is nothing there to open.");
             } else if (type == command_type::close) {
@@ -412,7 +430,7 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
         return;
     }
 
-    with_pile_at(definitions_, current_map_, where, [&](item_pile& pile) {
+    with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
         subject.drop_item(pile);
         display_message("You dropped the %s.", pile.begin()->friendly_name(definitions_));
     });
@@ -431,7 +449,7 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
         return;
     }
 
-    item_pile* const pile = current_map_.items_at(where);
+    item_pile* const pile = current_map().items_at(where);
     if (!pile) {
         return;
     }
@@ -446,7 +464,7 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
         display_message("You picked up the %s.", itm.friendly_name(definitions_));
     }
 
-    subject.get_items(current_map_.remove_items_at(p));
+    subject.get_items(current_map().remove_items_at(p));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -464,7 +482,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 
     auto const p = get_player().position();
 
-    auto const ok = move_by(ctx, get_player(), current_map_, bklib::truncate<2>(v));
+    auto const ok = move_by(ctx, get_player(), current_map(), bklib::truncate<2>(v));
     if (!ok) {
         return;
     }
@@ -476,7 +494,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
         return;
     }
 
-    if (auto const pile = current_map_.items_at(q)) {
+    if (auto const pile = current_map().items_at(q)) {
         for (auto const& i : *pile) {
             display_message("You see here %s.", i.friendly_name(definitions_));
         }
@@ -570,19 +588,33 @@ void bkrl::game::debug_print(int const mx, int const my) const
 {
     bklib::ipoint2 const p {mx, my};
 
-    auto const& ter = current_map_.at(p);
+    auto const& ter = current_map().at(p);
     printf("cell (%d, %d)\n", x(p), y(p));
     printf("  type = %d::%d\n", static_cast<int16_t>(ter.type), ter.variant);
 
-    if (auto const& c = current_map_.creature_at(p)) {
+    if (auto const& c = current_map().creature_at(p)) {
         fmt::printf("  creature present\n");
         fmt::printf("  %s\n", c->friendly_name(definitions_));
     }
 
-    if (auto const& ip = current_map_.items_at(p)) {
+    if (auto const& ip = current_map().items_at(p)) {
         fmt::printf("  item(s) present\n");
         for (auto const& i : *ip) {
             fmt::printf("  %s\n", i.friendly_name(definitions_));
         }
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::map& bkrl::game::current_map() noexcept
+{
+    BK_PRECONDITION(current_map_);
+    return *current_map_;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::map const& bkrl::game::current_map() const noexcept
+{
+    BK_PRECONDITION(current_map_);
+    return *current_map_;
 }

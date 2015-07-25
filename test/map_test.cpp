@@ -68,7 +68,14 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 
     bkrl::map map;
 
+    SECTION("add outside room should fail") {
+        auto const result = generate_creature(ctx, map, cdef, p);
+        REQUIRE(!result.success);
+    }
+
     SECTION("add, find and remove creature") {
+        map.at(p).type = bkrl::terrain_type::floor;
+
         REQUIRE(!map.creature_at(p));
         REQUIRE(generate_creature(ctx, map, cdef, p));
         REQUIRE(map.creature_at(p));
@@ -88,6 +95,8 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
     }
 
     SECTION("generate at same location") {
+        map.at(p).type = bkrl::terrain_type::floor;
+
         REQUIRE(!map.creature_at(p));
         {
             // The first creature should be placed exactly as requested
@@ -98,6 +107,9 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
         }
 
         {
+            bklib::irect const r {x(p) - 1, y(p) - 1, x(p) + 1, y(p) + 1};
+            map.fill(r, bkrl::terrain_type::floor);
+
             // The second creature placed at the same location should succeed, but be
             // moved to an adjacent location.
             auto const result = generate_creature(ctx, map, cdef, p);
@@ -127,6 +139,8 @@ TEST_CASE("map items", "[map][item][bkrl]") {
 
     SECTION("generate at same location") {
         bklib::ipoint2 const p {10, 10};
+
+        map.at(p).type = bkrl::terrain_type::floor;
 
         REQUIRE(!map.items_at(p));
         REQUIRE(generate_item(ctx, map, idef0, p));

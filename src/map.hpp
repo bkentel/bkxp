@@ -142,12 +142,18 @@ inline bool operator!=(bklib::ipoint2 const lhs, placement_result_t const rhs) n
     return !(rhs == lhs);
 }
 
+struct room_data_t {
+    bklib::irect region;
+    uint64_t     data;
+};
+
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
 class map {
 public:
     map();
+    explicit map(context& ctx);
     ~map();
 
     void set_draw_colors(bklib::dictionary<color_def> const& colors);
@@ -215,6 +221,10 @@ public:
 
     void fill(bklib::irect r, terrain_type value);
     void fill(bklib::irect r, terrain_type value, terrain_type border);
+
+    void add_room(room_data_t data) {
+        rooms_.push_back(std::move(data));
+    }
 private:
     class render_data_t;
     std::unique_ptr<render_data_t> render_data_;
@@ -223,6 +233,7 @@ private:
 
     creature_map creatures_;
     item_map     items_;
+    std::vector<room_data_t> rooms_;
 };
 
 template <typename T>
