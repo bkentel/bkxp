@@ -178,6 +178,53 @@ void bkrl::detail::renderer_impl::draw_cell(
 }
 
 //----------------------------------------------------------------------------------------------
+namespace {
+
+template <typename T>
+inline T get_integer_at(
+    void const* p
+  , size_t const xi, size_t const yi, size_t const w
+  , ptrdiff_t const offset
+  , size_t const stride
+) noexcept {
+    static_assert(std::is_integral<T>::value, "");
+
+    return *reinterpret_cast<T const*>(
+        static_cast<char const*>(p) + stride * (yi * w + xi) + offset
+    );
+}
+
+} //namespace
+
+//----------------------------------------------------------------------------------------------
+void bkrl::detail::renderer_impl::draw_cells(
+    int const xoff, int const yoff
+  , size_t const w, size_t const h
+  , void const* const data
+  , ptrdiff_t const tex_offset, size_t const tex_size
+  , size_t const stride
+) {
+    auto const tw = tile_tilemap_.tile_w();
+    auto const th = tile_tilemap_.tile_h();
+
+    for (auto yi = 0u; yi < h; ++yi) {
+        for (auto xi = 0u; xi < w; ++xi) {
+            auto const i = get_integer_at<uint16_t>(data, xi, yi, w, tex_offset, stride);
+            if (i == 0) { continue; }
+
+            auto const r = tile_tilemap_.get_bounds(i);
+
+            auto const dx = tw * (xoff + static_cast<int>(xi));
+            auto const dy = th * (yoff + static_cast<int>(yi));
+
+            render_copy(tile_texture_
+              , SDL_Rect {r.left, r.top, tw, th}
+              , SDL_Rect {dx, dy, tw, th});
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::draw_cell(
     int const cell_x, int const cell_y
   , int const tile_index
