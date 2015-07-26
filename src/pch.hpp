@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <deque>
 
 #include <algorithm>
 #include <exception>
@@ -34,6 +35,7 @@
 #include <chrono>
 #include <random>
 #include <type_traits>
+#include <numeric>
 
 #include <cstdint>
 #include <cstdio>

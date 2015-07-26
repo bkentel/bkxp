@@ -15,6 +15,7 @@ public:
     void present() { }
     void set_active_texture(renderer::texture const) { }
     void render_fill_rect(int, int, int, int) { }
+    void render_fill_rect(int, int, int, int, color4) { }
     void draw_cell(int const, int const, int const) { }
     void draw_cell(int const, int const, int const, color4 const) { }
     void draw_rect(renderer::rect_t const, renderer::rect_t const) { }
@@ -71,6 +72,11 @@ void bkrl::renderer::set_active_texture(texture const tex)
 void bkrl::renderer::draw_filled_rect(rect_t const r)
 {
     impl_->render_fill_rect(r.x, r.y, r.w, r.h);
+}
+
+void bkrl::renderer::draw_filled_rect(rect_t const r, color4 const c)
+{
+    impl_->render_fill_rect(r.x, r.y, r.w, r.h, c);
 }
 
 void bkrl::renderer::draw_cell(int const cell_x, int const cell_y, int const tile_index)

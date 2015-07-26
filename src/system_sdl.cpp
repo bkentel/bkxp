@@ -145,6 +145,25 @@ void bkrl::detail::renderer_impl::render_fill_rect(
 }
 
 //----------------------------------------------------------------------------------------------
+void bkrl::detail::renderer_impl::render_fill_rect(
+    int const x, int const y
+  , int const w, int const h
+  , color4 const c
+) {
+    if (c[3] != 0xFF && SDL_SetRenderDrawBlendMode(handle(), SDL_BlendMode::SDL_BLENDMODE_ADD)) {
+        BOOST_THROW_EXCEPTION(bklib::platform_error {}
+          << boost::errinfo_api_function {"SDL_SetRenderDrawBlendMode"});
+    }
+
+    if (SDL_SetRenderDrawColor(handle(), c[0], c[1], c[2], c[3])) {
+        BOOST_THROW_EXCEPTION(bklib::platform_error {}
+          << boost::errinfo_api_function {"SDL_SetRenderDrawColor"});
+    }
+
+    render_fill_rect(x, y, w, h);
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::renderer_impl::draw_cell(
     int const cell_x, int const cell_y, int const tile_index
 ) {

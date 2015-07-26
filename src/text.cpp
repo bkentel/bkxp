@@ -99,7 +99,7 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
 
     clear();
 
-    for (size_t i = 0; i < text.size(); ++i) {
+    for (auto i = 0u; i < text.size(); ++i) {
         auto const glyph_info = render.load_glyph_info(text.substr(i, 1));
 
         auto const w = glyph_info.width();
@@ -128,6 +128,8 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
         });
 
         x += w;
+
+        actual_h_ = std::max(actual_h_, static_cast<size_type>(y + h));
     }
 
     actual_w_ = std::max(actual_w_, x);

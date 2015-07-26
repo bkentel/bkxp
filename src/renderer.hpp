@@ -57,6 +57,15 @@ private:
 
 using color4 = std::array<uint8_t, 4>;
 
+constexpr inline color4 make_color(
+    uint8_t const r
+  , uint8_t const g
+  , uint8_t const b
+  , uint8_t const a = 255
+) noexcept {
+    return color4 {r, g, b, a};
+}
+
 class renderer {
 public:
     enum class texture {
@@ -85,6 +94,7 @@ public:
     void set_active_texture(texture tex);
 
     void draw_filled_rect(rect_t r);
+    void draw_filled_rect(rect_t r, color4 c);
     void draw_cell(int cell_x, int cell_y, int tile_index);
     void draw_cell(int cell_x, int cell_y, int tile_index, color4 color);
 
@@ -92,6 +102,10 @@ public:
 private:
     std::unique_ptr<detail::renderer_impl> impl_;
 };
+
+constexpr inline auto make_renderer_rect(bklib::irect const r) noexcept {
+    return renderer::rect_t {r.left, r.top, r.width(), r.height()};
+}
 
 struct terrain_render_data_t {
     uint16_t base_index;
