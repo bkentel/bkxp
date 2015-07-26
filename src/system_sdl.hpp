@@ -100,6 +100,7 @@ public:
     void render_copy(sdl_texture const& texture, SDL_Rect src, SDL_Rect dst);
 
     void render_fill_rect(int x, int y, int w, int h);
+    void render_fill_rect(int x, int y, int w, int h, color4 c);
 
     void draw_cell(int cell_x, int cell_y, int tile_index);
     void draw_cell(int cell_x, int cell_y, int tile_index, color4 color);

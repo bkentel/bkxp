@@ -28,6 +28,8 @@ public:
     };
 
     void show(show_type type, int n = 1);
+
+    void set_minimum_lines(int n);
 private:
     std::unique_ptr<detail::message_log_impl> impl_;
 };
