@@ -103,7 +103,12 @@ struct chunk_t {
 //!
 //--------------------------------------------------------------------------------------------------
 template <typename T, typename Function>
-void for_each_cell(T&& block, Function&& f, int const x = 0, int const y = 0) {
+void for_each_cell(T&& block, Function&& f) {
+    block.for_each_cell(std::forward<Function>(f), 0, 0);
+}
+
+template <typename T, typename Function>
+void for_each_cell(T&& block, int const x, int const y, Function&& f) {
     block.for_each_cell(std::forward<Function>(f), x, y);
 }
 

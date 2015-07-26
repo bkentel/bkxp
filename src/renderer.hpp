@@ -4,6 +4,7 @@
 #include <memory>
 #include <array>
 #include <cstdint>
+#include <cstddef>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
@@ -99,6 +100,14 @@ public:
     void draw_cell(int cell_x, int cell_y, int tile_index, color4 color);
 
     void draw_rect(rect_t src, rect_t dst);
+
+    void draw_cells(
+        int xoff, int yoff
+      , size_t w, size_t h
+      , void const* data
+      , ptrdiff_t tex_offset, size_t tex_size
+      , size_t stride
+    );
 private:
     std::unique_ptr<detail::renderer_impl> impl_;
 };

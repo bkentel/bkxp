@@ -30,6 +30,30 @@ inline decltype(auto) find_by_pos(bklib::ipoint2 const p) noexcept {
 
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------
+namespace {
+
+template <typename T, typename Function>
+void for_each_block_in(bkrl::chunk_t<T> const& chunk, bklib::irect const r, Function&& f)
+{
+    constexpr auto const w = static_cast<int>(bkrl::size_block);
+    constexpr auto const h = static_cast<int>(bkrl::size_block);
+
+    auto const rw = r.width();
+    auto const blocks_x = rw / w + (r.left % w ? 1 : 0) + (rw % w ? 1 : 0);
+
+    auto const rh = r.height();
+    auto const blocks_y = rh / h + (r.top % h ? 1 : 0) + (rh % h ? 1 : 0);
+
+    auto const x0 = w * (r.left / w);
+    auto const y0 = h * (r.top  / h);
+
+    for (auto yi = 0; (yi < blocks_y * h) && (yi < h * h - r.top); yi += h) {
+        for (auto xi = 0; (xi < blocks_x * w) && (xi < w * w - r.left); xi += w) {
+            f(chunk.block_at(r.left + xi, r.top + yi), xi + x0, yi + y0);
+        }
+    }
+}
+} //namespace
 
 class bkrl::map::render_data_t {
 public:
@@ -45,16 +69,14 @@ public:
             return;
         }
 
-        for (auto y = r.top; y < r.bottom; ++y) {
-            for (auto x = r.left; x < r.right; ++x) {
-                auto const& cell = terrain_data_.cell_at(x, y);
+        for_each_block_in(terrain_data_, r, [&](auto const& block, int const x, int const y) {
+            auto const base = block.data.data();
+            constexpr auto const off_texture = offsetof(terrain_render_data_t, base_index);
+            constexpr auto const siz_texture = sizeof(terrain_render_data_t::base_index);
+            constexpr auto const stride = sizeof(terrain_render_data_t);
 
-                if (cell.base_index) {
-                    render.draw_cell(x, y, cell.base_index);
-                }
-
-            }
-        }
+            render.draw_cells(x, y, size_block, size_block, base, off_texture, siz_texture, stride);
+        });
 
         for (auto const& i : item_data_) {
             render.draw_cell(i.x, i.y, i.base_index, i.color);
