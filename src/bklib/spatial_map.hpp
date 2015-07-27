@@ -35,19 +35,33 @@ public:
     //----------------------------------------------------------------------------------------------
     //!
     //----------------------------------------------------------------------------------------------
-    bool relocate(point_t const from, point_t to, T const& data) {
+    bool relocate(point_t const from, point_t const to, T const& data) {
+        if (from == to) {
+            return true;
+        }
+
         auto const last = end(sorted_);
-        auto const it = std::find_if(begin(sorted_), last, [&](std::pair<point_t, int> const pair) {
+        auto const first = begin(sorted_);
+        auto const it = std::find_if(first, last, [&](std::pair<point_t, int> const pair) {
             return (pair.first == from) && (get_data_at_(pair) == std::addressof(data));
         });
 
-        bool const found = (it != last);
-        if (found) {
-            it->first = std::move(to);
-            sort_();
+        if (it == last) {
+            return false;
         }
 
-        return found;
+        it->first = to;
+
+        if (it != first && std::next(it, -1)->first < to) {
+            auto const next = std::next(it, 1);
+            if (next != last && to < next->first) {
+                return true;
+            }
+        }
+
+        sort_();
+
+        return true;
     }
 
     //----------------------------------------------------------------------------------------------

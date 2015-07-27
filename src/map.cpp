@@ -241,7 +241,9 @@ bkrl::map::map(context& ctx)
     //
     for (auto const& room : rooms_) {
         // add a random door
-        at(random_point_border(random, room.region)).type = terrain_type::door;
+        auto const& region = room.region;
+        bklib::irect const r {region.left, region.top, region.right + 1, region.bottom + 1};
+        at(random_point_border(random, r)).type = terrain_type::door;
 
         if (bkrl::x_in_y_chance(random, 7, 10)) {
             auto const def = ctx.data.random_creature(ctx.random, random_stream::substantive);
@@ -249,7 +251,7 @@ bkrl::map::map(context& ctx)
                 continue;
             }
 
-            generate_creature(ctx, *this, *def, random_point(random, room.region));
+            generate_creature(ctx, *this, *def, random_point(random, r));
         }
 
         if (bkrl::x_in_y_chance(random, 7, 10)) {
@@ -258,7 +260,7 @@ bkrl::map::map(context& ctx)
                 continue;
             }
 
-            generate_item(ctx, *this, *def, random_point(random, room.region));
+            generate_item(ctx, *this, *def, random_point(random, r));
         }
     }
 

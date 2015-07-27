@@ -97,6 +97,8 @@ private:
     map*                current_map_;
     output              output_;
 
+    std::chrono::high_resolution_clock::time_point last_frame_;
+
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
 
     text_layout test_layout_;

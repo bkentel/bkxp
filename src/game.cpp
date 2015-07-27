@@ -51,6 +51,7 @@ bkrl::game::game()
   , item_factory_()
   , maps_ {}
   , current_map_ {nullptr}
+  , last_frame_ {std::chrono::high_resolution_clock::now()}
 
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
@@ -147,6 +148,16 @@ void bkrl::game::generate_map()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::render()
 {
+    using namespace std::chrono_literals;
+    constexpr auto const frame_time = std::chrono::duration_cast<std::chrono::nanoseconds>(1s) / 60;
+
+    auto const now = std::chrono::high_resolution_clock::now();
+    if (now < last_frame_ + frame_time) {
+        return;
+    }
+
+    last_frame_ = now;
+
     renderer_.clear();
 
     auto const scale = view_.get_zoom();
@@ -168,6 +179,8 @@ void bkrl::game::advance()
 {
     auto ctx = make_context();
     bkrl::advance(ctx, current_map());
+
+    render();
 }
 
 //--------------------------------------------------------------------------------------------------
