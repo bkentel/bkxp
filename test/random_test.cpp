@@ -43,6 +43,27 @@ TEST_CASE("random", "[bkrl][random]") {
     REQUIRE(range_max >= 0);
     REQUIRE(range_max >= range_min);
 
+    SECTION("random perimeter") {
+        constexpr bklib::irect const r {0, 5, 10, 15};
+
+        std::map<bklib::ipoint2, int> points;
+
+        for (auto i = 0; i < iterations; ++i) {
+            ++points[bkrl::random_point_border(random, r)];
+        }
+
+        auto const p = perimeter(r);
+        REQUIRE(static_cast<int>(points.size()) == p);
+
+        auto const expected_n = iterations / p;
+
+        for (auto const& p : points) {
+            auto const delta = std::abs(expected_n - p.second);
+            auto const variance = delta / static_cast<double>(expected_n);
+            REQUIRE(0.15 > variance);
+        }
+    }
+
     SECTION("random range") {
         for (auto n = 0; n < iterations; ++n) {
             auto const i = bkrl::random_range(random, range_min, range_max);

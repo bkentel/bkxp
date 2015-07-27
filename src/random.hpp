@@ -123,29 +123,29 @@ inline bklib::ipoint2 random_point(random_t& random, bklib::irect const r) noexc
 
 //--------------------------------------------------------------------------------------------------
 //! @pre r is a proper rectangle
-//! @pre r.width()  <= std::numeric_limits<int>::max()
-//! @pre r.height() <= std::numeric_limits<int>::max()
+//! @pre 1 < r.width()  <= std::numeric_limits<int>::max()
+//! @pre 1 < r.height() <= std::numeric_limits<int>::max()
 //--------------------------------------------------------------------------------------------------
 inline bklib::ipoint2 random_point_border(random_t& random, bklib::irect const r) noexcept {
-    auto const random_y = [&]() noexcept {
-        return random_range(random, r.top, r.bottom - 1);
-    };
+    auto const w0 = r.width();
+    auto const h0 = r.height();
 
-    auto const random_x = [&]() noexcept {
-        return random_range(random, r.left, r.right - 1);
-    };
+    BK_PRECONDITION(w0 > 1 && h0 > 1);
 
-    switch (random_range(random, 0, 3)) {
-    case 0: return {r.left,     random_y()};
-    case 1: return {r.right,    random_y()};
-    case 2: return {random_x(), r.top};
-    case 3: return {random_x(), r.bottom};
-    default:
-        BK_ASSERT(false);
-        break;
-    }
+    auto const w = w0 - 1;
+    auto const h = h0 - 1;
+    auto const n = random_range(random, 0,  2*w + 2*h - 1);
 
-    return {0, 0};
+    auto const n0 =      w;
+    auto const n1 = n0 + h;
+    auto const n2 = n1 + w;
+
+    return bklib::ipoint2 {r.left, r.top} + (
+        (n <= n0) ? bklib::ivec2 {n,             0           }
+      : (n <= n1) ? bklib::ivec2 {w,             n - n0      }
+      : (n <= n2) ? bklib::ivec2 {w - (n - n1),  h           }
+                  : bklib::ivec2 {0,             h - (n - n2)}
+    );
 }
 
 //--------------------------------------------------------------------------------------------------

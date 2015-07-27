@@ -155,6 +155,12 @@ struct rect_t {
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>
+constexpr inline T perimeter(rect_t<T> const r) noexcept {
+    return 2 * (r.width() - 1) + 2 * (r.height() - 1);
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
 constexpr inline bool operator==(rect_t<T> const lhs, rect_t<T> const rhs) noexcept {
     return (lhs.left   == rhs.left)
         && (lhs.top    == rhs.top)
@@ -304,15 +310,27 @@ inline bool operator!=(point_t<D, T> const p, point_t<D, T> const q) noexcept {
     return !(p == q);
 }
 
-template <unsigned D, typename T>
-inline bool operator<(point_t<D, T> const p, point_t<D, T> const q) noexcept {
-    for (auto i = 0u; i < D; ++i) {
-        if (p.data[i] != q.data[i]) {
-            return p.data[0] < q.data[0];
-        }
-    }
+namespace detail {
 
-    return false;
+template <unsigned D, typename T>
+inline bool less(point_t<D, T> const p, point_t<D, T> const q) noexcept {
+    return std::lexicographical_compare(begin(p.data), end(p.data), begin(q.data), end(q.data));
+}
+
+template <typename T>
+constexpr inline bool less(point_t<2, T> const p, point_t<2, T> const q) noexcept {
+    return q.data[0] <  p.data[0] ? false
+         : q.data[0] != p.data[0] ? true
+         : q.data[1] <  p.data[1] ? false
+         : q.data[1] != p.data[1] ? true
+         :                          false;
+}
+
+}
+
+template <unsigned D, typename T>
+constexpr inline bool operator<(point_t<D, T> const p, point_t<D, T> const q) noexcept {
+    return detail::less(p, q);
 }
 
 template <unsigned D, typename T>
