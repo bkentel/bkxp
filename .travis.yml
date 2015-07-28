@@ -8,6 +8,9 @@ cache:
   directories:
   - $HOME/build/bkentel/bkxp/deps
   
+before_install:
+  - find . -type f '(' -wholename './src/*' -o -wholename './test/*' ')' '(' -name "*.cpp" -o -name "*.hpp" ')' -exec echo '{}' +;
+  
 install:
   - DEPS_DIR="${PWD}/deps"
   - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
@@ -64,6 +67,6 @@ addons:
 script: $CXX --version && make -j2 && ./bkxp
 
 after_success:
-  - if [ "$COMPILER" = "g++" ]; then find "./src" -name "*.cpp" -o -name "*.hpp" -exec gcov-5 {} \; ; fi
+  - if [ "$COMPILER" = "g++" ]; then find . -type f '(' -wholename './src/*' -o -wholename './test/*' ')' '(' -name "*.cpp" -o -name "*.hpp" ')' -exec gcov-5 '{}' +; fi
   - if [ "$COMPILER" = "g++" ]; then bash <(curl -s https://codecov.io/bash); fi
   
