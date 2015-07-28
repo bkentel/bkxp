@@ -10,6 +10,8 @@
 #include "bklib/math.hpp"
 #include "bklib/utility.hpp"
 
+#include <cstdio>
+
 TEST_CASE("simple spatial map test", "[spatial_map]") {
     constexpr int iterations = 10;
 
@@ -79,11 +81,15 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
     };
 
     SECTION("relocate invalid") {
+        printf("relocate invalid\n");
+
         auto const& data = *map.at(index_to_point(0));
         REQUIRE(!map.relocate(point_t {-1, -1}, point_t {0, 0}, data));
     }
 
     SECTION("relocate valid to same location") {
+        printf("relocate valid to same location\n");
+
         auto const& before = checked_at(index_to_point(0));
 
         auto const from = before.pos;
@@ -97,6 +103,8 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
     }
 
     SECTION("relocate valid to end") {
+        printf("relocate valid to end\n");
+
         auto const& last = checked_at(index_to_point(9));
         auto const& data = checked_at(index_to_point(0));
 
@@ -108,6 +116,8 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
     }
 
     SECTION("relocate valid to start") {
+        printf("relocate valid to start\n");
+
         auto const& first = checked_at(index_to_point(0));
         auto const& data  = checked_at(index_to_point(9));
 
@@ -119,6 +129,8 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
     }
 
     SECTION("relocate valid to same internal index") {
+        printf("relocate valid to same internal index\n");
+
         auto const& before = checked_at(index_to_point(5));
 
         auto const to   = before.pos + bklib::ivec2 {1, 1};
