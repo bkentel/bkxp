@@ -72,20 +72,64 @@ TEST_CASE("simple spatial map test", "[spatial_map]") {
         }
     }
 
+    auto const checked_at = [&](bklib::ipoint2 const p) -> test_data const& {
+        auto const result = map.at(p);
+        REQUIRE(result);
+        return *result;
+    };
+
     SECTION("relocate invalid") {
         auto const& data = *map.at(index_to_point(0));
         REQUIRE(!map.relocate(point_t {-1, -1}, point_t {0, 0}, data));
     }
 
-    SECTION("relocate valid") {
-        auto& data = *map.at(index_to_point(0));
-        point_t const to {0, 0};
+    SECTION("relocate valid to same location") {
+        auto const& before = checked_at(index_to_point(0));
 
-        REQUIRE(map.relocate(data.pos, to, data));
-        data.pos = to;
+        auto const from = before.pos;
+        auto const to   = from;
 
-        REQUIRE(static_cast<int>(map.at(to)->id) == 0);
-        REQUIRE(!map.at(index_to_point(0)));
+        REQUIRE(map.relocate(from, to, before));
+
+        auto const& after = checked_at(index_to_point(0));
+
+        REQUIRE(&before == &after);
+    }
+
+    SECTION("relocate valid to end") {
+        auto const& last = checked_at(index_to_point(9));
+        auto const& data = checked_at(index_to_point(0));
+
+        auto const to   = last.pos + bklib::ivec2 {1, 1};
+        auto const from = data.pos;
+
+        REQUIRE(map.relocate(from, to, data));
+        REQUIRE(checked_at(to).id == id_t {0});
+    }
+
+    SECTION("relocate valid to start") {
+        auto const& first = checked_at(index_to_point(0));
+        auto const& data  = checked_at(index_to_point(9));
+
+        auto const to   = first.pos + bklib::ivec2 {-1, -1};
+        auto const from = data.pos;
+
+        REQUIRE(map.relocate(from, to, data));
+        REQUIRE(checked_at(to).id == id_t {9});
+    }
+
+    SECTION("relocate valid to same internal index") {
+        auto const& before = checked_at(index_to_point(5));
+
+        auto const to   = before.pos + bklib::ivec2 {1, 1};
+        auto const from = before.pos;
+
+        REQUIRE(map.relocate(from, to, before));
+
+        auto const& after = checked_at(to);
+        REQUIRE(&before == &after);
+
+        REQUIRE(after.id == id_t {5});
     }
 
     SECTION("remove") {
