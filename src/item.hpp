@@ -99,7 +99,7 @@ public:
     uint64_t& data()       noexcept { return data_; }
     uint64_t  data() const noexcept { return data_; }
 
-    bklib::utf8_string friendly_name(definitions const& defs) const;
+    bklib::utf8_string friendly_name(context const& ctx, item_def const* idef = nullptr) const;
 private:
     item(instance_id_t<tag_item> id, item_def const& def);
 
@@ -127,6 +127,25 @@ public:
 
     void insert(item&& itm) {
         items_.push_front(std::move(itm));
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    //! @pre index must be a valid index
+    //--------------------------------------------------------------------------------------------------
+    item remove(int const index) {
+        BK_PRECONDITION(index >= 0);
+
+        auto const last = std::end(items_);
+        auto const before = std::next(items_.before_begin(), index);
+        BK_PRECONDITION(before != last);
+
+        auto const it = std::next(before);
+        BK_PRECONDITION(it != last);
+
+        auto result = std::move(*it);
+        items_.erase_after(before);
+
+        return result;
     }
 
     bool empty() const noexcept { return items_.empty(); }

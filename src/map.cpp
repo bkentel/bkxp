@@ -445,6 +445,22 @@ bkrl::item_pile bkrl::map::remove_items_at(bklib::ipoint2 const p)
 }
 
 //--------------------------------------------------------------------------------------------------
+bkrl::item bkrl::map::remove_item_at(bklib::ipoint2 const p, int const index)
+{
+    auto const pile = items_.at(p);
+    BK_PRECONDITION(pile);
+
+    auto result = pile->remove(index);
+
+    if (pile->empty()) {
+        items_.remove(p);
+        render_data_->clear_item_at(p); // TODO should update symbol
+    }
+
+    return result;
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::map::remove_creature_at(bklib::ipoint2 const p)
 {
     render_data_->clear_creature_at(p);

@@ -20,6 +20,7 @@ TEST_CASE("command values", "[bkrl][command]") {
 
     switch (cmd) {
         case ct::none           : static_assert(static_cast<uint32_t>(ct::none) == 0, ""); break;
+        case ct::text           : static_assert(static_cast<uint32_t>(ct::text) == 1, ""); break;
         case ct::invalid        : BK_CHECK_VAL(invalid); break;
         case ct::scroll         : BK_CHECK_VAL(scroll); break;
         case ct::zoom           : BK_CHECK_VAL(zoom); break;

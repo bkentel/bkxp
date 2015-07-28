@@ -124,6 +124,9 @@
     <ClInclude Include="src\external\format.h">
       <Filter>external</Filter>
     </ClInclude>
+    <ClInclude Include="src\inventory.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -252,9 +255,15 @@
       <Filter>bkrl</Filter>
     </ClCompile>
     <ClCompile Include="test\item_test.cpp">
-		<Filter>test\bkrl</Filter>
-	</ClCompile>
-	<ClCompile Include="test\creature_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\creature_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\inventory.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\inventory_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>

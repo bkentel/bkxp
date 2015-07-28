@@ -12,6 +12,7 @@
 #include "color.hpp"
 #include "definitions.hpp"
 #include "output.hpp"
+#include "inventory.hpp"
 
 #include "bklib/string.hpp"
 #include "bklib/math.hpp"
@@ -29,7 +30,11 @@ public:
 
     void generate_map();
 
-    void render();
+    enum class render_type {
+        wait, force_update
+    };
+
+    void render(render_type type = render_type::wait);
     void advance();
 
     creature& get_player();
@@ -96,6 +101,7 @@ private:
     std::vector<std::unique_ptr<map>> maps_;
     map*                current_map_;
     output              output_;
+    inventory           inventory_;
 
     std::chrono::high_resolution_clock::time_point last_frame_;
 

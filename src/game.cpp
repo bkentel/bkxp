@@ -51,6 +51,8 @@ bkrl::game::game()
   , item_factory_()
   , maps_ {}
   , current_map_ {nullptr}
+  , output_ {}
+  , inventory_ {text_renderer_}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
 
   , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
@@ -79,7 +81,8 @@ bkrl::game::game()
         view_.set_window_size(w, h);
     };
 
-    system_.on_text_input = [&](bklib::utf8_string_view) {
+    system_.on_text_input = [&](bklib::utf8_string_view const str) {
+        command_translator_.on_text(str);
     };
 
     system_.on_key_up = [&](int const key) {
@@ -91,6 +94,10 @@ bkrl::game::game()
     };
 
     system_.on_mouse_motion = [&](mouse_state const m) {
+        if (inventory_.mouse_move(m)) {
+            return;
+        }
+
         if (m.is_down(mouse_button::right)) {
             on_scroll(m.dx, m.dy);
         } else {
@@ -99,10 +106,20 @@ bkrl::game::game()
     };
 
     system_.on_mouse_scroll = [&](mouse_state const m) {
+        if (inventory_.mouse_scroll(m)) {
+            return;
+        }
+
         if (m.sy > 0) {
             on_zoom(0.1, 0.1);
         } else if (m.sy < 0) {
             on_zoom(-0.1, -0.1);
+        }
+    };
+
+    system_.on_mouse_button = [&](mouse_button_state const m) {
+        if (inventory_.mouse_button(m)) {
+            return;
         }
     };
 
@@ -143,16 +160,26 @@ void bkrl::game::generate_map()
 
     bklib::ipoint2 const p {0, 0};
     m.place_creature_at(creature_factory_.create(random, def, p), def, p);
+
+    // For debugging inventory
+    auto& player = *m.creature_at(p);
+
+    for (auto i = 0; i < 20; ++i) {
+        player.get_item(item_factory_.create(
+            random
+          , *ctx.data.random_item(random_, random_stream::substantive)
+        ));
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::render()
+void bkrl::game::render(render_type const type)
 {
     using namespace std::chrono_literals;
     constexpr auto const frame_time = std::chrono::duration_cast<std::chrono::nanoseconds>(1s) / 60;
 
     auto const now = std::chrono::high_resolution_clock::now();
-    if (now < last_frame_ + frame_time) {
+    if (type == render_type::wait && now < last_frame_ + frame_time) {
         return;
     }
 
@@ -170,6 +197,7 @@ void bkrl::game::render()
 
     test_layout_.draw(renderer_);
     message_log_.draw(renderer_);
+    inventory_.draw(renderer_);
 
     renderer_.present();
 }
@@ -180,7 +208,7 @@ void bkrl::game::advance()
     auto ctx = make_context();
     bkrl::advance(ctx, current_map());
 
-    render();
+    render(render_type::force_update);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -448,10 +476,42 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
         return;
     }
 
-    with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
-        subject.drop_item(pile);
-        display_message("You dropped the %s.", pile.begin()->friendly_name(definitions_));
+    inventory_.on_action([this, &subject, where](inventory::action const type, int const i, ptrdiff_t const data) {
+        BK_NAMED_SCOPE_EXIT(close) {
+            inventory_.show(false);
+            command_translator_.pop_handler(); //TODO
+        };
+
+        switch (type) {
+        case inventory::action::confirm: {
+            if (i < 0 || !data) {
+                return;
+            }
+
+            auto ctx = make_context();
+            auto const result = with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
+                subject.drop_item(pile, i);
+                display_message("You dropped the %s.", pile.begin()->friendly_name(ctx));
+            });
+
+            if (!result) {
+                display_message("You can't drop that here.");
+            }
+            return;
+        }
+        case inventory::action::cancel:
+            return;
+        case inventory::action::select:
+            close.dismiss();
+            break;
+        default:
+            return;
+        }
     });
+
+    auto ctx = make_context();
+    command_translator_.push_handler(make_item_list(
+        ctx, inventory_, subject.item_list(), "Drop which item?"));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -474,15 +534,44 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
 
     on_fail.dismiss();
 
-    if (!subject.can_get_items(*pile)) {
-        return;
-    }
+    inventory_.on_action([this, &subject, where](inventory::action const type, int const i, ptrdiff_t const data) {
+        BK_NAMED_SCOPE_EXIT(close) {
+            inventory_.show(false);
+            command_translator_.pop_handler(); //TODO
+        };
 
-    for (auto const& itm : *pile) {
-        display_message("You picked up the %s.", itm.friendly_name(definitions_));
-    }
+        switch (type) {
+        case inventory::action::confirm: {
+            if (i < 0 || !data) {
+                return;
+            }
 
-    subject.get_items(current_map().remove_items_at(p));
+            auto& itm = *reinterpret_cast<item*>(data);
+
+            auto ctx = make_context();
+
+            if (!subject.can_get_item(itm)) {
+                display_message("You can't get the %s.", itm.friendly_name(ctx));
+                return;
+            }
+
+            display_message("You got the %s.", itm.friendly_name(ctx));
+            subject.get_item(current_map().remove_item_at(where, i));
+
+            return;
+        }
+        case inventory::action::cancel:
+            return;
+        case inventory::action::select:
+            close.dismiss();
+            break;
+        default:
+            return;
+        }
+    });
+
+    auto ctx = make_context();
+    command_translator_.push_handler(make_item_list(ctx, inventory_, *pile, "Get which item?"));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -514,7 +603,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 
     if (auto const pile = current_map().items_at(q)) {
         for (auto const& i : *pile) {
-            display_message("You see here %s.", i.friendly_name(definitions_));
+            display_message("You see here %s.", i.friendly_name(ctx));
         }
     }
 }
@@ -529,25 +618,60 @@ void bkrl::game::on_move(bklib::ivec3 const v)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_show_inventory()
 {
-    do_show_inventory();
+    auto const visible = !inventory_.is_visible();
+    inventory_.show(visible);
+
+    if (visible) {
+        do_show_inventory();
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_show_inventory()
 {
-    auto const& player = get_player();
+    inventory_.on_action([this](inventory::action const type, int const i, ptrdiff_t const data) {
+        BK_NAMED_SCOPE_EXIT(close) {
+            inventory_.show(false);
+            command_translator_.pop_handler(); //TODO
+        };
 
-    char i = 0;
-    for (auto const& itm : player.item_list()) {
-        char const cindex = 'a' + i++;
-        display_message("[%c] %s", cindex, itm.friendly_name(definitions_));
-    }
+        switch (type) {
+        case inventory::action::confirm: {
+            if (i < 0 || !data) {
+                return;
+            }
+
+            auto const& itm = *reinterpret_cast<item const*>(data);
+            auto ctx = make_context();
+
+            display_message("You chose the %d%s item -- a %s"
+                , i + 1, bklib::oridinal_suffix(i + 1).data(), itm.friendly_name(ctx));
+
+            return;
+        }
+        case inventory::action::cancel:
+            return;
+        case inventory::action::select:
+            close.dismiss();
+            break;
+        default:
+            return;
+        }
+    });
+
+    auto const& player = get_player();
+    auto ctx = make_context();
+
+    command_translator_.push_handler(make_item_list(ctx, inventory_, player.item_list(), "Items"));
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 {
     switch (cmd.type) {
+    case command_type::none:    break;
+    case command_type::text:    break;
+    case command_type::confirm: break;
     case command_type::invalid: break;
     case command_type::scroll:  break;
     case command_type::cancel:  break;
@@ -604,6 +728,8 @@ bkrl::context bkrl::game::make_context()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::debug_print(int const mx, int const my) const
 {
+    auto ctx = const_cast<game*>(this)->make_context();
+
     bklib::ipoint2 const p {mx, my};
 
     auto const& ter = current_map().at(p);
@@ -618,7 +744,7 @@ void bkrl::game::debug_print(int const mx, int const my) const
     if (auto const& ip = current_map().items_at(p)) {
         fmt::printf("  item(s) present\n");
         for (auto const& i : *ip) {
-            fmt::printf("  %s\n", i.friendly_name(definitions_));
+            fmt::printf("  %s\n", i.friendly_name(ctx));
         }
     }
 }

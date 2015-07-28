@@ -19,12 +19,15 @@ class text_renderer {
 public:
     using size_type = int16_t;
     using rect_t = bklib::rect_t<size_type>;
+    using point_t = bklib::point_t<2, size_type>;
 
     text_renderer();
     ~text_renderer();
 
     rect_t load_glyph_info(bklib::utf8_string_view text);
-    size_type line_spacing() const;
+    size_type line_spacing() const noexcept;
+
+    point_t bbox() const noexcept;
 private:
     std::unique_ptr<detail::text_renderer_impl> impl_;
 };
@@ -53,6 +56,7 @@ public:
 
     void set_text(text_renderer& render, bklib::utf8_string_view text);
     void set_position(int x, int y);
+    void clip_to(size_type w, size_type h);
 
     void draw(renderer& render) const;
     void draw(renderer& render, int x, int y) const;

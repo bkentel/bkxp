@@ -29,12 +29,34 @@ struct mouse_state {
     int x;  //!< Absolute x position
     int y;  //!< Absolute y position
     int dx; //!< Relative x motion
-    int dy; //!< Relative x motion
+    int dy; //!< Relative y motion
     int sx; //!< Relative horizontal scroll
     int sy; //!< Relative vertical scroll
 
     uint32_t state;
     uint32_t timestamp;
+};
+
+struct mouse_button_state {
+    bool was_pressed()  const noexcept { return type == 1; }
+    bool was_released() const noexcept { return type == 0; }
+
+    mouse_button button() const noexcept {
+        return static_cast<mouse_button>(index);
+    }
+
+    bool was_click(int const n = 1) const noexcept {
+        return static_cast<int>(clicks) == n;
+    }
+
+    int x;  //!< Absolute x position
+    int y;  //!< Absolute y position
+
+    uint32_t timestamp;
+
+    uint8_t index;
+    uint8_t type;
+    uint8_t clicks;
 };
 
 class system {
@@ -89,6 +111,8 @@ public:
     std::function<void (mouse_state)> on_mouse_move;
     //! Mouse position update (x, y)
     std::function<void (mouse_state)> on_mouse_scroll;
+    //! Mouse button update
+    std::function<void (mouse_button_state)> on_mouse_button;
 private:
     std::unique_ptr<detail::system_impl> impl_;
 };

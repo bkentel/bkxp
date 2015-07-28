@@ -62,9 +62,9 @@ constexpr inline color4 make_color(
     uint8_t const r
   , uint8_t const g
   , uint8_t const b
-  , uint8_t const a = 255
+  , uint8_t const a = uint8_t {255}
 ) noexcept {
-    return color4 {r, g, b, a};
+    return {r, g, b, a};
 }
 
 class renderer {
