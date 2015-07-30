@@ -12,5 +12,9 @@
     , "short_name": "gy"
     , "value": [127, 127, 127]
     }
+  , { "id": "ORANGE",
+      "short_name": "o",
+      "value": [200, 200, 0]
+    }
   ]
 }

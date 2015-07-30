@@ -18,9 +18,9 @@ bkrl::definitions load_definitions(
 ) {
     using namespace bkrl;
 
-    load_definitions(colors,    "./data/colors.def",    load_from_file);
-    load_definitions(items,     "./data/items.def",     load_from_file);
-    load_definitions(creatures, "./data/creatures.def", load_from_file);
+    load_definitions(colors,    "./data/core.colors.json",    load_from_file);
+    load_definitions(items,     "./data/core.items.json",     load_from_file);
+    load_definitions(creatures, "./data/core.creatures.json", load_from_file);
 
     return definitions {&creatures, &items, &colors};
 }

@@ -1,0 +1,60 @@
+{
+  "title": "JSON schema for creature definitions",
+  "$schema": "http://json-schema.org/draft-04/schema#",
+
+  "type": "object",
+
+  "required": ["file_type", "definitions"],
+
+  "properties": {
+    "file_type": {
+        "description": "The definition type; must be creatures",
+        "type": "string",
+        "enum": ["creatures"],
+        "default": "creatures"
+    },
+    "definitions": {
+      "description": "An array of definitions",
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {         
+          "id" : {
+            "description": "The unique identifier for the definition.",
+            "type": "string",
+            "pattern": "^[A-Z_]+[A-Z0-9_]*$",
+            "minLength": 1
+          },
+          "name": {
+            "description": "The user friendly name",
+            "type": "string"
+          },
+          "description": {
+            "description": "The user friendly description",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "A single unicode glyph to symbolically represent this",
+            "type": "string"
+          },
+          "symbol_color": {
+            "description": "A color identifier for the symbol",
+            "type": "string",
+            "pattern": "^[A-Z_]+[A-Z0-9_]*$"
+          },
+          "tags": {
+            "description": "An array of string tags",
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z_]+[A-Z0-9_]*$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "language": ["English", "en"]
+, "strings": [
+    { "base": "adventurer"
+	, "plural": "s"
+	, "definite": true
+	, "indefinite": "an"
+    }
+  , { "base": "skeleton"
+	, "plural": "s"
+	, "definite": true
+	, "indefinite": "a"
+    }
+  , { "base": "zombie"
+	, "plural": "s"
+	, "definite": true
+	, "indefinite": "a"
+    }
+  , { "base": "ghost"
+	, "plural": "s"
+	, "definite": true
+	, "indefinite": "a"
+    }
+  ]
+}
