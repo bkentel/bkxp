@@ -6,6 +6,10 @@ class bkrl::detail::renderer_impl {
 public:
     explicit renderer_impl(system&) {}
 
+    void clear_clip_region() { }
+    void set_clip_region(rect_t r) { return {}; }
+    rect_t get_clip_region() { }
+
     void set_scale(double const, double const) { }
     void set_scale(double const) { }
     void set_translation(double const, double const) { }
@@ -29,6 +33,18 @@ bkrl::renderer::renderer(system& sys)
 }
 
 bkrl::renderer::~renderer() = default;
+
+void bkrl::renderer::clear_clip_region() {
+    impl_->clear_clip_region();
+}
+
+void bkrl::renderer::set_clip_region(rect_t r) {
+    impl_->set_clip_region(r);
+}
+
+bkrl::renderer::rect_t bkrl::renderer::get_clip_region() {
+    return impl_->get_clip_region();
+}
 
 void bkrl::renderer::set_scale(double const sx, double const sy)
 {
