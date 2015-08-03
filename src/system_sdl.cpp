@@ -64,6 +64,29 @@ bkrl::detail::renderer_impl::renderer_impl(system& sys)
 {
 }
 
+void bkrl::detail::renderer_impl::clear_clip_region()
+{
+    if (SDL_RenderSetClipRect(handle(), nullptr)) {
+        BOOST_THROW_EXCEPTION(bklib::platform_error {}
+          << boost::errinfo_api_function {"SDL_RenderSetClipRect"});
+    }
+}
+
+void bkrl::detail::renderer_impl::set_clip_region(rect_t const r)
+{
+    if (SDL_RenderSetClipRect(handle(), reinterpret_cast<SDL_Rect const*>(&r))) {
+        BOOST_THROW_EXCEPTION(bklib::platform_error {}
+          << boost::errinfo_api_function {"SDL_RenderSetClipRect"});
+    }
+}
+
+bkrl::detail::renderer_impl::rect_t bkrl::detail::renderer_impl::get_clip_region()
+{
+    rect_t result;
+    SDL_RenderGetClipRect(handle(), reinterpret_cast<SDL_Rect*>(&result));
+    return result;
+}
+
 void bkrl::detail::renderer_impl::set_scale(double const sx, double const sy)
 {
     sx_ = sx;

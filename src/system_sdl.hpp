@@ -84,6 +84,10 @@ public:
     SDL_Renderer* handle()       noexcept { return handle_.get(); }
     SDL_Renderer* handle() const noexcept { return handle_.get(); }
 
+    void   clear_clip_region();
+    void   set_clip_region(rect_t r);
+    rect_t get_clip_region();
+
     void set_scale(double sx, double sy);
     void set_scale(double scale);
 
