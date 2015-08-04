@@ -1,0 +1,52 @@
+{
+  "title": "JSON schema for creature definitions",
+  "$schema": "http://json-schema.org/draft-04/schema#",
+
+  "type": "object",
+
+  "required": ["file_type", "definitions"],
+
+  "properties": {
+    "file_type": {
+        "description": "The definition type; must be colors",
+        "type": "string",
+        "enum": ["colors"],
+        "default": "colors"
+    },
+    "definitions": {
+      "description": "An array of definitions",
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {         
+          "id" : {
+            "description": "The unique identifier for the definition.",
+            "type": "string",
+            "pattern": "^[A-Z_]+[A-Z0-9_]*$",
+            "minLength": 1,
+            "default": "DEFAULT"
+          },
+          "short_name": {
+            "description": "The short name used in format strings.",
+            "type": "string",
+            "default": "default"
+          },
+          "value": {
+            "description": "The RGB(A) value.",
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 4,
+            "default": [0, 0, 0],
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        }
+      }
+    }
+  }
+}
