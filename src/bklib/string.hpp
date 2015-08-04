@@ -15,7 +15,7 @@ using utf8_string      = std::string;
 //!
 //--------------------------------------------------------------------------------------------------
 template <size_t N>
-inline constexpr bklib::utf8_string_view make_string_view(char const (&str)[N]) noexcept {
+inline constexpr utf8_string_view make_string_view(char const (&str)[N]) noexcept {
     static_assert(N > 0, "");
     return bklib::utf8_string_view {str, N - 1};
 }
@@ -83,6 +83,45 @@ inline namespace literals {
 inline constexpr std::uint32_t operator""_hash(char const* const str, std::size_t) noexcept {
     return bklib::static_djb2_hash(str);
 }
+}
+
+//--------------------------------------------------------------------------------------------------
+//! Convert between an integer and an alphanumeric identifier.
+//--------------------------------------------------------------------------------------------------
+struct alphanum_id {
+    enum alphanum_range : int {
+        range0 = 0
+      , range1 = range0 + ('z' - 'a') + 1
+      , range2 = range1 + ('Z' - 'A') + 1
+      , range3 = range2 + ('9' - '0') + 1
+    };
+
+    static constexpr int to_index(int const c) noexcept {
+        return (c >= 'a' && c <= 'z') ? (range0 + (c - 'a'))
+             : (c >= 'A' && c <= 'Z') ? (range1 + (c - 'A'))
+             : (c >= '0' && c <= '9') ? (range2 + (c - '0'))
+             : -1;
+    }
+
+    static constexpr int to_char(int const i) noexcept {
+        return (i < range0) ? -1
+             : (i < range1) ? (('a' + i) - range0)
+             : (i < range2) ? (('A' + i) - range1)
+             : (i < range3) ? (('0' + i) - range2)
+             : -1;
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+//! Get the English ordinal suffix for an integer.
+//--------------------------------------------------------------------------------------------------
+constexpr inline utf8_string_view oridinal_suffix(int const i) noexcept {
+    return (i < 0)            ? make_string_view("th")
+         : (i % 20 > 10 && i % 20 < 20) ? make_string_view("th")
+         : (i % 10 == 1)      ? make_string_view("st")
+         : (i % 10 == 2)      ? make_string_view("nd")
+         : (i % 10 == 3)      ? make_string_view("rd")
+         :                      make_string_view("th");
 }
 
 } //namespace bklib

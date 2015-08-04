@@ -156,7 +156,9 @@ private:
     void handle_keyboard_(SDL_KeyboardEvent const& event);
     void handle_mouse_motion_(SDL_MouseMotionEvent const& event);
     void handle_mouse_wheel_(SDL_MouseWheelEvent const& event);
+    void handle_mouse_button_(SDL_MouseButtonEvent const& event);
     void handle_window_(SDL_WindowEvent const& event);
+    void handle_text_input_(SDL_TextInputEvent const& event);
 
     system*     sys_ = nullptr;
     sdl_state   sdl_;

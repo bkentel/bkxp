@@ -173,7 +173,7 @@ void bkrl::detail::renderer_impl::render_fill_rect(
   , int const w, int const h
   , color4 const c
 ) {
-    if (c[3] != 0xFF && SDL_SetRenderDrawBlendMode(handle(), SDL_BlendMode::SDL_BLENDMODE_ADD)) {
+    if (c[3] != 0xFF && SDL_SetRenderDrawBlendMode(handle(), SDL_BlendMode::SDL_BLENDMODE_BLEND)) {
         BOOST_THROW_EXCEPTION(bklib::platform_error {}
           << boost::errinfo_api_function {"SDL_SetRenderDrawBlendMode"});
     }
@@ -289,6 +289,7 @@ bkrl::detail::system_impl::system_impl(system* const sys)
     sys_->on_mouse_motion  = [](mouse_state) { };
     sys_->on_mouse_move    = [](mouse_state) { };
     sys_->on_mouse_scroll  = [](mouse_state) { };
+    sys_->on_mouse_button  = [](mouse_button_state) { };
 }
 
 //----------------------------------------------------------------------------------------------
@@ -340,6 +341,10 @@ void bkrl::detail::system_impl::do_events(bool const wait)
         case SDL_MOUSEMOTION :
             handle_mouse_motion_(event.motion);
             break;
+        case SDL_MOUSEBUTTONDOWN :
+        case SDL_MOUSEBUTTONUP :
+            handle_mouse_button_(event.button);
+            break;
         case SDL_KEYDOWN :
         case SDL_KEYUP :
             handle_keyboard_(event.key);
@@ -347,7 +352,7 @@ void bkrl::detail::system_impl::do_events(bool const wait)
         case SDL_TEXTEDITING :
             break;
         case SDL_TEXTINPUT :
-            sys_->on_text_input(event.text.text);
+            handle_text_input_(event.text);
             break;
         default :
             break;
@@ -399,6 +404,20 @@ void bkrl::detail::system_impl::handle_mouse_wheel_(SDL_MouseWheelEvent const& e
 }
 
 //----------------------------------------------------------------------------------------------
+void bkrl::detail::system_impl::handle_mouse_button_(SDL_MouseButtonEvent const& event)
+{
+    mouse_button_state const state {
+        event.x, event.y
+      , event.timestamp
+      , event.button
+      , event.state
+      , event.clicks
+    };
+
+    sys_->on_mouse_button(state);
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::system_impl::handle_mouse_motion_(SDL_MouseMotionEvent const& event)
 {
     mouse_state const state {
@@ -439,6 +458,11 @@ void bkrl::detail::system_impl::handle_window_(SDL_WindowEvent const& event)
     default:
         break;
     }
+}
+
+void bkrl::detail::system_impl::handle_text_input_(SDL_TextInputEvent const& event)
+{
+    sys_->on_text_input(event.text);
 }
 
 //----------------------------------------------------------------------------------------------

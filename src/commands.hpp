@@ -17,10 +17,12 @@ namespace bkrl {
 #define BK_DECLARE_COMMAND(name) name = bklib::static_djb2_hash(#name)
 enum class command_type : uint32_t {
     none = 0
+  , text = 1
   , BK_DECLARE_COMMAND(invalid)
   , BK_DECLARE_COMMAND(scroll)
   , BK_DECLARE_COMMAND(zoom)
   , BK_DECLARE_COMMAND(cancel)
+  , BK_DECLARE_COMMAND(confirm)
   , BK_DECLARE_COMMAND(yes)
   , BK_DECLARE_COMMAND(no)
   , BK_DECLARE_COMMAND(dir_here)
@@ -99,6 +101,7 @@ public:
     void on_mouse_move_to(int x, int y);
     void on_mouse_down(int x, int y, int button);
     void on_mouse_up(int x, int y, int button);
+    void on_text(bklib::utf8_string_view str);
 private:
     std::unique_ptr<detail::command_translator_impl> impl_;
 };

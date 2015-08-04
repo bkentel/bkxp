@@ -2,6 +2,7 @@
 #include "terrain.hpp"
 #include "context.hpp"
 #include "map.hpp"
+#include "inventory.hpp"
 #include "bklib/dictionary.hpp"
 #include "external/format.h"
 
@@ -33,17 +34,18 @@ bkrl::item::item(
 }
 
 //--------------------------------------------------------------------------------------------------
-bklib::utf8_string bkrl::item::friendly_name(definitions const& defs) const
+bklib::utf8_string bkrl::item::friendly_name(context const& ctx, item_def const* idef) const
 {
-    auto const id  = def();
-    auto const def = defs.find(id);
-
-    if (!def) {
-        return to_string(id);
+    if (!idef) {
+        auto const id = def();
+        idef = ctx.data.find(id);
+        if (!idef) {
+            return to_string(id);
+        }
     }
 
-    if (def->name.empty()) {
-        return def->id_string;
+    if (idef->name.empty()) {
+        return idef->id_string;
     }
 
     if (flags().test(item_flag::is_corpse)) {
@@ -52,7 +54,7 @@ bklib::utf8_string bkrl::item::friendly_name(definitions const& defs) const
             return fmt::sprintf("unknown remains");
         }
 
-        if (auto const cdef = defs.find(cid)) {
+        if (auto const cdef = ctx.data.find(cid)) {
             if (cdef->name.empty()) {
                 return fmt::sprintf("the remains of a nameless entity");
             }
@@ -63,7 +65,7 @@ bklib::utf8_string bkrl::item::friendly_name(definitions const& defs) const
         return fmt::sprintf("the remains of a %s", to_string(cid));
     }
 
-    return def->name;
+    return idef->name;
 }
 
 //--------------------------------------------------------------------------------------------------

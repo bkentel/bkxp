@@ -4,11 +4,13 @@
 #if defined(BK_NO_SDL)
 class bkrl::detail::renderer_impl {
 public:
+    using rect_t = renderer::rect_t;
+
     explicit renderer_impl(system&) {}
 
     void clear_clip_region() { }
-    void set_clip_region(rect_t r) { return {}; }
-    rect_t get_clip_region() { }
+    void set_clip_region(rect_t) { }
+    rect_t get_clip_region() { return {}; }
 
     void set_scale(double const, double const) { }
     void set_scale(double const) { }

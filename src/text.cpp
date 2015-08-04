@@ -1,6 +1,6 @@
 #include "text.hpp"
-
 #include "renderer.hpp"
+#include "bklib/scope_guard.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_renderer
@@ -11,6 +11,7 @@ class bkrl::detail::text_renderer_impl {
 public:
     using size_type = text_renderer::size_type;
     using rect_t = text_renderer::rect_t;
+    using point_t = text_renderer::point_t;
 
     rect_t load_glyph_info(bklib::utf8_string_view const text) {
         if (text.empty() || static_cast<std::uint8_t>(text.front()) & std::uint8_t {0b1000'0000}) {
@@ -27,8 +28,12 @@ public:
         return {x, y, static_cast<size_type>(x + w), static_cast<size_type>(y + h)};
     }
 
-    size_type line_spacing() const {
+    size_type line_spacing() const noexcept {
         return 18;
+    }
+
+    point_t bbox() const noexcept {
+        return {18, 18};
     }
 private:
 };
@@ -51,9 +56,14 @@ bkrl::text_renderer::load_glyph_info(bklib::utf8_string_view const text)
 
 //--------------------------------------------------------------------------------------------------
 bkrl::text_renderer::size_type
-bkrl::text_renderer::line_spacing() const
+bkrl::text_renderer::line_spacing() const noexcept
 {
     return impl_->line_spacing();
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::text_renderer::point_t bkrl::text_renderer::bbox() const noexcept {
+    return impl_->bbox();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,6 +154,13 @@ void bkrl::text_layout::set_position(int const x, int const y)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::text_layout::clip_to(size_type const w, size_type const h)
+{
+    w_ = w;
+    h_ = h;
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::text_layout::draw(renderer& render) const
 {
     draw(render, x_, y_);
@@ -158,6 +175,11 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
     render.set_translation(x_off, y_off);
     render.set_scale(1.0);
 
+    BK_SCOPE_EXIT {
+        render.set_scale(x(scale));
+        render.set_translation(x(trans), y(trans));
+    };
+
     renderer::rect_t src {};
     renderer::rect_t dst {};
 
@@ -165,6 +187,12 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
     dst.w = 18;
 
     for (auto const& glyph : data_) {
+        if (w_ != unlimited && glyph.dst_x + glyph.src_w > w_
+         || h_ != unlimited && glyph.dst_y + glyph.src_h > h_
+        ) {
+            continue;
+        }
+
         src.x = glyph.src_x;
         src.y = glyph.src_y;
         src.w = glyph.src_w;
@@ -175,9 +203,6 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
 
         render.draw_rect(src, dst);
     }
-
-    render.set_scale(x(scale));
-    render.set_translation(x(trans), y(trans));
 }
 
 //--------------------------------------------------------------------------------------------------

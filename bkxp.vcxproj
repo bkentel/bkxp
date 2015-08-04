@@ -37,6 +37,7 @@
     <ClInclude Include="src\external\format.h" />
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\identifier.hpp" />
+    <ClInclude Include="src\inventory.hpp" />
     <ClInclude Include="src\item.hpp" />
     <ClInclude Include="src\json.hpp" />
     <ClInclude Include="src\map.hpp" />
@@ -69,6 +70,7 @@
     <ClCompile Include="src\external\format.cc" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\identifier.cpp" />
+    <ClCompile Include="src\inventory.cpp" />
     <ClCompile Include="src\item.cpp" />
     <ClCompile Include="src\json.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -97,6 +99,7 @@
     <ClCompile Include="test\command_test.cpp" />
     <ClCompile Include="test\creature_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
+    <ClCompile Include="test\inventory_test.cpp" />
     <ClCompile Include="test\item_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />
     <ClCompile Include="test\map_test.cpp" />
