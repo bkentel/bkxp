@@ -112,6 +112,16 @@ public:
       , ptrdiff_t tex_offset, size_t tex_size
       , size_t stride
     );
+
+    void draw_rects(
+        int xoff, int yoff
+      , size_t count
+      , void const* data
+      , ptrdiff_t src_pos_offset, size_t src_pos_size
+      , ptrdiff_t dst_pos_offset, size_t dst_pos_size
+      , ptrdiff_t color_offset,   size_t color_size
+      , size_t stride
+    );
 private:
     std::unique_ptr<detail::renderer_impl> impl_;
 };

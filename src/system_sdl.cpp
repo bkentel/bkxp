@@ -1,5 +1,6 @@
 #if !defined(BK_NO_SDL)
 #include "system_sdl.hpp"
+#include "bklib/scope_guard.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // sdl_state
@@ -244,6 +245,38 @@ void bkrl::detail::renderer_impl::draw_cells(
               , SDL_Rect {r.left, r.top, tw, th}
               , SDL_Rect {dx, dy, tw, th});
         }
+    }
+}
+
+void bkrl::detail::renderer_impl::draw_rects(
+    int const xoff, int const yoff
+  , size_t const count
+  , void const* const data
+  , ptrdiff_t const src_pos_offset, size_t const src_pos_size
+  , ptrdiff_t const dst_pos_offset, size_t const dst_pos_size
+  , ptrdiff_t const color_offset,   size_t const color_size
+  , size_t const stride
+) {
+    color4 old;
+    SDL_GetTextureColorMod(tile_texture_.handle(), &old[0], &old[1], &old[2]);
+    BK_SCOPE_EXIT {
+        SDL_SetTextureColorMod(tile_texture_.handle(), old[0], old[1], old[2]);
+    };
+
+    auto p = static_cast<char const*>(data);
+
+    for (auto i = 0u; i < count; ++i) {
+        auto const src = reinterpret_cast<int16_t const*>(p + src_pos_offset);
+        auto const dst = reinterpret_cast<int16_t const*>(p + dst_pos_offset);
+        auto const col = reinterpret_cast<uint8_t const*>(p + color_offset);
+
+        SDL_SetTextureColorMod(tile_texture_.handle(), col[0], col[1], col[2]);
+
+        render_copy(tile_texture_
+            , SDL_Rect {       src[0],        src[1], src[2], src[3]}
+            , SDL_Rect {xoff + dst[0], yoff + dst[1], src[2], src[3]});
+
+        p += stride;
     }
 }
 

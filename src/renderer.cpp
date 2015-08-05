@@ -26,6 +26,8 @@ public:
     void draw_cell(int const, int const, int const, color4 const) { }
     void draw_rect(renderer::rect_t const, renderer::rect_t const) { }
     void draw_cells(int, int, size_t, size_t, void const*, ptrdiff_t, size_t, size_t) { }
+    void draw_rects(int, int, size_t, void const*, ptrdiff_t, size_t
+                  , ptrdiff_t, size_t, ptrdiff_t, size_t, size_t) { }
 };
 #endif
 
@@ -123,4 +125,20 @@ void bkrl::renderer::draw_cells(
   , size_t const stride
 ) {
     impl_->draw_cells(xoff, yoff, w, h, data, tex_offset, tex_size, stride);
+}
+
+void bkrl::renderer::draw_rects(
+    int xoff, int yoff
+  , size_t count
+  , void const* data
+  , ptrdiff_t src_pos_offset, size_t src_pos_size
+  , ptrdiff_t dst_pos_offset, size_t dst_pos_size
+  , ptrdiff_t color_offset,   size_t color_size
+  , size_t stride
+) {
+    impl_->draw_rects(xoff, yoff, count, data
+                    , src_pos_offset, src_pos_size
+                    , dst_pos_offset, dst_pos_size
+                    , color_offset, color_size
+                    , stride);
 }

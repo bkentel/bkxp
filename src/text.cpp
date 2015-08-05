@@ -172,37 +172,20 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
     auto const scale = render.get_scale();
     auto const trans = render.get_translation();
 
-    render.set_translation(x_off, y_off);
-    render.set_scale(1.0);
-
     BK_SCOPE_EXIT {
         render.set_scale(x(scale));
         render.set_translation(x(trans), y(trans));
     };
 
-    renderer::rect_t src {};
-    renderer::rect_t dst {};
+    render.set_translation(0, 0);
+    render.set_scale(1.0);
 
-    dst.h = 18;
-    dst.w = 18;
-
-    for (auto const& glyph : data_) {
-        if (w_ != unlimited && glyph.dst_x + glyph.src_w > w_
-         || h_ != unlimited && glyph.dst_y + glyph.src_h > h_
-        ) {
-            continue;
-        }
-
-        src.x = glyph.src_x;
-        src.y = glyph.src_y;
-        src.w = glyph.src_w;
-        src.h = glyph.src_h;
-
-        dst.x = glyph.dst_x;
-        dst.y = glyph.dst_y;
-
-        render.draw_rect(src, dst);
-    }
+    render.draw_rects(x_off, y_off, data_.size(), data_.data()
+        , offsetof(render_info, src_x), sizeof(render_info::src_x)
+        , offsetof(render_info, dst_x), sizeof(render_info::dst_x)
+        , offsetof(render_info, color), sizeof(render_info::color)
+        , sizeof(render_info)
+    );
 }
 
 //--------------------------------------------------------------------------------------------------
