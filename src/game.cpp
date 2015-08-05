@@ -83,11 +83,24 @@ bkrl::game::game()
         command_translator_.on_text(str);
     };
 
+    auto const check_key_mods_changed = [&] {
+        auto const cur = system_.current_key_mods();
+        if (cur == prev_key_mods_) {
+            return;
+        }
+
+        BK_SCOPE_EXIT { prev_key_mods_ = cur; };
+
+        show_inspect_text_ = cur.test(key_mod::shift);
+    };
+
     system_.on_key_up = [&](int const key) {
+        check_key_mods_changed();
         command_translator_.on_key_up(key);
     };
 
     system_.on_key_down = [&](int const key) {
+        check_key_mods_changed();
         command_translator_.on_key_down(key);
     };
 
@@ -196,6 +209,12 @@ void bkrl::game::render(render_type const type)
     message_log_.draw(renderer_);
     inventory_.draw(renderer_);
 
+    if (show_inspect_text_) {
+        auto const r = make_renderer_rect(add_border(inspect_text_.extent(), 4));
+        renderer_.draw_filled_rect(r, make_color(200, 200, 200, 200));
+        inspect_text_.draw(renderer_);
+    }
+
     renderer_.present();
 }
 
@@ -239,6 +258,8 @@ void bkrl::game::on_mouse_over(int const x, int const y)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_mouse_over(int const mx, int const my)
 {
+    mouse_last_pos_screen_ = bklib::ipoint2 {mx, my};
+
     auto const p = view_.screen_to_world(mx, my);
 
     if (p == mouse_last_pos_) {
@@ -729,7 +750,7 @@ bkrl::context bkrl::game::make_context()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::debug_print(int const mx, int const my) const
+void bkrl::game::debug_print(int const mx, int const my)
 {
     if (!system_.current_key_mods().test(key_mod::shift)) {
         return;
@@ -739,21 +760,41 @@ void bkrl::game::debug_print(int const mx, int const my) const
 
     bklib::ipoint2 const p {mx, my};
 
+    std::ostringstream str;
+
     auto const& ter = current_map().at(p);
-    printf("cell (%d, %d)\n", x(p), y(p));
-    printf("  type = %d::%d\n", static_cast<int16_t>(ter.type), ter.variant);
+    str << fmt::sprintf("[%3.3d, %3.3d] (%d::%d)"
+        , x(p), y(p), static_cast<uint16_t>(ter.type), ter.variant);
 
     if (auto const& c = current_map().creature_at(p)) {
-        fmt::printf("  creature present\n");
-        fmt::printf("  %s\n", c->friendly_name(definitions_));
+        str << fmt::sprintf(
+            "\nCreature (%#08x)\n"
+            "  Def  : %s (%#08x)\n"
+            "  Name : %s"
+          , static_cast<uint32_t>(c->id())
+          , c->def().c_str(), static_cast<uint32_t>(c->def())
+          , c->friendly_name(definitions_)
+        );
     }
 
     if (auto const& ip = current_map().items_at(p)) {
-        fmt::printf("  item(s) present\n");
+        str << fmt::sprintf("\nItem(s)");
         for (auto const& i : *ip) {
-            fmt::printf("  %s\n", i.friendly_name(ctx));
+            str << fmt::sprintf("\n  %s", i.friendly_name(ctx));
         }
     }
+
+    inspect_text_.set_text(text_renderer_, str.str());
+    inspect_text_.set_position(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
+
+    auto const ext = inspect_text_.extent();
+    auto const dr  = system_.client_width() - ext.right;
+
+    if (dr < 0) {
+        inspect_text_.set_position(x(mouse_last_pos_screen_) + dr, y(mouse_last_pos_screen_));
+    }
+
+    show_inspect_text_ = true;
 }
 
 //--------------------------------------------------------------------------------------------------
