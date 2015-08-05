@@ -380,6 +380,40 @@ void bkrl::detail::system_impl::delay(std::chrono::nanoseconds const)
 }
 
 //----------------------------------------------------------------------------------------------
+bkrl::key_mod_state bkrl::detail::system_impl::current_key_mods() const
+{
+    auto const mods = SDL_GetModState();
+
+    key_mod_state result {};
+
+    using km = bkrl::key_mod;
+
+    auto const do_set = [&](km const m, bool const b) noexcept {
+        if (b) {
+            result.set(m);
+        }
+    };
+
+    do_set(km::lshift, !!(mods & KMOD_LSHIFT));
+    do_set(km::rshift, !!(mods & KMOD_RSHIFT));
+    do_set(km::lctrl,  !!(mods & KMOD_LCTRL));
+    do_set(km::rctrl,  !!(mods & KMOD_RCTRL));
+    do_set(km::lalt,   !!(mods & KMOD_LALT));
+    do_set(km::ralt,   !!(mods & KMOD_RALT));
+    do_set(km::lgui,   !!(mods & KMOD_LGUI));
+    do_set(km::rgui,   !!(mods & KMOD_RGUI));
+    do_set(km::num,    !!(mods & KMOD_NUM));
+    do_set(km::caps,   !!(mods & KMOD_CAPS));
+    do_set(km::mode,   !!(mods & KMOD_MODE));
+    do_set(km::ctrl,   !!(mods & KMOD_CTRL));
+    do_set(km::shift,  !!(mods & KMOD_SHIFT));
+    do_set(km::alt,    !!(mods & KMOD_ALT));
+    do_set(km::gui,    !!(mods & KMOD_GUI));
+
+    return result;
+}
+
+//----------------------------------------------------------------------------------------------
 void bkrl::detail::system_impl::handle_keyboard_(SDL_KeyboardEvent const& event)
 {
     if (event.state == SDL_PRESSED) {

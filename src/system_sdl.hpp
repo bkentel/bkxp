@@ -152,6 +152,8 @@ public:
     void do_events(bool wait);
 
     void delay(std::chrono::nanoseconds ns);
+
+    key_mod_state current_key_mods() const;
 private:
     void handle_keyboard_(SDL_KeyboardEvent const& event);
     void handle_mouse_motion_(SDL_MouseMotionEvent const& event);

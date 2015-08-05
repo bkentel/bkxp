@@ -54,8 +54,6 @@ bkrl::game::game()
   , output_ {}
   , inventory_ {text_renderer_}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
-
-  , test_layout_ {text_renderer_, "Message.", 5, 5, 640, 200}
   , message_log_ {text_renderer_}
 {
     //
@@ -195,7 +193,6 @@ void bkrl::game::render(render_type const type)
 
     current_map().draw(renderer_, view_);
 
-    test_layout_.draw(renderer_);
     message_log_.draw(renderer_);
     inventory_.draw(renderer_);
 
@@ -242,13 +239,19 @@ void bkrl::game::on_mouse_over(int const x, int const y)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_mouse_over(int const mx, int const my)
 {
-    test_layout_.set_position(mx, my);
-
     auto const p = view_.screen_to_world(mx, my);
-    if (p != mouse_last_pos_ && intersects(p, current_map().bounds())) {
-        debug_print(x(p), y(p));
-        mouse_last_pos_ = p;
+
+    if (p == mouse_last_pos_) {
+        return;
     }
+
+    if (!intersects(p, current_map().bounds())) {
+        return;
+    }
+
+    debug_print(x(p), y(p));
+
+    mouse_last_pos_ = p;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -684,19 +687,19 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
     case command_type::dir_here:
         do_wait(1);
         break;
-    case command_type::dir_north:
-    case command_type::dir_south:
-    case command_type::dir_east:
-    case command_type::dir_west:
-    case command_type::dir_n_west:
-    case command_type::dir_n_east:
-    case command_type::dir_s_west:
-    case command_type::dir_s_east:
-    case command_type::dir_up:
+    case command_type::dir_north:  BK_FALLTHROUGH
+    case command_type::dir_south:  BK_FALLTHROUGH
+    case command_type::dir_east:   BK_FALLTHROUGH
+    case command_type::dir_west:   BK_FALLTHROUGH
+    case command_type::dir_n_west: BK_FALLTHROUGH
+    case command_type::dir_n_east: BK_FALLTHROUGH
+    case command_type::dir_s_west: BK_FALLTHROUGH
+    case command_type::dir_s_east: BK_FALLTHROUGH
+    case command_type::dir_up:     BK_FALLTHROUGH
     case command_type::dir_down:
         on_move(direction_vector(cmd.type));
         break;
-    case command_type::open:
+    case command_type::open: BK_FALLTHROUGH
     case command_type::close:
         on_open_close(cmd.type);
         break;
@@ -728,6 +731,10 @@ bkrl::context bkrl::game::make_context()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::debug_print(int const mx, int const my) const
 {
+    if (!system_.current_key_mods().test(key_mod::shift)) {
+        return;
+    }
+
     auto ctx = const_cast<game*>(this)->make_context();
 
     bklib::ipoint2 const p {mx, my};

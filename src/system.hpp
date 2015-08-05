@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bklib/string.hpp"
+#include "bklib/flag_set.hpp"
 
 #include <functional>
 #include <memory>
@@ -11,6 +12,27 @@ namespace bkrl {
 
 namespace detail { class system_impl; }
 namespace detail { class renderer_impl; }
+
+enum class key_mod : uint32_t {
+    none
+  , lshift
+  , rshift
+  , lctrl
+  , rctrl
+  , lalt
+  , ralt
+  , lgui
+  , rgui
+  , num
+  , caps
+  , mode
+  , ctrl
+  , shift
+  , alt
+  , gui
+};
+
+using key_mod_state = bklib::flag_set<key_mod>;
 
 enum class mouse_button : uint32_t {
     left = 1
@@ -96,6 +118,8 @@ public:
     }
 
     mouse_state const& mouse_history(int i) const;
+
+    key_mod_state current_key_mods() const;
 public:
     //! Window resize (w, h)
     std::function<void (int, int)> on_window_resize;

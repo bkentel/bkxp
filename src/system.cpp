@@ -12,6 +12,7 @@ public:
     bool is_running() const noexcept  { return true; }
     void do_events(bool const)  { }
     void delay(std::chrono::nanoseconds const) { }
+    key_mod_state current_key_mods() const { return {}; }
 };
 #endif
 
@@ -58,4 +59,8 @@ void bkrl::system::do_events_wait() {
 void bkrl::system::delay(std::chrono::nanoseconds const ns)
 {
     impl_->delay(ns);
+}
+
+bkrl::key_mod_state bkrl::system::current_key_mods() const {
+    return impl_->current_key_mods();
 }

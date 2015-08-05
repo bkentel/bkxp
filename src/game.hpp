@@ -107,7 +107,6 @@ private:
 
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
 
-    text_layout test_layout_;
     message_log message_log_;
 
     bklib::timer::id_t timer_message_log_ {0};
