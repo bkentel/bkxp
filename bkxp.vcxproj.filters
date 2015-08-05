@@ -127,6 +127,12 @@
     <ClInclude Include="src\inventory.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
+    <ClInclude Include="src\input.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\equip.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -264,6 +270,12 @@
       <Filter>bkrl</Filter>
     </ClCompile>
     <ClCompile Include="test\inventory_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\equip.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\equip_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>

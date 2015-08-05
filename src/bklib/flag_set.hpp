@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <type_traits>
 #include <initializer_list>
 
@@ -82,6 +83,8 @@ struct flag_set {
 
     using type = std::underlying_type_t<Enum>;
 
+    static constexpr auto bits = sizeof(type) * 8;
+
     static constexpr type value_of(Enum const flag) noexcept {
         return static_cast<type>(flag);
     }
@@ -142,6 +145,45 @@ constexpr inline bool operator==(flag_set<T> const lhs, flag_set<T> const rhs) n
 template <typename T>
 constexpr inline bool operator!=(flag_set<T> const lhs, flag_set<T> const rhs) noexcept {
     return !(lhs == rhs);
+}
+
+namespace detail {
+
+template <typename T, typename Function>
+void for_each_flag(flag_set<T> const flags, Function&& function, std::true_type) {
+    constexpr auto const bits = sizeof(flags.value) * 8;
+    for (auto i = 0u; i < bits; ++i) {
+        auto const bit = static_cast<T>(i);
+        if (!flags.test(bit)) {
+            continue;
+        }
+
+        if (!function(bit)) {
+            return;
+        }
+    }
+}
+
+template <typename T, typename Function>
+void for_each_flag(flag_set<T> const flags, Function&& function, std::false_type) {
+    constexpr auto const bits = sizeof(flags.value) * 8;
+    for (auto i = 0u; i < bits; ++i) {
+        auto const bit = static_cast<T>(i);
+        if (flags.test(bit)) {
+            function(bit);
+        }
+    }
+}
+
+} //namespace detail
+
+template <typename T, typename Function>
+void for_each_flag(flag_set<T> const flags, Function&& function) {
+    detail::for_each_flag(
+        flags
+      , std::forward<Function>(function)
+      , std::is_same<decltype(function(std::declval<T>())), bool> {}
+    );
 }
 
 } //namespace bklib

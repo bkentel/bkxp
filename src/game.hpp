@@ -76,6 +76,10 @@ public:
     void on_show_inventory();
     void do_show_inventory();
 
+    void on_show_equipment();
+    void do_show_equipment();
+    void do_equip_item(item& i);
+
     command_handler_result on_command(command const& cmd);
 
     context make_context();

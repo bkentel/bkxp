@@ -6,7 +6,7 @@
     , "symbol": "%"
     , "symbol_color": "GREY"
     , "weight": 2000
-    , "tags": ["CORPSE", "FOOD"]
+    , "tags": ["CAT_FOOD", "CORPSE"]
     }
   , { "id": "WEAPON_SWORD_SHORT"
     , "name": "short sword"
@@ -14,7 +14,7 @@
     , "symbol": "/"
     , "symbol_color": "GREY"
     , "weight": 2000
-    , "tags": ["WEAPON", "WEAPON_EDGED"]
+    , "tags": ["CAT_WEAPON", "EQS_HAND_ANY"]
     }
   , { "id": "WEAPON_DAGGER"
     , "name": "dagger"
@@ -22,7 +22,7 @@
     , "symbol": "/"
     , "symbol_color": "GREY"
     , "weight": 800
-    , "tags": ["WEAPON", "WEAPON_STAB"]
+    , "tags": ["CAT_WEAPON", "EQS_HAND_ANY"]
     }
   , { "id": "ARMOR_RAGS"
     , "name": "torn rags"
@@ -30,7 +30,7 @@
     , "symbol": "["
     , "symbol_color": "GREY"
     , "weight": 1200
-    , "tags": ["ARMOR", "ARMOR_CHEST", "MATERIAL_CLOTH"]
+    , "tags": ["CAT_ARMOR", "EQS_TORSO", "MAT_CLOTH"]
     }
   , { "id": "CHEST_SMALL"
     , "name": "small chest"
@@ -38,7 +38,7 @@
     , "symbol": "-"
     , "symbol_color": "RED"
     , "weight": 5000
-    , "tags": ["CONTAINER"]
+    , "tags": ["CAT_CONTAINER"]
     }
   ]
 }

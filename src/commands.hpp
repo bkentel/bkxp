@@ -1,5 +1,7 @@
 #pragma once
 
+#include "input.hpp"
+
 #include "bklib/string.hpp"
 
 #include <functional>
@@ -17,7 +19,8 @@ namespace bkrl {
 #define BK_DECLARE_COMMAND(name) name = bklib::static_djb2_hash(#name)
 enum class command_type : uint32_t {
     none = 0
-  , text = 1
+  , raw  = 1
+  , text = 2
   , BK_DECLARE_COMMAND(invalid)
   , BK_DECLARE_COMMAND(scroll)
   , BK_DECLARE_COMMAND(zoom)
@@ -42,6 +45,7 @@ enum class command_type : uint32_t {
   , BK_DECLARE_COMMAND(close)
   , BK_DECLARE_COMMAND(drop)
   , BK_DECLARE_COMMAND(show_inventory)
+  , BK_DECLARE_COMMAND(show_equipment)
   , BK_DECLARE_COMMAND(get)
 };
 #undef BK_DECLARE_COMMAND
@@ -81,6 +85,7 @@ namespace detail { class command_translator_impl; }
 enum class command_handler_result {
     detach  //!< stop accepting input
   , capture //!< continue processing input
+  , filter  //!< for raw commands, whether to continue to translate the combo into a command.
 };
 
 using command_handler_t = std::function<command_handler_result (command const&)>;
@@ -96,8 +101,8 @@ public:
     void push_handler(command_handler_t&& handler);
     void pop_handler();
 
-    void on_key_down(int key);
-    void on_key_up(int key);
+    void on_key_down(int key, key_mod_state mods);
+    void on_key_up(int key, key_mod_state mods);
     void on_mouse_move_to(int x, int y);
     void on_mouse_down(int x, int y, int button);
     void on_mouse_up(int x, int y, int button);

@@ -1,7 +1,7 @@
 #include "inventory.hpp"
 #include "renderer.hpp"
 #include "text.hpp"
-#include "system.hpp"
+#include "input.hpp"
 #include "commands.hpp"
 #include "item.hpp"
 #include "context.hpp"
@@ -23,7 +23,7 @@ public:
         bkrl::text_layout shortcut; // TODO wasteful
         bkrl::text_layout symbol; // TODO wasteful
         bkrl::text_layout name;
-        ptrdiff_t         data;
+        inventory::data_t data;
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ public:
       , text_renderer_ {trender}
       , title_ {trender, ""}
     {
-        handler_ = [](auto, auto, auto) {};
+        handler_ = [](action, int) noexcept {};
     }
 
     void insert(inventory::row_t&& r, int const where);
@@ -85,10 +85,22 @@ public:
 
     bklib::ipoint2 position() { return layout_.position(); }
 
+    int selection() const noexcept { return selection_; }
+
+    inventory::data_t data(int const index) const {
+        auto i = index;
+        if (index == inventory::current_selection) {
+            i = selection();
+            BK_PRECONDITION(i != selection_none);
+        }
+
+        return rows_[i].data;
+    }
+
     bool mouse_move(mouse_state const& m);
     bool mouse_button(mouse_button_state const& m);
     bool mouse_scroll(mouse_state const& m);
-    void command(bkrl::command const cmd);
+    command_handler_result command(bkrl::command cmd);
 
     void on_action(action_handler_t&& handler) {
         handler_ = std::move(handler);
@@ -108,7 +120,7 @@ public:
         selection_ = (i % n) + (i < 0 ? n : 0);
 
         if (send_event) {
-            handler_(action::select, selection_, rows_[selection_].data);
+            handler_(action::select, selection_);
         }
     }
 
@@ -120,21 +132,19 @@ public:
         select(selection_ + -n);
     }
 
-    void do_confirm() {
-        if (selection_ == selection_none) {
-            return;
-        }
-
+    void do_equip() {
         BK_ASSERT(selection_ < count());
+        handler_(action::equip, selection_);
+    }
 
-        handler_(action::confirm, selection_, rows_[selection_].data);
+    void do_confirm() {
+        BK_ASSERT(selection_ < count());
+        handler_(action::confirm, selection_);
     }
 
     void do_cancel() {
-        auto const data = (selection_ != selection_none) && (selection_ < count())
-            ? rows_[selection_].data : 0;
-
-        handler_(action::cancel, selection_, data);
+        BK_ASSERT(selection_ < count());
+        handler_(action::cancel, selection_);
     }
 
     int position_to_index(bklib::ipoint2 const p) const noexcept {
@@ -295,6 +305,14 @@ bklib::ipoint2 bkrl::inventory::position() {
     return impl_->position();
 }
 
+int bkrl::inventory::selection() const {
+    return impl_->selection();
+}
+
+bkrl::inventory::data_t bkrl::inventory::data(int const index) const {
+    return impl_->data(index);
+}
+
 bool bkrl::inventory::mouse_move(mouse_state const& m) {
     return impl_->mouse_move(m);
 }
@@ -307,8 +325,8 @@ bool bkrl::inventory::mouse_scroll(mouse_state const& m) {
     return impl_->mouse_scroll(m);
 }
 
-void bkrl::inventory::command(bkrl::command const cmd) {
-    impl_->command(cmd);
+bkrl::command_handler_result bkrl::inventory::command(bkrl::command const cmd) {
+    return impl_->command(cmd);
 }
 
 void bkrl::inventory::on_action(action_handler_t handler) {
@@ -676,29 +694,40 @@ bool bkrl::detail::inventory_impl::mouse_scroll(mouse_state const& m) {
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::inventory_impl::command(bkrl::command const cmd)
+bkrl::command_handler_result bkrl::detail::inventory_impl::command(bkrl::command const cmd)
 {
+    auto const default_result = command_handler_result::capture;
+
     switch (cmd.type) {
+    case command_type::raw:
+        if (cmd.data0 == 'e'
+         && reinterpret_cast<bkrl::key_mod_state const*>(&cmd.data1)->test(key_mod::ctrl)
+        ) {
+            do_equip();
+            return command_handler_result::filter;
+        }
+
+        break;
     case command_type::text:
     {
         auto const str = bklib::utf8_string_view {
             reinterpret_cast<char const*>(cmd.data1)
-            , static_cast<size_t>(cmd.data0)
+          , static_cast<size_t>(cmd.data0)
         };
 
         if (str.size() > 1) {
-            return;
+            break;
         }
 
         auto const c = str.front();
         auto const i = bklib::alphanum_id::to_index(c);
         if (i < 0) {
-            return;
+            break;
         }
 
         auto const n = static_cast<int>(rows_.size());
         if (i >= n) {
-            return;
+            break;;
         }
 
         select(i);
@@ -712,6 +741,8 @@ void bkrl::detail::inventory_impl::command(bkrl::command const cmd)
     default:
         break;
     }
+
+    return default_result;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -724,15 +755,38 @@ void bkrl::detail::make_item_list(
     i.clear();
     i.set_title(title);
 
+    auto index = 0;
     for (auto& itm : pile) {
         auto const idef = ctx.data.find(itm.def());
 
         i.insert(inventory::row_t {
             idef ? idef->symbol : " " //TODO find will be called twice
           , itm.friendly_name(ctx, idef)
-          , reinterpret_cast<ptrdiff_t>(&itm)
+          , to_inventory_data(const_cast<item&>(itm), index++) //TODO
         });
     }
 
     i.show(true);
+}
+
+bkrl::inventory::data_t bkrl::to_inventory_data(item& itm, int const index) noexcept
+{
+    using t0 = decltype(inventory::data_t::data0);
+    using t1 = decltype(inventory::data_t::data1);
+
+    static_assert(sizeof(t0) >= sizeof(bkrl::item*), "");
+    static_assert(sizeof(t1) >= sizeof(int),         "");
+
+    return {
+        reinterpret_cast<decltype(inventory::data_t::data0)>(&itm)
+      , static_cast<decltype(inventory::data_t::data1)>(index)
+    };
+}
+
+std::pair<bkrl::item&, int> bkrl::from_inventory_data(inventory::data_t const data) noexcept
+{
+    return {
+        *reinterpret_cast<item*>(data.data0)
+      , static_cast<int>(data.data1)
+    };
 }

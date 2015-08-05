@@ -4,10 +4,12 @@
 #include "random.hpp"
 #include "item.hpp"
 #include "definitions.hpp"
+#include "equip.hpp"
 
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 #include "bklib/flag_set.hpp"
+#include "bklib/algorithm.hpp"
 
 #include <vector>
 
@@ -54,6 +56,8 @@ struct creature_def : definition_base {
     id_type        id;
     creature_flags flags;
 };
+
+inline void process_tags(creature_def& def) {}
 
 constexpr inline bool operator==(creature_def const& lhs, creature_def::id_type const& rhs) noexcept {
     return lhs.id == rhs;
@@ -156,6 +160,7 @@ struct creature_stats {
 
     int8_t reserved[6];
 };
+
 //--------------------------------------------------------------------------------------------------
 //! An instance of a creature_def.
 //! Move only.
@@ -196,6 +201,10 @@ public:
         return items_;
     }
 
+    //TODO change this interface?
+    equipment&       equip_list()       { return equip_; }
+    equipment const& equip_list() const { return equip_; }
+
     int modify(stat_type stat, int mod);
 
     bklib::utf8_string friendly_name(definitions const& defs) const;
@@ -207,6 +216,7 @@ private:
     bklib::ipoint2       pos_;
     creature_stats       stats_;
     item_pile            items_;
+    equipment            equip_;
     creature_flags       flags_;
 };
 

@@ -34,9 +34,11 @@
     <ClInclude Include="src\creature.hpp" />
     <ClInclude Include="src\definitions.hpp" />
     <ClInclude Include="src\direction.hpp" />
+    <ClInclude Include="src\equip.hpp" />
     <ClInclude Include="src\external\format.h" />
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\identifier.hpp" />
+    <ClInclude Include="src\input.hpp" />
     <ClInclude Include="src\inventory.hpp" />
     <ClInclude Include="src\item.hpp" />
     <ClInclude Include="src\json.hpp" />
@@ -67,6 +69,7 @@
     <ClCompile Include="src\creature.cpp" />
     <ClCompile Include="src\definitions.cpp" />
     <ClCompile Include="src\direction.cpp" />
+    <ClCompile Include="src\equip.cpp" />
     <ClCompile Include="src\external\format.cc" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\identifier.cpp" />
@@ -99,6 +102,7 @@
     <ClCompile Include="test\command_test.cpp" />
     <ClCompile Include="test\creature_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
+    <ClCompile Include="test\equip_test.cpp" />
     <ClCompile Include="test\inventory_test.cpp" />
     <ClCompile Include="test\item_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />

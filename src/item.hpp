@@ -33,11 +33,23 @@ using  item_map = bklib::spatial_map_2d<item_pile>;
 enum class item_flag : uint32_t {
     is_container
   , is_corpse
-
+  , is_equippable
+  , is_equipped
   , enum_size
 };
 
 using item_flags = bklib::flag_set<item_flag>;
+
+enum class equip_slot : uint32_t {
+    none
+  , hand_main
+  , hand_off
+  , hand_any
+  , head
+  , torso
+};
+
+using item_slots = bklib::flag_set<equip_slot>;
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -52,8 +64,12 @@ struct item_def : definition_base {
     }
 
     id_type id;
+    item_flags flags;
+    item_slots slots;
     int32_t weight = 1;
 };
+
+void process_tags(item_def& def);
 
 constexpr inline bool operator==(item_def const& lhs, item_def::id_type const& rhs) noexcept {
     return lhs.id == rhs;
@@ -96,6 +112,9 @@ public:
     item_flags& flags()       noexcept { return flags_; }
     item_flags  flags() const noexcept { return flags_; }
 
+    item_slots& slots()       noexcept { return slots_; }
+    item_slots  slots() const noexcept { return slots_; }
+
     uint64_t& data()       noexcept { return data_; }
     uint64_t  data() const noexcept { return data_; }
 
@@ -105,6 +124,7 @@ private:
 
     uint64_t                data_;
     item_flags              flags_;
+    item_slots              slots_;
     instance_id_t<tag_item> id_;
     def_id_t<tag_item>      def_;
 };
@@ -194,5 +214,12 @@ void advance(context& ctx, map& m, item_map& imap);
 bool has_tag(item_def const& def, def_id_t<tag_string_tag> tag);
 bool has_tag(item const& c, item_dictionary const& defs, def_id_t<tag_string_tag> tag);
 bool has_tag(context const& ctx, item const& c, def_id_t<tag_string_tag> tag);
+
+template <typename Visitor>
+void visit_tags(item_def const& def, Visitor&& visitor) {
+    for (auto const& tag : def.tags) {
+        visitor(tag);
+    }
+}
 
 } //namespace bkrl

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "commands.hpp"
-
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 
@@ -17,16 +16,23 @@ class  text_renderer;
 struct color_def;
 struct mouse_state;
 struct mouse_button_state;
-class  item_pile;
+
+class item;
+class item_pile;
 
 namespace detail { class inventory_impl; }
 
 class inventory {
 public:
+    struct data_t {
+        int64_t   data0; // at least big enough to store a pointer
+        ptrdiff_t data1; // arch dependent type (4 or 8 bytes)
+    };
+
     struct row_t {
         bklib::utf8_string_view symbol;
         bklib::utf8_string_view name;
-        ptrdiff_t               data;
+        data_t                  data;
     };
 
     explicit inventory(text_renderer& trender);
@@ -34,6 +40,8 @@ public:
 
     static constexpr int const insert_at_end = -1;
     static constexpr int const insert_at_beg = 0;
+    static constexpr int const current_selection = -1;
+    static constexpr int const selection_none = -1;
 
     void insert(row_t&& r, int where = insert_at_end);
     void remove(int where = insert_at_end);
@@ -57,8 +65,11 @@ public:
 
     bklib::ipoint2 position();
 
+    int selection() const;
+    data_t data(int index = current_selection) const;
+
     enum class action {
-        select, confirm, cancel
+        cancel, select, confirm, equip
     };
 
     //----------------------------------------------------------------------------------------------
@@ -68,13 +79,10 @@ public:
     bool mouse_move(mouse_state const& m);
     bool mouse_button(mouse_button_state const& m);
     bool mouse_scroll(mouse_state const& m);
-    void command(bkrl::command cmd);
+    command_handler_result command(bkrl::command cmd);
 
     using action_handler_t = std::function<
-        void (action    type
-            , int       index
-            , ptrdiff_t data
-        )>;
+        void (action type, int index)>;
 
     void on_action(action_handler_t handler);
 private:
@@ -103,11 +111,14 @@ inline decltype(auto) make_item_list(
         if (skip && cmd.type == command_type::text) {
             skip = false; // skips the text message to follow
         } else {
-            i.command(cmd);
+            return i.command(cmd);
         }
 
         return command_handler_result::capture;
     };
 }
+
+inventory::data_t to_inventory_data(item& itm, int index) noexcept;
+std::pair<item&, int> from_inventory_data(inventory::data_t data) noexcept;
 
 } //namespace bkrl

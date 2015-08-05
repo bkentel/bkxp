@@ -96,12 +96,12 @@ bkrl::game::game()
 
     system_.on_key_up = [&](int const key) {
         check_key_mods_changed();
-        command_translator_.on_key_up(key);
+        command_translator_.on_key_up(key, prev_key_mods_);
     };
 
     system_.on_key_down = [&](int const key) {
         check_key_mods_changed();
-        command_translator_.on_key_down(key);
+        command_translator_.on_key_down(key, prev_key_mods_);
     };
 
     system_.on_mouse_motion = [&](mouse_state const m) {
@@ -500,36 +500,31 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
         return;
     }
 
-    inventory_.on_action([this, &subject, where](inventory::action const type, int const i, ptrdiff_t const data) {
+    inventory_.on_action([this, &subject, where](inventory::action const type, int const sel) {
         BK_NAMED_SCOPE_EXIT(close) {
             inventory_.show(false);
             command_translator_.pop_handler(); //TODO
         };
 
-        switch (type) {
-        case inventory::action::confirm: {
-            if (i < 0 || !data) {
-                return;
-            }
-
-            auto ctx = make_context();
-            auto const result = with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
-                subject.drop_item(pile, i);
-                display_message("You dropped the %s.", pile.begin()->friendly_name(ctx));
-            });
-
-            if (!result) {
-                display_message("You can't drop that here.");
-            }
+        if (sel < 0 || type == inventory::action::cancel) {
             return;
         }
-        case inventory::action::cancel:
-            return;
-        case inventory::action::select:
+
+        if (type != inventory::action::confirm) {
             close.dismiss();
-            break;
-        default:
             return;
+        }
+
+        auto const i = from_inventory_data(inventory_.data()).second;
+
+        auto ctx = make_context();
+        auto const result = with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
+            subject.drop_item(pile, i);
+            display_message("You dropped the %s.", pile.begin()->friendly_name(ctx));
+        });
+
+        if (!result) {
+            display_message("You can't drop that here.");
         }
     });
 
@@ -558,40 +553,34 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
 
     on_fail.dismiss();
 
-    inventory_.on_action([this, &subject, where](inventory::action const type, int const i, ptrdiff_t const data) {
+    inventory_.on_action([this, &subject, where](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
             inventory_.show(false);
             command_translator_.pop_handler(); //TODO
         };
 
-        switch (type) {
-        case inventory::action::confirm: {
-            if (i < 0 || !data) {
-                return;
-            }
-
-            auto& itm = *reinterpret_cast<item*>(data);
-
-            auto ctx = make_context();
-
-            if (!subject.can_get_item(itm)) {
-                display_message("You can't get the %s.", itm.friendly_name(ctx));
-                return;
-            }
-
-            display_message("You got the %s.", itm.friendly_name(ctx));
-            subject.get_item(current_map().remove_item_at(where, i));
-
+        if (i < 0 || type == inventory::action::cancel) {
             return;
         }
-        case inventory::action::cancel:
-            return;
-        case inventory::action::select:
+
+        if (type != inventory::action::confirm) {
             close.dismiss();
-            break;
-        default:
             return;
         }
+
+        auto const data = from_inventory_data(inventory_.data());
+        auto&      itm   = data.first;
+        auto const index = data.second;
+
+        auto ctx = make_context();
+
+        if (!subject.can_get_item(itm)) {
+            display_message("You can't get the %s.", itm.friendly_name(ctx));
+            return;
+        }
+
+        display_message("You got the %s.", itm.friendly_name(ctx));
+        subject.get_item(current_map().remove_item_at(where, index));
     });
 
     auto ctx = make_context();
@@ -653,33 +642,42 @@ void bkrl::game::on_show_inventory()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_show_inventory()
 {
-    inventory_.on_action([this](inventory::action const type, int const i, ptrdiff_t const data) {
+    inventory_.on_action([this](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
             inventory_.show(false);
             command_translator_.pop_handler(); //TODO
         };
 
-        switch (type) {
-        case inventory::action::confirm: {
-            if (i < 0 || !data) {
-                return;
-            }
-
-            auto const& itm = *reinterpret_cast<item const*>(data);
-            auto ctx = make_context();
-
-            display_message("You chose the %d%s item -- a %s"
-                , i + 1, bklib::oridinal_suffix(i + 1).data(), itm.friendly_name(ctx));
-
+        if (i < 0 || type == inventory::action::cancel) {
             return;
         }
-        case inventory::action::cancel:
-            return;
+
+        auto& itm = from_inventory_data(inventory_.data()).first;
+
+        switch (type) {
+        case inventory::action::confirm: {
+            close.dismiss();
+
+            auto ctx = make_context();
+            display_message("You chose the %d%s item -- a %s"
+              , i + 1
+              , bklib::oridinal_suffix(i + 1).data()
+              , itm.friendly_name(ctx));
+
+            break;
+        }
+        case inventory::action::equip: {
+            close.dismiss();
+            do_equip_item(itm);
+
+            break;
+        }
         case inventory::action::select:
             close.dismiss();
             break;
+        case inventory::action::cancel: BK_FALLTHROUGH
         default:
-            return;
+            break;
         }
     });
 
@@ -687,6 +685,57 @@ void bkrl::game::do_show_inventory()
     auto ctx = make_context();
 
     command_translator_.push_handler(make_item_list(ctx, inventory_, player.item_list(), "Items"));
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::on_show_equipment()
+{
+    do_show_equipment();
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_show_equipment()
+{
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::game::do_equip_item(item& i)
+{
+    auto ctx = make_context();
+
+    auto& eq = get_player().equip_list();
+    auto const result = eq.equip(i);
+
+    using status_t = equipment::result_t::status_t;
+    switch (result.status) {
+    case status_t::ok:
+        display_message("You equip the %s.", i.friendly_name(ctx));
+        break;
+    case status_t::not_equippable:
+        display_message("The %s isn't something you can equip.", i.friendly_name(ctx));
+        break;
+    case status_t::slot_occupied: {
+        fmt::MemoryWriter out;
+        out.write("The {} can't be equipped.\n", i.friendly_name(ctx));
+
+        for_each_flag(static_cast<item_slots>(result), [&](equip_slot const es) {
+            auto const& info = eq.slot_info(es);
+            out.write("Your {} is occupied by a {}.\n"
+              , info.name, info.itm->friendly_name(ctx));
+        });
+
+        display_message(out.c_str());
+
+        break;
+    }
+    case status_t::slot_not_present:
+        display_message("You can't seem to find an appropriate place to equip the %s."
+          , i.friendly_name(ctx));
+        break;
+    case status_t::slot_empty: BK_FALLTHROUGH
+    default:
+        break;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -732,6 +781,9 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
         break;
     case command_type::drop:
         on_drop();
+        break;
+    case command_type::show_equipment:
+        on_show_equipment();
         break;
     case command_type::show_inventory:
         on_show_inventory();
