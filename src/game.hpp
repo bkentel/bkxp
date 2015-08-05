@@ -80,7 +80,7 @@ public:
 
     context make_context();
 
-    void debug_print(int x, int y) const;
+    void debug_print(int x, int y);
 
     map&       current_map()       noexcept;
     map const& current_map() const noexcept;
@@ -105,11 +105,16 @@ private:
 
     std::chrono::high_resolution_clock::time_point last_frame_;
 
+    key_mod_state  prev_key_mods_ = system_.current_key_mods();
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
+    bklib::ipoint2 mouse_last_pos_screen_ = bklib::ipoint2 {0, 0};
 
     message_log message_log_;
 
     bklib::timer::id_t timer_message_log_ {0};
+
+    text_layout inspect_text_ {text_renderer_, ""};
+    bool show_inspect_text_ = false;
 };
 
 //--------------------------------------------------------------------------------------------------

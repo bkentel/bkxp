@@ -110,13 +110,16 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
     clear();
 
     for (auto i = 0u; i < text.size(); ++i) {
-        auto const glyph_info = render.load_glyph_info(text.substr(i, 1));
+        auto const beg = text.substr(i, 1);
+        auto const c   = beg[0];
+
+        auto const glyph_info = render.load_glyph_info(beg);
 
         auto const w = glyph_info.width();
         auto const h = glyph_info.height();
 
         // Wrap the line
-        if (x + w > max_x) {
+        if (c == '\n' || (x + w > max_x)) {
             size_type const next_y = y + line_h;
 
             // No vertical space left
@@ -129,6 +132,10 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
 
             x = 0;
             y = next_y;
+
+            if (c == '\n') {
+                continue;
+            }
         }
 
         data_.push_back(render_info {

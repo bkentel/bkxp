@@ -28,6 +28,11 @@ TEST_CASE("flag_set") {
       , test_enum::flag_5
     };
 
+    SECTION("equality") {
+        REQUIRE(fs == fs);
+        REQUIRE_FALSE(fs != fs);
+    }
+
     SECTION("initial value") {
         REQUIRE(fs.none());
         REQUIRE(fs.none_of(all_flags));

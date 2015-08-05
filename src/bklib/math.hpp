@@ -105,6 +105,20 @@ inline constexpr T clamp_max(T const n, T const hi) noexcept {
     return (n > hi) ? hi : n;
 }
 
+template <typename T, typename U>
+inline constexpr T clamp_to(U const n) noexcept {
+    static_assert(std::is_arithmetic<T>::value, "");
+    static_assert(std::is_arithmetic<U>::value, "");
+
+    using type = std::common_type_t<T, U>;
+
+    return static_cast<T>(clamp(
+        static_cast<type>(n)
+      , static_cast<type>(std::numeric_limits<T>::min())
+      , static_cast<type>(std::numeric_limits<T>::max())
+    ));
+}
+
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
@@ -138,6 +152,13 @@ void bresenham_line(T const x0, T const y0, T const x1, T const y1, SetPixel&& s
 //--------------------------------------------------------------------------------------------------
 template <typename T = int>
 struct rect_t {
+    constexpr rect_t() noexcept = default;
+
+    constexpr rect_t(T const l, T const t, T const r, T const b) noexcept
+        : left {l}, top {t}, right {r}, bottom {b}
+    {
+    }
+
     constexpr T width() const noexcept {
         return right - left;
     }
@@ -152,6 +173,18 @@ struct rect_t {
 
     T left, top, right, bottom;
 };
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+constexpr inline rect_t<T> make_rect(T const left, T const top, T const right, T const bottom) noexcept {
+    return rect_t<T> {left, top, right, bottom};
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+constexpr inline rect_t<T> add_border(rect_t<T> const r, T const border) noexcept {
+    return rect_t<T> {r.left - border, r.top - border, r.right + border, r.bottom + border};
+}
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>

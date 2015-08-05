@@ -134,4 +134,14 @@ struct flag_set {
     detail::flag_set_base<type> value;
 };
 
+template <typename T>
+constexpr inline bool operator==(flag_set<T> const lhs, flag_set<T> const rhs) noexcept {
+    return lhs.value.flags == rhs.value.flags;
+}
+
+template <typename T>
+constexpr inline bool operator!=(flag_set<T> const lhs, flag_set<T> const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
 } //namespace bklib

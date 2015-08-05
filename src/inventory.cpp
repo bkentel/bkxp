@@ -50,26 +50,11 @@ public:
         is_scrolling_ = false;
     }
 
-    //TODO move to math
-    template <typename T, typename U>
-    T clamp_to(U const n) const noexcept {
-        static_assert(std::is_arithmetic<T>::value, "");
-        static_assert(std::is_arithmetic<U>::value, "");
-
-        using type = std::common_type_t<T, U>;
-
-        constexpr type const lo = std::numeric_limits<T>::min();
-        constexpr type const hi = std::numeric_limits<T>::max();
-
-        auto const result = bklib::clamp(static_cast<type>(n), lo, hi);
-        return static_cast<T>(result);
-    }
-
     void set_title(bklib::utf8_string_view const title) {
         title_.set_text(text_renderer_, title);
         title_.clip_to(
-            clamp_to<text_layout::size_type>(layout_.title.w)
-          , clamp_to<text_layout::size_type>(layout_.title.h));
+            bklib::clamp_to<text_layout::size_type>(layout_.title.w)
+          , bklib::clamp_to<text_layout::size_type>(layout_.title.h));
     }
 
     void draw(renderer& render);
@@ -183,7 +168,7 @@ public:
             ? (std::max(box_top + dy, top) - box_top)
             : (std::min(box_bot + dy, bot) - box_bot);
 
-        scroll_offset_ = clamp_to<text_renderer::size_type>(top - layout_.scroll_box.y);
+        scroll_offset_ = bklib::clamp_to<text_renderer::size_type>(top - layout_.scroll_box.y);
     }
 
     int scroll_offset() const noexcept {
@@ -549,8 +534,8 @@ void bkrl::detail::inventory_impl::show(bool const visible) noexcept
 
     layout_.resize(
         layout_.bounds()
-      , clamp_to<text_renderer::size_type>(layout_.client.w)
-      , clamp_to<text_renderer::size_type>(h_total));
+      , bklib::clamp_to<text_renderer::size_type>(layout_.client.w)
+      , bklib::clamp_to<text_renderer::size_type>(h_total));
 
     auto const cell_w = x(text_renderer_.bbox());
 

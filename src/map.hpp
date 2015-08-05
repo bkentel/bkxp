@@ -216,7 +216,7 @@ public:
     bool can_place_creature_at(bklib::ipoint2 p) const;
 
     bklib::irect bounds() const noexcept {
-        return {0, 0, size_chunk, size_chunk};
+        return {0, 0, static_cast<int>(size_chunk), static_cast<int>(size_chunk)};
     }
 
     terrain_entry& at(int const x, int const y) noexcept {

@@ -8,6 +8,46 @@
 
 #include "bklib/math.hpp"
 
+TEST_CASE("rect", "[bklib][math]") {
+    constexpr auto const r = bklib::add_border(bklib::make_rect(0, 0, 10, 20), 1);
+    static_assert(r.left   == -1, "");
+    static_assert(r.top    == -1, "");
+    static_assert(r.right  == 11, "");
+    static_assert(r.bottom == 21, "");
+    static_assert(r.width()  == 12, "");
+    static_assert(r.height() == 22, "");
+
+    REQUIRE(r.left   == -1);
+    REQUIRE(r.top    == -1);
+    REQUIRE(r.right  == 11);
+    REQUIRE(r.bottom == 21);
+    REQUIRE(r.width()  == 12);
+    REQUIRE(r.height() == 22);
+}
+
+TEST_CASE("clamp", "[bklib][math]") {
+    constexpr auto lo = 10;
+    constexpr auto hi = 20;
+
+    static_assert(bklib::clamp(lo - 1, lo, hi) == lo, "");
+    REQUIRE(bklib::clamp(lo - 1, lo, hi) == lo);
+
+    static_assert(bklib::clamp_min(lo - 1, lo) == lo, "");
+    REQUIRE(bklib::clamp_min(lo - 1, lo) == lo);
+
+    static_assert(bklib::clamp(hi + 1, lo, hi) == hi, "");
+    REQUIRE(bklib::clamp(hi + 1, lo, hi) == hi);
+
+    static_assert(bklib::clamp_max(hi + 1, hi) == hi, "");
+    REQUIRE(bklib::clamp_max(hi + 1, hi) == hi);
+
+    static_assert(bklib::clamp_to<uint8_t>(256) == 255, "");
+    static_assert(bklib::clamp_to<uint8_t>(-1)  == 0, "");
+
+    static_assert(bklib::clamp_to<int8_t>(128)  ==  127, "");
+    static_assert(bklib::clamp_to<int8_t>(-129) == -128, "");
+}
+
 TEST_CASE("distance", "[bklib][math]") {
     bklib::ipoint3 const p {0, 0, 0};
     bklib::ipoint3 const q {1, 1, 1};
