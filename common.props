@@ -24,6 +24,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)src</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4373;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />
