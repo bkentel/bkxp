@@ -1,6 +1,11 @@
 #include "text.hpp"
 #include "renderer.hpp"
+#include "color.hpp"
+
+#include "bklib/assert.hpp"
 #include "bklib/scope_guard.hpp"
+#include "bklib/dictionary.hpp"
+#include "bklib/algorithm.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_renderer
@@ -97,9 +102,75 @@ void bkrl::text_layout::clear(clear_type const type)
     actual_h_ = 0;
 }
 
+
+namespace {
+
+std::pair<size_t, char> parse_escape(bklib::utf8_string_view const s, size_t pos) noexcept {
+    BK_PRECONDITION(s[pos] == '\\');
+
+    switch (s[++pos]) {
+    case '<':
+    case '>':
+        break;
+    default:
+        BK_ASSERT(false);
+        break;
+    }
+
+    return {pos, s[pos]};
+}
+
+enum class tag_type {
+    invalid
+  , color
+};
+
+struct tag_data {
+    bklib::utf8_string_view type;
+    bklib::utf8_string_view value;
+    size_t next_pos;
+    bool is_end;
+};
+
+tag_data parse_tag(bklib::utf8_string_view const s, size_t pos) noexcept {
+    BK_PRECONDITION(s[pos] == '<');
+
+    constexpr auto const npos = bklib::utf8_string_view::npos;
+
+    auto const tag_beg = s.substr(pos);
+    auto const tag_end = tag_beg.find('>');
+
+    if (tag_end == npos) {
+        BK_ASSERT(false); //TODO
+    }
+
+    auto const tag      = tag_beg.substr(0, tag_end + 1);
+    auto const eq_pos   = tag.find('=');
+    auto const tag_type = tag.substr(1, eq_pos - 1);
+    bool const is_end   = !tag_type.empty() && tag_type.starts_with('/');
+
+    if (eq_pos == npos) {
+        size_t const offset = is_end? 1 : 0;
+        return {tag_type.substr(offset, tag_end - (offset + 1)), "", pos + tag_end, is_end};
+    }
+
+    if (eq_pos < 1) {
+        BK_ASSERT(false); //TODO
+    }
+
+    auto const tag_value = tag.substr(eq_pos + 1, tag.size() - (eq_pos + 1) - 1);
+
+    return {tag_type, tag_value, pos + tag_end, is_end};
+}
+
+}
+
 //--------------------------------------------------------------------------------------------------
-void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view const text)
-{
+void bkrl::text_layout::set_text(
+    text_renderer& render
+  , bklib::utf8_string_view const text
+  , color_dictionary const* const colors
+) {
     auto const line_h = render.line_spacing();
     auto const max_x  = (w_ == unlimited) ? std::numeric_limits<size_type>::max() : w_;
     auto const max_y  = (h_ == unlimited) ? std::numeric_limits<size_type>::max() : h_;
@@ -109,9 +180,37 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
 
     clear();
 
+    uint32_t color = color_code(make_color(255, 255, 255));
+
     for (auto i = 0u; i < text.size(); ++i) {
-        auto const beg = text.substr(i, 1);
-        auto const c   = beg[0];
+        auto beg = text.substr(i, 1);
+        auto c   = beg[0];
+
+        switch (c) {
+        case '\\':
+            std::tie(i, c) = parse_escape(text, i);
+            break;
+        case '<': {
+            auto const result = parse_tag(text, i);
+            i = result.next_pos;
+
+            if (!result.is_end && colors) {
+                auto const maybe = bklib::find_maybe(*colors, [&](color_def const& cdef) {
+                    return cdef.short_name == result.value;
+                });
+
+                if (maybe) {
+                    color = color_code(maybe->color);
+                }
+            } else if (result.is_end) {
+                color = color_code(make_color(255, 255, 255));
+            }
+
+            continue;
+        }
+        default:
+            break;
+        }
 
         auto const glyph_info = render.load_glyph_info(beg);
 
@@ -141,7 +240,7 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
         data_.push_back(render_info {
             glyph_info.left, glyph_info.top, w, h
           , x, y
-          , 0xFFFFFFFF
+          , color
         });
 
         x += w;

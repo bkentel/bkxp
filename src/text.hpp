@@ -6,9 +6,13 @@
 #include <memory>
 #include <vector>
 
+namespace bklib { template <typename T> class dictionary; }
+
 namespace bkrl {
 
 class renderer;
+struct color_def;
+using color_dictionary = bklib::dictionary<color_def>;
 
 namespace detail { class text_renderer_impl; }
 
@@ -54,7 +58,7 @@ public:
 
     void clear(clear_type type = clear_type::no_shrink);
 
-    void set_text(text_renderer& render, bklib::utf8_string_view text);
+    void set_text(text_renderer& render, bklib::utf8_string_view text, color_dictionary const* colors = nullptr);
     void set_position(int x, int y);
     void clip_to(size_type w, size_type h);
 

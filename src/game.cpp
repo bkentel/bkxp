@@ -822,7 +822,7 @@ void bkrl::game::debug_print(int const mx, int const my)
         str << fmt::sprintf(
             "\nCreature (%#08x)\n"
             "  Def  : %s (%#08x)\n"
-            "  Name : %s"
+            "  Name : <color=o>%s</color>"
           , static_cast<uint32_t>(c->id())
           , c->def().c_str(), static_cast<uint32_t>(c->def())
           , c->friendly_name(definitions_)
@@ -836,7 +836,7 @@ void bkrl::game::debug_print(int const mx, int const my)
         }
     }
 
-    inspect_text_.set_text(text_renderer_, str.str());
+    inspect_text_.set_text(text_renderer_, str.str(), &color_dictionary_);
     inspect_text_.set_position(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
 
     auto const ext = inspect_text_.extent();

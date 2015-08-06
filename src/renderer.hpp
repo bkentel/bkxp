@@ -67,6 +67,10 @@ constexpr inline color4 make_color(
     return {r, g, b, a};
 }
 
+constexpr inline uint32_t color_code(color4 const c) noexcept {
+    return c[0] << 0 | c[1] << 8 | c[2] << 16 | c[3] << 24;
+}
+
 class renderer {
 public:
     enum class texture {
