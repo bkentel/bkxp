@@ -82,14 +82,14 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
 
     using action = bkrl::inventory::action;
 
-    i.on_action([&](
-        action    const type
-      , int       const index
-      , ptrdiff_t const data
-    ) {
+    i.on_action([&](action const type, int const index) {
         REQUIRE(type == expected_action);
         REQUIRE(index == expected_index);
-        REQUIRE(reinterpret_cast<bkrl::item const*>(data) == expected_item);
+
+        auto const p = bkrl::from_inventory_data(i.data());
+
+        REQUIRE(&p.first == expected_item);
+        REQUIRE(p.second == expected_index);
     });
 
     auto f = bkrl::make_item_list(ctx, i, pile, "title");
@@ -119,19 +119,19 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
 
     //----------------------------- test selecting via hotkey---------------------------------------
     set_expected(action::select, 0, 0);
-    f(bkrl::command {bkrl::command_type::text, 'a', 1});
+    f(bkrl::command {bkrl::command_type::text, 1, reinterpret_cast<intptr_t>(std::addressof("a"))});
 
     set_expected(action::select, 1, 1);
-    f(bkrl::command {bkrl::command_type::text, 'b', 1});
+    f(bkrl::command {bkrl::command_type::text, 1, reinterpret_cast<intptr_t>(std::addressof("b"))});
 
     set_expected(action::select, 1, 1);
-    f(bkrl::command {bkrl::command_type::text, 'c', 1});
+    f(bkrl::command {bkrl::command_type::text, 1, reinterpret_cast<intptr_t>(std::addressof("c"))});
 
     //----------------------------- test cancel and confirm-----------------------------------------
-    set_expected(action::cancel, 0, 0);
+    set_expected(action::cancel, 1, 1);
     f(bkrl::command {bkrl::command_type::cancel, 0, 0});
 
-    set_expected(action::confirm, 0, 0);
+    set_expected(action::confirm, 1, 1);
     f(bkrl::command {bkrl::command_type::confirm, 0, 0});
 
     //----------------------------- test selection with mouse---------------------------------------

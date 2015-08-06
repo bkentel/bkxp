@@ -6,6 +6,31 @@
 		<DisplayString Condition="len_ &lt; strlen(ptr_)">{ptr_,s8} [less]</DisplayString>
 	</Type>
 
+	<Type Name="bklib::flag_set&lt;*&gt;">
+		<DisplayString Condition="value.flags == 0">[none]</DisplayString>
+		<DisplayString Condition="value.flags != 0">[{value.flags,b}]</DisplayString>
+		<Expand>
+			<Synthetic Condition="value.flags &amp; (1 &lt;&lt; 0)" Name="flag">
+				<DisplayString>{($T1)(0)}</DisplayString>
+			</Synthetic>
+			<Synthetic Condition="value.flags &amp; (1 &lt;&lt; 1)" Name="flag">
+				<DisplayString>{($T1)(1)}</DisplayString>
+			</Synthetic>
+			<Synthetic Condition="value.flags &amp; (1 &lt;&lt; 2)" Name="flag">
+				<DisplayString>{($T1)(2)}</DisplayString>
+			</Synthetic>
+			<Synthetic Condition="value.flags &amp; (1 &lt;&lt; 3)" Name="flag">
+				<DisplayString>{($T1)(3)}</DisplayString>
+			</Synthetic>
+			<Synthetic Condition="value.flags &amp; (1 &lt;&lt; 4)" Name="flag">
+				<DisplayString>{($T1)(4)}</DisplayString>
+			</Synthetic>
+			<Synthetic Condition="value.flags &amp; (1 &lt;&lt; 5)" Name="flag">
+				<DisplayString>{($T1)(5)}</DisplayString>
+			</Synthetic>
+		</Expand>
+	</Type>
+
 	<Type Name="bklib::hash_id&lt;*,*,*&gt;">
 		<DisplayString Condition="$T3 == 0">[{value_, X}]</DisplayString>
 		<DisplayString Condition="$T3 != 0">[{value_, X}⇒{string_._Elems,s8b}]</DisplayString>

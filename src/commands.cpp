@@ -18,14 +18,27 @@ public:
     }
 
 #if defined(BK_NO_SDL)
-    void on_key_down(int const key) {}
+    void on_key_down(int const key, key_mod_state const mods) {}
 #else
-    void on_key_down(int const key) {
+    void on_key_down(int const key, key_mod_state const mods) {
         if (handlers_.empty()) {
             return;
         }
 
         command cmd {};
+
+        cmd.type  = command_type::raw;
+        cmd.data0 = key;
+        cmd.data1 = mods.value.flags;
+
+        auto const raw_result = handlers_.back()(cmd);
+
+        if (raw_result == command_handler_result::detach) {
+            handlers_.pop_back();
+            return;
+        } else if (raw_result == command_handler_result::filter) {
+            return;
+        }
 
         switch (key) {
         default :
@@ -53,6 +66,7 @@ public:
         case SDLK_KP_9:   cmd.type = command_type::dir_n_east; break;
         case SDLK_c:      cmd.type = command_type::close;      break;
         case SDLK_d:      cmd.type = command_type::drop;       break;
+        case SDLK_e:      cmd.type = command_type::show_equipment; break;
         case SDLK_g:      cmd.type = command_type::get;        break;
         case SDLK_o:      cmd.type = command_type::open;       break;
         case SDLK_n:      cmd.type = command_type::no;         break;
@@ -71,7 +85,7 @@ public:
     }
 #endif
 
-    void on_key_up(int) {
+    void on_key_up(int, key_mod_state) {
     }
 
     void on_mouse_move_to(int, int) {
@@ -123,13 +137,13 @@ void bkrl::command_translator::pop_handler() {
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::command_translator::on_key_down(int const key) {
-    impl_->on_key_down(key);
+void bkrl::command_translator::on_key_down(int const key, key_mod_state const mods) {
+    impl_->on_key_down(key, mods);
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::command_translator::on_key_up(int const key) {
-    impl_->on_key_up(key);
+void bkrl::command_translator::on_key_up(int const key, key_mod_state const mods) {
+    impl_->on_key_up(key, mods);
 }
 
 //----------------------------------------------------------------------------------------------

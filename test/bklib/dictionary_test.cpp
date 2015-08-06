@@ -55,7 +55,7 @@ TEST_CASE("new test case") {
     using insert_type1 = decltype(dic.insert_or_replace(std::declval<test_def>()));
 
     static_assert(std::is_same<insert_type0, insert_type1>::value, "");
-    static_assert(std::is_same<insert_type0::first_type, test_def const*>::value, "");
+    static_assert(std::is_same<insert_type0::first_type, test_def*>::value, "");
     static_assert(std::is_same<insert_type0::second_type, bool>::value, "");
 
     // insert into an empty dictionary

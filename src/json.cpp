@@ -892,7 +892,8 @@ int bkrl::load_definitions(
 int bkrl::load_definitions(bklib::dictionary<creature_def>& dic, bklib::utf8_string_view const data, load_from_string_t)
 {
     return load_definitions_helper<creature_def_parser>(data, creatures_file_type, [&](auto&& parser) {
-        dic.insert_or_replace(parser.result());
+        auto const result = dic.insert_or_replace(parser.result());
+        process_tags(*result.first);
         return true;
     });
 }
@@ -900,7 +901,8 @@ int bkrl::load_definitions(bklib::dictionary<creature_def>& dic, bklib::utf8_str
 int bkrl::load_definitions(bklib::dictionary<item_def>& dic, bklib::utf8_string_view const data, load_from_string_t)
 {
     return load_definitions_helper<item_def_parser>(data, items_file_type, [&](auto&& parser) {
-        dic.insert_or_replace(parser.result());
+        auto const result = dic.insert_or_replace(parser.result());
+        process_tags(*result.first);
         return true;
     });
 }

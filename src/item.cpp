@@ -22,14 +22,31 @@ bkrl::item::item(
   , item_def                const& def
 )
   : data_  {}
-  , flags_ {}
+  , flags_ {def.flags}
+  , slots_ {def.slots}
   , id_    {id}
   , def_   {get_id(def)}
 {
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::process_tags(item_def& def)
+{
     using namespace bklib::literals;
 
-    if (has_tag(def.tags, make_tag("CORPSE"_hash))) {
-        flags().set(item_flag::is_corpse);
+    for (auto const& tag : def.tags) {
+        switch (static_cast<uint32_t>(tag)) {
+        case "CORPSE"_hash        : def.flags.set(item_flag::is_corpse);     break;
+        case "CAT_WEAPON"_hash    : def.flags.set(item_flag::is_equippable); break;
+        case "CAT_ARMOR"_hash     : def.flags.set(item_flag::is_equippable); break;
+        case "EQS_HAND_MAIN"_hash : def.slots.set(equip_slot::hand_main);    break;
+        case "EQS_HAND_OFF"_hash  : def.slots.set(equip_slot::hand_off);     break;
+        case "EQS_HAND_ANY"_hash  : def.slots.set(equip_slot::hand_any);     break;
+        case "EQS_HEAD"_hash      : def.slots.set(equip_slot::head);         break;
+        case "EQS_TORSO"_hash     : def.slots.set(equip_slot::torso);        break;
+        default:
+            break;
+        }
     }
 }
 

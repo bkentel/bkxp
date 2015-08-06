@@ -55,7 +55,7 @@ public:
     //----------------------------------------------------------------------------------------------
     //! Inserts @p value into the dictionary iff it does not already exist, otherwise @p value is
     //! ignored.
-    //! @returns a pair {Definition const*, bool} where the first element is a pointer to the
+    //! @returns a pair {Definition*, bool} where the first element is a pointer to the
     //! inserted or existing value, and the second is a bool indicating whether an insertion
     //! actually took place.
     //----------------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ private:
     //----------------------------------------------------------------------------------------------
     template <typename T, typename Function>
     decltype(auto) do_insert_(T&& value, Function&& f) {
-        using result_t = std::pair<Definition const*, bool>;
+        using result_t = std::pair<Definition*, bool>;
 
         auto const it = lower_bound(data_, get_id(value));
         if (it != std::end(data_) && get_id(*it) == get_id(value)) {
