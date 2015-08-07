@@ -1,6 +1,8 @@
 {
   "language": ["English", "en"]
-, "strings": [
+, "items": [
+  ]
+, "creatures": [
     { "base": "adventurer"
 	, "plural": "s"
 	, "definite": true
