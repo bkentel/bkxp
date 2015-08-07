@@ -45,6 +45,7 @@ public:
     void set_colors(color_dictionary const* const colors) {
         if (!colors) {
             colors_.clear();
+            return;
         }
 
         std::transform(
@@ -312,7 +313,7 @@ void bkrl::text_layout::set_text(
             size_type const next_y = y + line_h;
 
             // no vertical space left
-            if (next_y > max_y) {
+            if (next_y >= max_y) {
                 break;
             }
 
@@ -322,13 +323,13 @@ void bkrl::text_layout::set_text(
             x = 0;
             y = next_y;
 
-            if (c == '\n') {
+            if (c == '\n' || c == ' ') {
                 line_beg = i + 1;
                 last_line_break_candidate = line_beg;
                 continue;
             }
 
-            if (c != ' ' && last_line_break_candidate != line_beg) {
+            if (last_line_break_candidate != line_beg) {
                 auto const n = i - last_line_break_candidate;
                 data_.resize(data_.size() - n);
                 line_beg = ++last_line_break_candidate;
@@ -395,4 +396,13 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
 bklib::irect bkrl::text_layout::extent() const noexcept
 {
     return {x_, y_, x_ + actual_w_, y_ + actual_h_};
+}
+
+//--------------------------------------------------------------------------------------------------
+bklib::irect bkrl::text_layout::bounds() const noexcept
+{
+    auto const max_x  = (w_ == unlimited) ? std::numeric_limits<size_type>::max() : x_ + w_;
+    auto const max_y  = (h_ == unlimited) ? std::numeric_limits<size_type>::max() : y_ + h_;
+
+    return {x_, y_, max_x, max_y};
 }
