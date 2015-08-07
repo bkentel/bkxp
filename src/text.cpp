@@ -97,7 +97,7 @@ private:
     static uint32_t make_color_key(bklib::utf8_string_view const code) noexcept {
         uint32_t key = 0;
 
-        auto const max = std::min(code.size(), 4u);
+        auto const max = std::min<size_t>(code.size(), 4u);
         for (auto i = 0u; i < max; ++i) {
             key |= (code[i] << i*8);
         }
@@ -267,6 +267,8 @@ void bkrl::text_layout::set_text(
     last_color.push_back(color_code(make_color(255, 255, 255)));
 
     bool in_color = false; // TODO
+    auto last_line_break_candidate = 0u;
+    auto line_beg = 0u;
 
     for (auto i = 0u; i < text.size(); ++i) {
         auto beg = text.substr(i, 1);
@@ -301,11 +303,15 @@ void bkrl::text_layout::set_text(
         auto const w = glyph_info.width();
         auto const h = glyph_info.height();
 
-        // Wrap the line
+        if (c == ' ') {
+            last_line_break_candidate = i;
+        }
+
+        // wrap, or move, to next line
         if (c == '\n' || (x + w > max_x)) {
             size_type const next_y = y + line_h;
 
-            // No vertical space left
+            // no vertical space left
             if (next_y > max_y) {
                 break;
             }
@@ -317,14 +323,22 @@ void bkrl::text_layout::set_text(
             y = next_y;
 
             if (c == '\n') {
+                line_beg = i + 1;
+                last_line_break_candidate = line_beg;
+                continue;
+            }
+
+            if (c != ' ' && last_line_break_candidate != line_beg) {
+                auto const n = i - last_line_break_candidate;
+                data_.resize(data_.size() - n);
+                line_beg = ++last_line_break_candidate;
+                i = line_beg - 1;
                 continue;
             }
         }
 
         data_.push_back(render_info {
-            glyph_info.left, glyph_info.top, w, h
-          , x, y, last_color.back()
-        });
+            glyph_info.left, glyph_info.top, w, h, x, y, last_color.back()});
 
         x += w;
 

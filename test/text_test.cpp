@@ -18,7 +18,7 @@ TEST_CASE("text rendering", "[text][graphics]") {
     constexpr size_type const top    = 10;
     constexpr size_type const width  = 120;
     constexpr size_type const height = 100;
-    constexpr auto const text = bklib::make_string_view("This is a test string.");
+    constexpr auto const text = bklib::make_string_view("This_is_a_test_string.");
 
     bkrl::text_layout const layout {trender, text, left, top, width, height};
 

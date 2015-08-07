@@ -6,6 +6,10 @@
 		<DisplayString Condition="len_ &lt; strlen(ptr_)">{ptr_,[len_]s8} [less]</DisplayString>
 	</Type>
 
+	<Type Name="bkrl::text_layout::render_info">
+		<DisplayString>{(char)(src_x / 18 + (src_y / 18)*16)} [{dst_x} {dst_y}]</DisplayString>
+	</Type>
+
 	<Type Name="bklib::flag_set&lt;*&gt;">
 		<DisplayString Condition="value.flags == 0">[none]</DisplayString>
 		<DisplayString Condition="value.flags != 0">[{value.flags,b}]</DisplayString>
