@@ -1,6 +1,12 @@
 #include "text.hpp"
 #include "renderer.hpp"
+#include "color.hpp"
+
+#include "bklib/assert.hpp"
 #include "bklib/scope_guard.hpp"
+#include "bklib/dictionary.hpp"
+#include "bklib/algorithm.hpp"
+#include "bklib/stack_arena_allocator.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_renderer
@@ -35,7 +41,72 @@ public:
     point_t bbox() const noexcept {
         return {18, 18};
     }
+
+    void set_colors(color_dictionary const* const colors) {
+        if (!colors) {
+            colors_.clear();
+            return;
+        }
+
+        std::transform(
+            std::begin(*colors)
+          , std::end(*colors)
+          , std::back_inserter(colors_)
+          , [&](color_def const& def) {
+                return color_t {make_color_key(def.short_name), def.color};
+          });
+
+        auto const last = end(colors_);
+        std::sort(begin(colors_), last);
+        auto const it = std::unique(begin(colors_), last);
+        if (it != last) {
+            BK_ASSERT(false); //TODO
+        }
+    }
+
+    color4 get_color(bklib::utf8_string_view const code) noexcept {
+        auto const last = end(colors_);
+        auto const key  = make_color_key(code);
+        auto const it   = std::lower_bound(begin(colors_), last, key);
+
+        return (it != last && it->key == key)
+          ? it->value
+          : make_color(255, 255, 255);
+    }
 private:
+    struct color_t {
+        uint32_t key;
+        color4   value;
+
+        constexpr friend bool operator==(color_t const lhs, color_t const rhs) noexcept {
+            return lhs.key == rhs.key;
+        }
+
+        constexpr friend bool operator<(uint32_t const lhs, color_t const rhs) noexcept {
+            return lhs < rhs.key;
+        }
+
+        constexpr friend bool operator<(color_t const lhs, uint32_t const rhs) noexcept {
+            return lhs.key < rhs;
+        }
+
+        constexpr friend bool operator<(color_t const lhs, color_t const rhs) noexcept {
+            return lhs.key < rhs.key;
+        }
+    };
+
+    static uint32_t make_color_key(bklib::utf8_string_view const code) noexcept {
+        uint32_t key = 0;
+
+        auto const max = std::min<size_t>(code.size(), 4u);
+        for (auto i = 0u; i < max; ++i) {
+            key |= (code[i] << i*8);
+        }
+
+        return key;
+    }
+
+    std::vector<color_t> colors_;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -65,6 +136,17 @@ bkrl::text_renderer::line_spacing() const noexcept
 bkrl::text_renderer::point_t bkrl::text_renderer::bbox() const noexcept {
     return impl_->bbox();
 }
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::text_renderer::set_colors(color_dictionary const* const colors) {
+    impl_->set_colors(colors);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::color4 bkrl::text_renderer::get_color(bklib::utf8_string_view const code) noexcept {
+    return impl_->get_color(code);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_layout
@@ -97,9 +179,74 @@ void bkrl::text_layout::clear(clear_type const type)
     actual_h_ = 0;
 }
 
+
+namespace {
+
+std::pair<size_t, char> parse_escape(bklib::utf8_string_view const s, size_t pos) noexcept {
+    BK_PRECONDITION(s[pos] == '\\');
+
+    switch (s[++pos]) {
+    case '<':
+    case '>':
+        break;
+    default:
+        BK_ASSERT(false);
+        break;
+    }
+
+    return {pos, s[pos]};
+}
+
+enum class tag_type {
+    invalid
+  , color
+};
+
+struct tag_data {
+    bklib::utf8_string_view type;
+    bklib::utf8_string_view value;
+    size_t next_pos;
+    bool is_end;
+};
+
+tag_data parse_tag(bklib::utf8_string_view const s, size_t pos) noexcept {
+    BK_PRECONDITION(s[pos] == '<');
+
+    constexpr auto const npos = bklib::utf8_string_view::npos;
+
+    auto const tag_beg = s.substr(pos);
+    auto const tag_end = tag_beg.find('>');
+
+    if (tag_end == npos) {
+        BK_ASSERT(false); //TODO
+    }
+
+    auto const tag      = tag_beg.substr(0, tag_end + 1);
+    auto const eq_pos   = tag.find('=');
+    auto const tag_type = tag.substr(1, eq_pos - 1);
+    bool const is_end   = !tag_type.empty() && tag_type.starts_with('/');
+
+    if (eq_pos == npos) {
+        size_t const offset = is_end? 1 : 0;
+        return {tag_type.substr(offset, tag_end - (offset + 1)), "", pos + tag_end, is_end};
+    }
+
+    if (eq_pos < 1) {
+        BK_ASSERT(false); //TODO
+    }
+
+    auto const tag_value = tag.substr(eq_pos + 1, tag.size() - (eq_pos + 1) - 1);
+
+    return {tag_type, tag_value, pos + tag_end, is_end};
+}
+
+}
+
 //--------------------------------------------------------------------------------------------------
-void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view const text)
-{
+void bkrl::text_layout::set_text(
+    text_renderer& render
+  , bklib::utf8_string_view const text
+) {
     auto const line_h = render.line_spacing();
     auto const max_x  = (w_ == unlimited) ? std::numeric_limits<size_type>::max() : w_;
     auto const max_y  = (h_ == unlimited) ? std::numeric_limits<size_type>::max() : h_;
@@ -109,21 +256,64 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
 
     clear();
 
+    constexpr size_t last_color_size = 16;
+
+    using alloc_t = bklib::short_alloc<uint32_t, 64>;
+    alloc_t::arena_t arena;
+    alloc_t alloc {arena};
+
+    std::vector<uint32_t, alloc_t> last_color(alloc);
+
+    last_color.reserve(last_color_size);
+    last_color.push_back(color_code(make_color(255, 255, 255)));
+
+    bool in_color = false; // TODO
+    auto last_line_break_candidate = 0u;
+    auto line_beg = 0u;
+
     for (auto i = 0u; i < text.size(); ++i) {
-        auto const beg = text.substr(i, 1);
-        auto const c   = beg[0];
+        auto beg = text.substr(i, 1);
+        auto c   = beg[0];
+
+        switch (c) {
+        case '\\':
+            std::tie(i, c) = parse_escape(text, i);
+            break;
+        case '<': {
+            auto const result = parse_tag(text, i);
+            i = result.next_pos;
+
+            if (result.is_end) {
+                if (in_color) {
+                    last_color.pop_back();
+                    in_color = false;
+                }
+            } else {
+                last_color.push_back(color_code(render.get_color(result.value)));
+                in_color = true;
+            }
+
+            continue;
+        }
+        default:
+            break;
+        }
 
         auto const glyph_info = render.load_glyph_info(beg);
 
         auto const w = glyph_info.width();
         auto const h = glyph_info.height();
 
-        // Wrap the line
+        if (c == ' ') {
+            last_line_break_candidate = i;
+        }
+
+        // wrap, or move, to next line
         if (c == '\n' || (x + w > max_x)) {
             size_type const next_y = y + line_h;
 
-            // No vertical space left
-            if (next_y > max_y) {
+            // no vertical space left
+            if (next_y >= max_y) {
                 break;
             }
 
@@ -133,16 +323,23 @@ void bkrl::text_layout::set_text(text_renderer& render, bklib::utf8_string_view 
             x = 0;
             y = next_y;
 
-            if (c == '\n') {
+            if (c == '\n' || c == ' ') {
+                line_beg = i + 1;
+                last_line_break_candidate = line_beg;
+                continue;
+            }
+
+            if (last_line_break_candidate != line_beg) {
+                auto const n = i - last_line_break_candidate;
+                data_.resize(data_.size() - n);
+                line_beg = ++last_line_break_candidate;
+                i = line_beg - 1;
                 continue;
             }
         }
 
         data_.push_back(render_info {
-            glyph_info.left, glyph_info.top, w, h
-          , x, y
-          , 0xFFFFFFFF
-        });
+            glyph_info.left, glyph_info.top, w, h, x, y, last_color.back()});
 
         x += w;
 
@@ -199,4 +396,13 @@ void bkrl::text_layout::draw(renderer& render, int const x_off, int const y_off)
 bklib::irect bkrl::text_layout::extent() const noexcept
 {
     return {x_, y_, x_ + actual_w_, y_ + actual_h_};
+}
+
+//--------------------------------------------------------------------------------------------------
+bklib::irect bkrl::text_layout::bounds() const noexcept
+{
+    auto const max_x  = (w_ == unlimited) ? std::numeric_limits<size_type>::max() : x_ + w_;
+    auto const max_y  = (h_ == unlimited) ? std::numeric_limits<size_type>::max() : y_ + h_;
+
+    return {x_, y_, max_x, max_y};
 }

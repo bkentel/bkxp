@@ -64,6 +64,11 @@ bkrl::game::game()
     });
 
     //
+    // set text colors
+    //
+    text_renderer_.set_colors(&color_dictionary_);
+
+    //
     // set up initial map
     //
     auto ctx = make_context();
@@ -822,7 +827,7 @@ void bkrl::game::debug_print(int const mx, int const my)
         str << fmt::sprintf(
             "\nCreature (%#08x)\n"
             "  Def  : %s (%#08x)\n"
-            "  Name : %s"
+            "  Name : <color=o>%s</color>"
           , static_cast<uint32_t>(c->id())
           , c->def().c_str(), static_cast<uint32_t>(c->def())
           , c->friendly_name(definitions_)

@@ -1,14 +1,19 @@
 #pragma once
 
+#include "renderer.hpp"
+
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 
 #include <memory>
 #include <vector>
 
+namespace bklib { template <typename T> class dictionary; }
+
 namespace bkrl {
 
-class renderer;
+struct color_def;
+using color_dictionary = bklib::dictionary<color_def>;
 
 namespace detail { class text_renderer_impl; }
 
@@ -28,6 +33,9 @@ public:
     size_type line_spacing() const noexcept;
 
     point_t bbox() const noexcept;
+
+    void set_colors(color_dictionary const* colors = nullptr);
+    color4 get_color(bklib::utf8_string_view code) noexcept;
 private:
     std::unique_ptr<detail::text_renderer_impl> impl_;
 };
@@ -62,6 +70,7 @@ public:
     void draw(renderer& render, int x, int y) const;
 
     bklib::irect extent() const noexcept;
+    bklib::irect bounds() const noexcept;
 private:
     struct render_info {
         size_type src_x;
