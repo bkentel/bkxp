@@ -759,9 +759,13 @@ void bkrl::detail::make_item_list(
     for (auto& itm : pile) {
         auto const idef = ctx.data.find(itm.def());
 
+        auto name = itm.flags().test(item_flag::is_equipped)
+          ? ("<color=r>" + itm.friendly_name(ctx, idef) + "</color>")
+          : itm.friendly_name(ctx, idef);
+
         i.insert(inventory::row_t {
             idef ? idef->symbol : " " //TODO find will be called twice
-          , itm.friendly_name(ctx, idef)
+          , name
           , to_inventory_data(const_cast<item&>(itm), index++) //TODO
         });
     }

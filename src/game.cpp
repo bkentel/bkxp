@@ -64,6 +64,11 @@ bkrl::game::game()
     });
 
     //
+    // set text colors
+    //
+    text_renderer_.set_colors(&color_dictionary_);
+
+    //
     // set up initial map
     //
     auto ctx = make_context();
@@ -836,7 +841,7 @@ void bkrl::game::debug_print(int const mx, int const my)
         }
     }
 
-    inspect_text_.set_text(text_renderer_, str.str(), &color_dictionary_);
+    inspect_text_.set_text(text_renderer_, str.str());
     inspect_text_.set_position(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
 
     auto const ext = inspect_text_.extent();

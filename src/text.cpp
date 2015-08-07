@@ -6,6 +6,7 @@
 #include "bklib/scope_guard.hpp"
 #include "bklib/dictionary.hpp"
 #include "bklib/algorithm.hpp"
+#include "bklib/stack_arena_allocator.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_renderer
@@ -40,7 +41,71 @@ public:
     point_t bbox() const noexcept {
         return {18, 18};
     }
+
+    void set_colors(color_dictionary const* const colors) {
+        if (!colors) {
+            colors_.clear();
+        }
+
+        std::transform(
+            std::begin(*colors)
+          , std::end(*colors)
+          , std::back_inserter(colors_)
+          , [&](color_def const& def) {
+                return color_t {make_color_key(def.short_name), def.color};
+          });
+
+        auto const last = end(colors_);
+        std::sort(begin(colors_), last);
+        auto const it = std::unique(begin(colors_), last);
+        if (it != last) {
+            BK_ASSERT(false); //TODO
+        }
+    }
+
+    color4 get_color(bklib::utf8_string_view const code) noexcept {
+        auto const last = end(colors_);
+        auto const key  = make_color_key(code);
+        auto const it   = std::lower_bound(begin(colors_), last, key);
+
+        return (it != last && it->key == key)
+          ? it->value
+          : make_color(255, 255, 255);
+    }
 private:
+    struct color_t {
+        uint32_t key;
+        color4   value;
+
+        constexpr friend bool operator==(color_t const lhs, color_t const rhs) noexcept {
+            return lhs.key == rhs.key;
+        }
+
+        constexpr friend bool operator<(uint32_t const lhs, color_t const rhs) noexcept {
+            return lhs < rhs.key;
+        }
+
+        constexpr friend bool operator<(color_t const lhs, uint32_t const rhs) noexcept {
+            return lhs.key < rhs;
+        }
+
+        constexpr friend bool operator<(color_t const lhs, color_t const rhs) noexcept {
+            return lhs.key < rhs.key;
+        }
+    };
+
+    static uint32_t make_color_key(bklib::utf8_string_view const code) noexcept {
+        uint32_t key = 0;
+
+        auto const max = std::min(code.size(), 4u);
+        for (auto i = 0u; i < max; ++i) {
+            key |= (code[i] << i*8);
+        }
+
+        return key;
+    }
+
+    std::vector<color_t> colors_;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -70,6 +135,17 @@ bkrl::text_renderer::line_spacing() const noexcept
 bkrl::text_renderer::point_t bkrl::text_renderer::bbox() const noexcept {
     return impl_->bbox();
 }
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::text_renderer::set_colors(color_dictionary const* const colors) {
+    impl_->set_colors(colors);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::color4 bkrl::text_renderer::get_color(bklib::utf8_string_view const code) noexcept {
+    return impl_->get_color(code);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_layout
@@ -169,7 +245,6 @@ tag_data parse_tag(bklib::utf8_string_view const s, size_t pos) noexcept {
 void bkrl::text_layout::set_text(
     text_renderer& render
   , bklib::utf8_string_view const text
-  , color_dictionary const* const colors
 ) {
     auto const line_h = render.line_spacing();
     auto const max_x  = (w_ == unlimited) ? std::numeric_limits<size_type>::max() : w_;
@@ -180,7 +255,18 @@ void bkrl::text_layout::set_text(
 
     clear();
 
-    uint32_t color = color_code(make_color(255, 255, 255));
+    constexpr size_t last_color_size = 16;
+
+    using alloc_t = bklib::short_alloc<uint32_t, 64>;
+    alloc_t::arena_t arena;
+    alloc_t alloc {arena};
+
+    std::vector<uint32_t, alloc_t> last_color(alloc);
+
+    last_color.reserve(last_color_size);
+    last_color.push_back(color_code(make_color(255, 255, 255)));
+
+    bool in_color = false; // TODO
 
     for (auto i = 0u; i < text.size(); ++i) {
         auto beg = text.substr(i, 1);
@@ -194,16 +280,14 @@ void bkrl::text_layout::set_text(
             auto const result = parse_tag(text, i);
             i = result.next_pos;
 
-            if (!result.is_end && colors) {
-                auto const maybe = bklib::find_maybe(*colors, [&](color_def const& cdef) {
-                    return cdef.short_name == result.value;
-                });
-
-                if (maybe) {
-                    color = color_code(maybe->color);
+            if (result.is_end) {
+                if (in_color) {
+                    last_color.pop_back();
+                    in_color = false;
                 }
-            } else if (result.is_end) {
-                color = color_code(make_color(255, 255, 255));
+            } else {
+                last_color.push_back(color_code(render.get_color(result.value)));
+                in_color = true;
             }
 
             continue;
@@ -239,8 +323,7 @@ void bkrl::text_layout::set_text(
 
         data_.push_back(render_info {
             glyph_info.left, glyph_info.top, w, h
-          , x, y
-          , color
+          , x, y, last_color.back()
         });
 
         x += w;
