@@ -268,8 +268,8 @@ void bkrl::text_layout::set_text(
     last_color.push_back(color_code(make_color(255, 255, 255)));
 
     bool in_color = false; // TODO
-    auto last_line_break_candidate = 0u;
-    auto line_beg = 0u;
+    auto break_last      = 0u;
+    auto break_candidate = 0u;
 
     for (auto i = 0u; i < text.size(); ++i) {
         auto beg = text.substr(i, 1);
@@ -304,10 +304,6 @@ void bkrl::text_layout::set_text(
         auto const w = glyph_info.width();
         auto const h = glyph_info.height();
 
-        if (c == ' ') {
-            last_line_break_candidate = i;
-        }
-
         // wrap, or move, to next line
         if (c == '\n' || (x + w > max_x)) {
             size_type const next_y = y + line_h;
@@ -323,19 +319,34 @@ void bkrl::text_layout::set_text(
             x = 0;
             y = next_y;
 
-            if (c == '\n' || c == ' ') {
-                line_beg = i + 1;
-                last_line_break_candidate = line_beg;
-                continue;
+            auto const n = data_.size();
+
+            if (break_candidate != break_last // mid-word break
+             && break_candidate != n          // break at a candidate
+            ) {
+                // break after a candidate -- shift and move down the spill-over
+                auto const first = break_candidate;
+                auto const dx = data_[first].dst_x;
+
+                for (auto j = first; j < n; ++j) {
+                    data_[j].dst_x -= dx;
+                    data_[j].dst_y  = y;
+                }
+
+                x = data_.back().dst_x + data_.back().src_w;
             }
 
-            if (last_line_break_candidate != line_beg) {
-                auto const n = i - last_line_break_candidate;
-                data_.resize(data_.size() - n);
-                line_beg = ++last_line_break_candidate;
-                i = line_beg - 1;
+            break_last      = n - 1;
+            break_candidate = break_last;
+
+            if (c == '\n' || c == ' ') {
+                break_candidate = ++break_last;
                 continue;
             }
+        }
+
+        if (c == ' ') {
+            break_candidate = data_.size() + 1;
         }
 
         data_.push_back(render_info {

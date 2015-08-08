@@ -159,7 +159,7 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
         REQUIRE(lines == 3);
     }
 
-    SECTION("wrapped text") {
+    SECTION("wrapped text before space") {
         auto const line_w = static_cast<size_type>(x(bbox) * 5);
         bkrl::text_layout layout {trender, "line0 line1 line2", 0, 0, line_w};
 
@@ -167,9 +167,25 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
         REQUIRE(lines == 3);
     }
 
-    SECTION("wrapped text backtrack") {
+    SECTION("wrapped text on space") {
         auto const line_w = static_cast<size_type>(x(bbox) * 6);
         bkrl::text_layout layout {trender, "line0 line1 line2", 0, 0, line_w};
+
+        auto const lines = layout.extent().height() / trender.line_spacing();
+        REQUIRE(lines == 3);
+    }
+
+    SECTION("wrapped text after space") {
+        auto const line_w = static_cast<size_type>(x(bbox) * 7);
+        bkrl::text_layout layout {trender, "line0 line1 line2", 0, 0, line_w};
+
+        auto const lines = layout.extent().height() / trender.line_spacing();
+        REQUIRE(lines == 3);
+    }
+
+    SECTION("wrapped text after space, mid-tag") {
+        auto const line_w = static_cast<size_type>(x(bbox) * 7);
+        bkrl::text_layout layout {trender, "line0 <color=r>line1</color> line2", 0, 0, line_w};
 
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 3);
