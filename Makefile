@@ -73,3 +73,12 @@ dist-clean: clean
 	$(RM) *~ .depend
 
 include .depend
+
+%.o : %.cpp
+	@echo "Compiling: " $@
+	@$(CXX) -c $(CPPFLAGS) $^ -o $@
+
+%.o : %.cc
+	@echo "Compiling: " $@
+	@$(CXX) -c $(CPPFLAGS) $^ -o $@
+    

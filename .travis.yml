@@ -16,7 +16,7 @@ install:
   - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
    
   - COMPILER="${CXX}"
-  - COMPILER_CLANG="3.7"
+  - COMPILER_CLANG="3.6"
   - COMPILER_GCC="5"
   
   - if [ "$COMPILER" = "g++" ]; then export CXX="g++-${COMPILER_GCC}" CC="gcc-${COMPILER_GCC}"; fi
@@ -34,16 +34,16 @@ install:
   # Install and compile the compiler runtime for clang
   ############################################################################
   - if [ "$COMPILER" = "clang++" ]; then bash ../install_llvm.sh; fi
-  
+  - if [ "$COMPILER" = "clang++" ]; then find ./llvm/build/lib/clang/3.6.2/lib/ -name "*.a" -o -name "*.so"; fi
 before_script:
   ############################################################################
   # Go back to the root of the project.
   ############################################################################
   - cd ${TRAVIS_BUILD_DIR}
   
-  - CLANG_RT_DIR="${DEPS_DIR}/llvm/build/lib/clang/3.8.0/"
+  - CLANG_RT_DIR="${DEPS_DIR}/llvm/build/lib/clang/3.6.2/"
   
-  - if [ "$COMPILER" = "g++" ]; then export CPPFLAGS="-g -fsanitize=undefined,address --coverage" LDFLAGS="-v -fsanitize=undefined,address --coverage"; fi
+  - if [ "$COMPILER" = "g++" ]; then export CPPFLAGS="-g -fsanitize=undefined --coverage" LDFLAGS="-v -fsanitize=undefined --coverage"; fi
   - if [ "$COMPILER" = "clang++" ]; then export CPPFLAGS="-g -flto -fsanitize=undefined,address -fsanitize-blacklist=blacklist.txt" LDFLAGS="-v -flto -resource-dir=${CLANG_RT_DIR} -fsanitize=undefined,address"; fi
   - if [ "$COMPILER" = "clang++" ]; then export ASAN_OPTIONS=detect_odr_violation=1; fi
   - if [ "$COMPILER" = "clang++" ]; then echo 'src:/usr/bin/\.\./lib/gcc/x86_64-linux-gnu/5\.1\.0/\.\./\.\./\.\./\.\./include/c\+\+/5\.1\.0/bits/ios_base\.h' > blacklist.txt; fi
@@ -52,19 +52,22 @@ addons:
     sources:
     - ubuntu-toolchain-r-test
     - llvm-toolchain-precise
-    - llvm-toolchain-precise-3.7
+    - llvm-toolchain-precise-3.6
     packages:
     - cmake
     - gcc-5
     - g++-5
-    - llvm-3.8
-    - llvm-3.8-dev
-    - libllvm3.8
-    - llvm-3.8-runtime
-    - clang-3.8
+    - llvm-3.6
+    - llvm-3.6-dev
+    - libllvm3.6
+    - llvm-3.6-runtime
+    - clang-3.6
     - binutils-gold
+    - valgrind
 
-script: $CXX --version && make -j2 && ./bkxp
+script:
+  - if [ "$COMPILER" = "g++" ]; then $CXX --version && make -j2 && valgrind --leak-check=yes ./bkxp; fi
+  - if [ "$COMPILER" = "clang++" ]; then $CXX --version && make -j2 && ./bkxp; fi
 
 after_success:
   - if [ "$COMPILER" = "g++" ]; then find . -type f '(' -wholename './src/*' -o -wholename './test/*' ')' '(' -name "*.cpp" -o -name "*.hpp" ')' -exec gcov-5 '{}' +; fi

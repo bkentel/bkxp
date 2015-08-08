@@ -118,10 +118,10 @@ bkrl::creature::creature(
   , bklib::ipoint2              const  p
 ) : id_  {id}
   , def_ {get_id(def)}
-  , pos_ {p}
+  , pos_ (p)
   , stats_ {}
   , items_ {}
-  , flags_ {def.flags}
+  , flags_ (def.flags)
 {
     stats_.hp_val.base = 5;
 }

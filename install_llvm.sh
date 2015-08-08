@@ -13,8 +13,6 @@ fi
 ############################################################################
 # Install and compile the compiler runtime for clang
 ############################################################################
-URL_LLVM=https://github.com/llvm-mirror/llvm/archive/master.tar.gz
-URL_LLVM_COMPILER_RT=https://github.com/llvm-mirror/compiler-rt/archive/master.tar.gz
 FLAGS_LLVM="-DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX} -DCMAKE_BUILD_TYPE:STRING=Release"
 
 echo "Checking llvm"
@@ -23,11 +21,11 @@ if [[ ! -d "llvm" ]]; then
     echo "..cloning"
 
     #get llvm
-    git clone --depth 1 --recursive --quiet https://github.com/llvm-mirror/llvm.git
+    git clone -b release_36 --single-branch --depth 1 --recursive --quiet https://github.com/llvm-mirror/llvm.git
     #get compiler-rt
-    (cd llvm/projects && git clone --depth 1 --recursive --quiet https://github.com/llvm-mirror/compiler-rt.git)
+    (cd llvm/projects && git clone -b release_36 --single-branch --depth 1 --recursive --quiet https://github.com/llvm-mirror/compiler-rt.git)
     #build it
-    (mkdir -p llvm/build && cd llvm/build && cmake .. ${FLAGS_LLVM} && make compiler-rt -j2)
+    (mkdir -p llvm/build && cd llvm/build && cmake -Wno-dev .. ${FLAGS_LLVM} && make compiler-rt -j2)
 
     #clean up
     find . -name "*.o" -type f -delete
