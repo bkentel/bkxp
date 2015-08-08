@@ -43,12 +43,12 @@ TEST_CASE("equipment", "[bkrl][equip]") {
         REQUIRE(static_cast<bkrl::item_slots>(result).test(bkrl::equip_slot::head));
     }
 
-    SECTION("equip - occupied") {
+    SECTION("equip - double") {
         REQUIRE(!!eq.equip(itm));
         auto result = eq.equip(itm);
         REQUIRE(!result);
-        REQUIRE(result.status == status_t::slot_occupied);
-        REQUIRE(static_cast<bkrl::item_slots>(result).test(bkrl::equip_slot::head));
+        REQUIRE(result.status == status_t::already_equipped);
+        REQUIRE(result.data == 0);
     }
 
     SECTION("unequip") {

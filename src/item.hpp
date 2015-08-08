@@ -118,7 +118,22 @@ public:
     uint64_t& data()       noexcept { return data_; }
     uint64_t  data() const noexcept { return data_; }
 
-    bklib::utf8_string friendly_name(context const& ctx, item_def const* idef = nullptr) const;
+    struct format_flags {
+        constexpr format_flags() noexcept {}
+
+        item_def const* use_definition = nullptr;
+        int  count = 1;
+        bklib::utf8_string_view override_color;
+        bool use_color = true;
+        bool capitalize = false;
+        bool definite = false;
+    };
+
+    bklib::utf8_string friendly_name(context const& ctx, format_flags const& flags) const;
+
+    bklib::utf8_string friendly_name(context const& ctx) const {
+        return friendly_name(ctx, format_flags {});
+    }
 private:
     item(instance_id_t<tag_item> id, item_def const& def);
 

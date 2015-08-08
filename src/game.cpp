@@ -664,7 +664,7 @@ void bkrl::game::do_show_inventory()
             close.dismiss();
 
             auto ctx = make_context();
-            display_message("You chose the %d%s item -- a %s"
+            display_message("You chose the %d%s item -- %s"
               , i + 1
               , bklib::oridinal_suffix(i + 1).data()
               , itm.friendly_name(ctx));
@@ -712,35 +712,75 @@ void bkrl::game::do_equip_item(item& i)
     auto const result = eq.equip(i);
 
     using status_t = equipment::result_t::status_t;
+
+    auto flags = item::format_flags {};
+    flags.definite = true;
+    flags.use_color = true;
+
+    fmt::MemoryWriter out;
+
+    auto const print_slots = [&](item_slots const slots) {
+        BK_PRECONDITION(slots.any());
+
+        flags.definite   = false;
+        flags.capitalize = false;
+
+        auto const print_slot = [&](equipment::slot_t const* const slot) {
+            if (!slot) {
+                return;
+            }
+
+            BK_PRECONDITION(slot->itm);
+
+            out.write(" Your <color=r>{}</color> is occupied by {}."
+                , slot->name
+                , slot->itm->friendly_name(ctx, flags));
+        };
+
+        for_each_flag(slots, [&](equip_slot const es) {
+            if (es == equip_slot::hand_any) {
+                out.write(" All of your <color=r>hands</color> are occupied.");
+
+                print_slot(eq.slot_info(equip_slot::hand_main));
+                print_slot(eq.slot_info(equip_slot::hand_off));
+            } else {
+                print_slot(eq.slot_info(es));
+            }
+        });
+    };
+
+    auto const iname = [&] {
+        return i.friendly_name(ctx, flags);
+    };
+
     switch (result.status) {
     case status_t::ok:
-        display_message("You equip the %s.", i.friendly_name(ctx));
+        out.write("You equip {}.", iname());
+        print_slots(eq.where(i));
         break;
     case status_t::not_equippable:
-        display_message("The %s isn't something you can equip.", i.friendly_name(ctx));
+        flags.capitalize = true;
+        out.write("{} cannot be equipped.", iname());
         break;
-    case status_t::slot_occupied: {
-        fmt::MemoryWriter out;
-        out.write("The {} can't be equipped.\n", i.friendly_name(ctx));
-
-        for_each_flag(static_cast<item_slots>(result), [&](equip_slot const es) {
-            auto const& info = eq.slot_info(es);
-            out.write("Your {} is occupied by a {}.\n"
-              , info.name, info.itm->friendly_name(ctx));
-        });
-
-        display_message(out.c_str());
-
+    case status_t::slot_occupied:
+        flags.capitalize = true;
+        out.write("{} can't be equipped.", iname());
+        print_slots(static_cast<item_slots>(result));
+        break;
+    case status_t::slot_not_present:
+        out.write("You can't seem to find an appropriate place to equip %s.", iname());
+        break;
+    case status_t::already_equipped: {
+        out.write("You already have {} equipped.", iname());
+        print_slots(eq.where(i));
         break;
     }
-    case status_t::slot_not_present:
-        display_message("You can't seem to find an appropriate place to equip the %s."
-          , i.friendly_name(ctx));
-        break;
     case status_t::slot_empty: BK_FALLTHROUGH
     default:
         break;
     }
+
+    display_message(out.c_str());
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -1,16 +1,13 @@
 #pragma once
 
+#include "item.hpp"
+
 #include "bklib/string.hpp"
+
 #include <vector>
 #include <cstdint>
 
-namespace bklib { template <typename T> struct flag_set; }
-
 namespace bkrl {
-
-class item;
-enum class equip_slot : uint32_t;
-using item_slots = bklib::flag_set<equip_slot>;
 
 //--------------------------------------------------------------------------------------------------
 //! An equipment list. It doesn't actually own the equipped items, but rather just observes them.
@@ -32,7 +29,7 @@ public:
     //----------------------------------------------------------------------------------------------
     struct result_t {
         enum class status_t {
-            ok, not_equippable, slot_occupied, slot_not_present, slot_empty
+            ok, not_equippable, slot_occupied, slot_not_present, slot_empty, already_equipped
         };
 
         constexpr result_t() noexcept = default;
@@ -45,7 +42,7 @@ public:
             return status == status_t::ok;
         }
 
-        operator item_slots const&() const noexcept {
+        operator item_slots() const noexcept {
             return *reinterpret_cast<item_slots const*>(&data);
         }
 
@@ -59,7 +56,12 @@ public:
 
     equipment();
 
-    slot_t const& slot_info(equip_slot const es) const;
+    bool is_equipped(item const& i) const noexcept;
+    bool is_equipped(equip_slot es) const noexcept;
+
+    item_slots where(item const& i) const noexcept;
+
+    slot_t const* slot_info(equip_slot const es) const;
 
     result_t can_equip(item const& i) const;
 

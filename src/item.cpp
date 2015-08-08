@@ -50,39 +50,159 @@ void bkrl::process_tags(item_def& def)
     }
 }
 
-//--------------------------------------------------------------------------------------------------
-bklib::utf8_string bkrl::item::friendly_name(context const& ctx, item_def const* idef) const
+namespace {
+
+inline size_t size(bklib::utf8_string const& s) noexcept {
+    return s.size();
+}
+
+inline size_t size(bklib::utf8_string_view const s) noexcept {
+    return s.size();
+}
+
+template <size_t N>
+inline size_t size(char const (&)[N]) noexcept {
+    return N - 1;
+}
+
+inline constexpr size_t size() noexcept { return 0; }
+
+template <typename Head, typename... Tail>
+inline size_t size(Head const& head, Tail const&... tail) noexcept {
+    return size(head) + size(tail...);
+}
+
+inline bklib::utf8_string& make_string_helper(bklib::utf8_string& str) noexcept {
+    return str;
+}
+
+template <size_t N>
+inline bklib::utf8_string& make_string_helper(bklib::utf8_string& str, char const (&s)[N]) noexcept {
+    return str.append(s, N - 1);
+}
+
+inline bklib::utf8_string& make_string_helper(bklib::utf8_string& str, bklib::utf8_string_view const next) noexcept {
+    return str.append(next.data(), next.size());
+}
+
+template <typename T>
+inline bklib::utf8_string& make_string_helper(bklib::utf8_string& str, T const& next) noexcept {
+    return str.append(next);
+}
+
+template <typename First, typename Second, typename... Tail>
+inline bklib::utf8_string& make_string_helper(
+    bklib::utf8_string& str
+  , First const& first
+  , Second const& second
+  , Tail const&... tail
+) noexcept {
+    return make_string_helper(make_string_helper(str, first), second, tail...);
+}
+
+template <typename Head, typename... Tail>
+bklib::utf8_string make_string(Head const& head, Tail const&... tail) {
+    bklib::utf8_string result;
+    result.reserve(size(head, tail...) + 1);
+    make_string_helper(result, head, tail...);
+    return result;
+}
+
+bklib::utf8_string decorate_name(
+    bklib::utf8_string s
+  , int  const n
+  , bool const definite
+) {
+    auto const plural = (n != 1);
+
+    if (definite && !plural) {
+        return make_string("the ", s);
+    }
+
+    if (definite && plural) {
+        return make_string("the ", std::to_string(n), s, "s");
+    }
+
+    if (!definite && !plural) {
+        return make_string("a ", s);
+    }
+
+    if (!definite && plural) {
+        return make_string(std::to_string(n), s, "s");
+    }
+
+    return s;
+}
+
+bklib::utf8_string capitalize_name(
+    bklib::utf8_string s
+  , bool const capitalize
+) {
+    if (capitalize && !s.empty()) {
+        s[0] = std::toupper(s[0], std::locale::classic());
+    }
+
+    return s;
+}
+
+bklib::utf8_string
+get_corpse_name(bkrl::context const& ctx, bkrl::item const& i)
 {
-    if (!idef) {
-        auto const id = def();
-        idef = ctx.data.find(id);
-        if (!idef) {
-            return to_string(id);
+    using namespace bkrl;
+
+    auto const cid = def_id_t<tag_creature>(static_cast<uint32_t>(i.data()));
+    if (!cid) {
+        return "{unknown}";
+    }
+
+    auto const cdef = ctx.data.find(cid);
+    if (!cdef || cdef->name.empty()) {
+        return to_string(cid);
+    }
+
+    return cdef->name;
+}
+
+}
+
+//--------------------------------------------------------------------------------------------------
+bklib::utf8_string bkrl::item::friendly_name(context const& ctx, item::format_flags const& f) const
+{
+    constexpr auto const c_error = bklib::make_string_view("r");
+    constexpr auto const c_item  = bklib::make_string_view("gy");
+
+    auto const apply_color = [f](bklib::utf8_string s, bklib::utf8_string_view color) {
+        if (!f.use_color) {
+            return s;
         }
+
+        if (!f.override_color.empty()) {
+            color = f.override_color;
+        }
+
+        return make_string("<color=", color, ">", s, "</color>");
+    };
+
+    auto const decorate = [f](bklib::utf8_string s) {
+        return capitalize_name(decorate_name(s, f.count, f.definite), f.capitalize);
+    };
+
+    auto const idef = f.use_definition
+      ?  f.use_definition
+      :  ctx.data.find(def());
+
+    if (!idef) {
+        return apply_color(to_string(def()), c_error);
     }
 
     if (idef->name.empty()) {
-        return idef->id_string;
+        return apply_color(make_string("{", idef->id_string, "}"), c_error);
     }
 
-    if (flags().test(item_flag::is_corpse)) {
-        auto const cid = def_id_t<tag_creature>(static_cast<uint32_t>(data()));
-        if (!cid) {
-            return fmt::sprintf("unknown remains");
-        }
-
-        if (auto const cdef = ctx.data.find(cid)) {
-            if (cdef->name.empty()) {
-                return fmt::sprintf("the remains of a nameless entity");
-            }
-
-            return fmt::sprintf("the remains of a %s", cdef->name);
-        }
-
-        return fmt::sprintf("the remains of a %s", to_string(cid));
-    }
-
-    return idef->name;
+    return decorate(
+        flags().test(item_flag::is_corpse)
+          ? fmt::format("the remains of {}", apply_color(get_corpse_name(ctx, *this), c_item))
+          : apply_color(idef->name, c_item));
 }
 
 //--------------------------------------------------------------------------------------------------
