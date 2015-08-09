@@ -94,9 +94,9 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
 
     auto f = bkrl::make_item_list(ctx, i, pile, "title");
 
-    auto const set_expected = [&](auto const a, auto const i, auto const it) {
+    auto const set_expected = [&](auto const a, auto const index, auto const it) {
         expected_action = a;
-        expected_index  = i;
+        expected_index  = index;
         expected_item   = &*std::next(pile.begin(), it);
     };
 

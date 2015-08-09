@@ -98,9 +98,13 @@ private:
     static uint32_t make_color_key(bklib::utf8_string_view const code) noexcept {
         uint32_t key = 0;
 
-        auto const max = std::min<size_t>(code.size(), 4u);
-        for (auto i = 0u; i < max; ++i) {
-            key |= (code[i] << i*8);
+        switch (code.size()) {
+        default: BK_FALLTHROUGH
+        case 4: key |= static_cast<uint32_t>(code[3]) << 24; BK_FALLTHROUGH
+        case 3: key |= static_cast<uint32_t>(code[2]) << 16; BK_FALLTHROUGH
+        case 2: key |= static_cast<uint32_t>(code[1]) <<  8; BK_FALLTHROUGH
+        case 1: key |= static_cast<uint32_t>(code[0]) <<  0; BK_FALLTHROUGH
+        case 0: break;
         }
 
         return key;
@@ -268,10 +272,10 @@ void bkrl::text_layout::set_text(
     last_color.push_back(color_code(make_color(255, 255, 255)));
 
     bool in_color = false; // TODO
-    auto break_last      = 0u;
-    auto break_candidate = 0u;
+    size_t break_last      = 0;
+    size_t break_candidate = 0;
 
-    for (auto i = 0u; i < text.size(); ++i) {
+    for (size_t i = 0; i < text.size(); ++i) {
         auto beg = text.substr(i, 1);
         auto c   = beg[0];
 

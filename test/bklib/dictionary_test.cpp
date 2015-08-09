@@ -45,10 +45,11 @@ TEST_CASE("new test case") {
     REQUIRE(dic.size() == 0);
 
     auto const expect_result = [](bool const ok, bklib::utf8_string_view const id, int const data, auto const& result) {
-        REQUIRE(result.second == ok);
-        REQUIRE(result.first->id_string == id);
-        REQUIRE(static_cast<size_t>(result.first->id) == bklib::djb2_hash(id));
-        REQUIRE(result.first->data == data);
+        //GCC complains here
+        REQUIRE((result.second == ok));
+        REQUIRE((result.first->id_string == id));
+        REQUIRE((static_cast<size_t>(result.first->id) == bklib::djb2_hash(id)));
+        REQUIRE((result.first->data == data));
     };
 
     using insert_type0 = decltype(dic.insert_or_discard(std::declval<test_def>()));

@@ -162,10 +162,7 @@ bkrl::game::game()
 void bkrl::game::generate_map()
 {
     auto ctx = make_context();
-
     auto& m = current_map();
-    auto const bounds = m.bounds();
-
     auto& random = random_[random_stream::substantive];
 
     generate_creature(ctx, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
@@ -629,7 +626,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_move(bklib::ivec3 const v)
 {
-    BK_PRECONDITION(x(v) || y(v) && !z(v));
+    BK_PRECONDITION((x(v) || y(v)) && !z(v));
     do_move(v);
 }
 
@@ -788,6 +785,7 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 {
     switch (cmd.type) {
     case command_type::none:    break;
+    case command_type::raw:     break;
     case command_type::text:    break;
     case command_type::confirm: break;
     case command_type::invalid: break;

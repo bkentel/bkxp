@@ -66,16 +66,14 @@ public:
     result_t can_equip(item const& i) const;
 
     template <typename Callback>
-    void eligible_slots(item const& i, Callback&& callback) const {
-    }
+    void eligible_slots(item const& i, Callback&& callback) const;
 
     result_t equip(item& i);
 
     result_t unequip(equip_slot const es);
 
     template <typename Predicate>
-    void unequip(Predicate&& predicate) {
-    }
+    void unequip(Predicate&& predicate);
 private:
     slot_t const* find_slot_(equip_slot const slot) const;
 

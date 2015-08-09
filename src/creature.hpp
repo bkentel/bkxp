@@ -57,7 +57,7 @@ struct creature_def : definition_base {
     creature_flags flags;
 };
 
-inline void process_tags(creature_def& def) {}
+void process_tags(creature_def& def);
 
 constexpr inline bool operator==(creature_def const& lhs, creature_def::id_type const& rhs) noexcept {
     return lhs.id == rhs;

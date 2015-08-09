@@ -42,7 +42,7 @@ public:
     int tile_w()    const noexcept { return tile_w_; }
     int tile_h()    const noexcept { return tile_h_; }
     int texture_w() const noexcept { return texture_w_; }
-    int texture_h() const noexcept { return tile_h_; }
+    int texture_h() const noexcept { return texture_h_; }
     int cols()      const noexcept { return cols_; }
     int rows()      const noexcept { return rows_; }
 private:
@@ -68,7 +68,10 @@ constexpr inline color4 make_color(
 }
 
 constexpr inline uint32_t color_code(color4 const c) noexcept {
-    return c[0] << 0 | c[1] << 8 | c[2] << 16 | c[3] << 24;
+    return static_cast<uint32_t>(c[0]) <<  0
+         | static_cast<uint32_t>(c[1]) <<  8
+         | static_cast<uint32_t>(c[2]) << 16
+         | static_cast<uint32_t>(c[3]) << 24;
 }
 
 class renderer {

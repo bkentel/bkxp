@@ -80,6 +80,27 @@ struct command {
 static_assert(sizeof(command) == 16, "");
 static_assert(std::is_pod<command>::value, "");
 
+struct command_raw_t {
+    key_mod_state mods;
+    int32_t virtual_key;
+};
+
+template <command_type Type, std::enable_if_t<Type == command_type::raw>* = nullptr>
+command_raw_t get_command_data(command const cmd) noexcept {
+    return {
+        *reinterpret_cast<key_mod_state const*>(&cmd.data1)
+      , static_cast<int32_t>(cmd.data0)
+    };
+}
+
+template <command_type Type, std::enable_if_t<Type == command_type::text>* = nullptr>
+bklib::utf8_string_view get_command_data(command const cmd) noexcept {
+    return {
+        reinterpret_cast<char const*>(cmd.data1)
+      , static_cast<size_t>(cmd.data0)
+    };
+}
+
 namespace detail { class command_translator_impl; }
 
 enum class command_handler_result {

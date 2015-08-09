@@ -134,6 +134,8 @@ public:
     bklib::utf8_string friendly_name(context const& ctx) const {
         return friendly_name(ctx, format_flags {});
     }
+
+    int32_t weight() const { return 0; } // TODO
 private:
     item(instance_id_t<tag_item> id, item_def const& def);
 

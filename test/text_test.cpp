@@ -22,8 +22,6 @@ TEST_CASE("text rendering metrics", "[text][graphics][bkrl]") {
 }
 
 TEST_CASE("text layout metrics", "[text][graphics][bkrl]") {
-    using size_type = bkrl::text_layout::size_type;
-
     bkrl::text_renderer trender;
     bkrl::text_layout layout {trender, "", 10, 20, 100, 200};
 
@@ -130,7 +128,7 @@ TEST_CASE("text rendering - simple", "[text][graphics][bkrl]") {
     auto const expected_w = width - (width  % glyph_width);
     REQUIRE(extent.width() == expected_w);
 
-    auto const d = std::div(text.size() * glyph_width, expected_w);
+    auto const d = std::div(static_cast<int>(text.size()) * glyph_width, expected_w);
     auto const expected_h = (d.quot + (d.rem ? 1 : 0)) * line_spacing;
     REQUIRE(extent.height() == expected_h);
 }
