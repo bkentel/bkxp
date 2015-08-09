@@ -169,7 +169,7 @@ public:
 
     hash_id_base(utf8_string_view const str) noexcept
       : value_  {djb2_hash(str)}
-      , string_ {to_array<extra>(str)}
+      , string_ (to_array<extra>(str))
     {
     }
 

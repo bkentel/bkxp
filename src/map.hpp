@@ -116,7 +116,7 @@ void for_each_cell(T&& block, int const x, int const y, Function&& f) {
 struct placement_result_t {
     constexpr placement_result_t() noexcept = default;
     constexpr placement_result_t(bklib::ipoint2 const p, bool const ok) noexcept
-      : where {p}, success {ok}
+      : where (p), success {ok}
     {
     }
 

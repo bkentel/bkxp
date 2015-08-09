@@ -22,8 +22,8 @@ bkrl::item::item(
   , item_def                const& def
 )
   : data_  {}
-  , flags_ {def.flags}
-  , slots_ {def.slots}
+  , flags_ (def.flags)
+  , slots_ (def.slots)
   , id_    {id}
   , def_   {get_id(def)}
 {

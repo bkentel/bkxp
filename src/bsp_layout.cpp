@@ -41,7 +41,7 @@ public:
 
     //----------------------------------------------------------------------------------------------
     bsp_layout_impl(bklib::irect const bounds, param_t const p)
-      : p_ {p}, width_ {bounds.width()}, height_ {bounds.height()}
+      : p_ (p), width_ {bounds.width()}, height_ {bounds.height()}
     {
         BK_PRECONDITION(width_ > 0);
         BK_PRECONDITION(height_ > 0);

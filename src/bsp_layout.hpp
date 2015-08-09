@@ -14,8 +14,6 @@ namespace detail { class bsp_layout_impl; }
 class bsp_layout {
 public:
     struct param_t {
-        param_t() = default;
-
         //! Aspect ration above which to force a split.
         bklib::aspect_ratio<int> aspect {16, 9};
         //! Minimum cell width.
