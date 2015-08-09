@@ -38,7 +38,6 @@ TEST_CASE("map terrain", "[map][terrain][bkrl]") {
     auto const r = bklib::irect {1, 1, bkrl::size_block + 1, bkrl::size_block + 1};
     map.fill(r, bkrl::terrain_type::floor);
 
-    auto const b = map.bounds();
     for (int y = 0; y < r.bottom + 1; ++y) {
         for (int x = 0; x < r.right + 1; ++x) {
             auto const  p = bklib::ipoint2 {x, y};

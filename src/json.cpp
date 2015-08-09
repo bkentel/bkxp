@@ -668,10 +668,10 @@ public:
         switch (field_ = static_cast<field>(hash)) {
         case field::none : BK_FALLTHROUGH
         default:
-            return default_result();
+            break;
         }
 
-        return true;
+        return default_result();
     }
 
     //----------------------------------------------------------------------------------------------

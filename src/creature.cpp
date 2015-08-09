@@ -7,6 +7,10 @@
 
 #include <functional>
 
+void bkrl::process_tags(creature_def&)
+{
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::creature
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,13 +60,20 @@ bkrl::def_id_t<bkrl::tag_creature> bkrl::creature::def() const noexcept
 //--------------------------------------------------------------------------------------------------
 bool bkrl::creature::can_get_items(item_pile const& ip) const
 {
-    return true;
+    auto const total_weight = std::accumulate(
+        std::begin(ip), std::end(ip), 0
+      , [](auto const n, item const& i) noexcept { return n + i.weight(); }
+    );
+
+    //TODO
+
+    return total_weight < 1000;
 }
 
 //--------------------------------------------------------------------------------------------------
 bool bkrl::creature::can_get_item(item const& i) const
 {
-    return true;
+    return i.weight() < 1000;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -200,7 +211,9 @@ bkrl::creature bkrl::creature_factory::create(
   , creature_def   const& def
   , bklib::ipoint2 const  p
 ) {
-    return creature {instance_id_t<tag_creature> {++next_id_}, def, p};
+    creature result {instance_id_t<tag_creature> {++next_id_}, def, p};
+    result.stats_.hp_val.base = static_cast<int16_t>(bkrl::random_range(random, 1, 5));
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,6 +254,8 @@ bool bkrl::move_by(context& ctx, creature& c, map& m, bklib::ivec2 const v)
 //--------------------------------------------------------------------------------------------------
 void bkrl::attack(context& ctx, map& m, creature& att, creature& def)
 {
+    //TODO consider removing the m parameter
+
     auto const att_info = ctx.data.find(att.def());
     auto const def_info = ctx.data.find(def.def());
 
@@ -284,12 +299,8 @@ void bkrl::advance(context& ctx, map& m, creature_map& cmap)
     });
 
     cmap.remove_if(
-        [](bklib::ipoint2 const, creature const& c) {
-            return c.is_dead();
-        }
-      , [&](bklib::ipoint2 const p, creature& c) {
-            kill(ctx, m, c);
-        }
+        [ ](bklib::ipoint2, creature const& c) { return c.is_dead(); }
+      , [&](bklib::ipoint2, creature&       c) { kill(ctx, m, c); }
     );
 }
 

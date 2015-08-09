@@ -5,6 +5,79 @@
 #include "bklib/assert.hpp"
 #include "bklib/string.hpp"
 
+namespace {
+
+//
+// TODO consider moving this for reuse elsewhere
+//
+
+namespace detail {
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::true_type, std::true_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_signed<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_signed<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr To const lo = std::numeric_limits<To>::min();
+    constexpr To const hi = std::numeric_limits<To>::max();
+
+    BK_PRECONDITION(static_cast<T>(n) >= lo && static_cast<T>(n) <= hi);
+
+    return static_cast<To>(n);
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::true_type, std::false_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_signed<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_unsigned<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr To const hi = static_cast<T>(std::numeric_limits<To>::max());
+    BK_PRECONDITION(static_cast<T>(n) >= 0 && static_cast<T>(n) <= hi);
+
+    return static_cast<To>(n);
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::false_type, std::true_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_unsigned<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_signed<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr auto const hi = static_cast<T>(std::numeric_limits<To>::max());
+
+    BK_PRECONDITION(static_cast<T>(n) <= hi);
+    return static_cast<To>(n);
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::false_type, std::false_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_unsigned<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_unsigned<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr auto const hi = static_cast<T>(std::numeric_limits<To>::max());
+
+    BK_PRECONDITION(static_cast<T>(n) <= hi);
+    return static_cast<To>(n);
+}
+
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n) noexcept {
+    static_assert(std::is_integral<To>::value, "");
+    static_assert(std::is_integral<From>::value, "");
+
+    return detail::checked_integral_cast<To>(n, std::is_signed<From> {}, std::is_signed<To> {});
+}
+
+} //namespace
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class bkrl::detail::command_translator_impl {
@@ -18,7 +91,7 @@ public:
     }
 
 #if defined(BK_NO_SDL)
-    void on_key_down(int const key, key_mod_state const mods) {}
+    void on_key_down(int, key_mod_state) {}
 #else
     void on_key_down(int const key, key_mod_state const mods) {
         if (handlers_.empty()) {
@@ -104,7 +177,7 @@ public:
 
         command cmd;
         cmd.type  = command_type::text;
-        cmd.data0 = str.size();
+        cmd.data0 = checked_integral_cast<int32_t>(str.size());
         cmd.data1 = reinterpret_cast<intptr_t>(str.data());
 
         if (handlers_.back()(cmd) == command_handler_result::detach) {

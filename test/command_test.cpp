@@ -26,6 +26,7 @@ TEST_CASE("command values", "[bkrl][command]") {
         case ct::scroll         : BK_CHECK_VAL(scroll); break;
         case ct::zoom           : BK_CHECK_VAL(zoom); break;
         case ct::cancel         : BK_CHECK_VAL(cancel); break;
+        case ct::confirm        : BK_CHECK_VAL(confirm); break;
         case ct::yes            : BK_CHECK_VAL(yes); break;
         case ct::no             : BK_CHECK_VAL(no); break;
         case ct::dir_here       : BK_CHECK_VAL(dir_here); break;
@@ -45,6 +46,7 @@ TEST_CASE("command values", "[bkrl][command]") {
         case ct::close          : BK_CHECK_VAL(close); break;
         case ct::drop           : BK_CHECK_VAL(drop); break;
         case ct::show_inventory : BK_CHECK_VAL(show_inventory); break;
+        case ct::show_equipment : BK_CHECK_VAL(show_equipment); break;
         case ct::get            : BK_CHECK_VAL(get); break;
         default:
             break;

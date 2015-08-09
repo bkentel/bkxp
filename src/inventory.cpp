@@ -39,7 +39,9 @@ public:
 
     void insert(inventory::row_t&& r, int const where);
 
-    void remove(int const where) { }
+    void remove(int) {
+        BK_ASSERT(false && "TODO");
+    }
 
     void clear() {
         rows_.clear();
@@ -69,7 +71,10 @@ public:
         return visible_;
     }
 
-    void resize(bklib::irect bounds) { }
+    void resize(bklib::irect) {
+        BK_ASSERT(false && "TODO");
+    }
+
     bklib::irect bounds() const { return layout_.bounds(); }
     bklib::irect client_area() const {
         auto const& c = layout_.client;
@@ -94,7 +99,9 @@ public:
             BK_PRECONDITION(i != selection_none);
         }
 
-        return rows_[i].data;
+        BK_PRECONDITION(i >= 0);
+
+        return rows_[static_cast<size_t>(i)].data;
     }
 
     bool mouse_move(mouse_state const& m);
@@ -339,7 +346,9 @@ void bkrl::inventory::on_action(action_handler_t handler) {
 
 //----------------------------------------------------------------------------------------------
 void bkrl::detail::inventory_impl::layout_t::resize(
-    bklib::irect const r, size_type const client_w, size_type const client_h
+    bklib::irect const r
+  , size_type const // client_w // required client width to show everything
+  , size_type const client_h // required client height to show everything
 ) noexcept {
     auto const x = r.left;
     auto const y = r.top;
@@ -698,48 +707,39 @@ bkrl::command_handler_result bkrl::detail::inventory_impl::command(bkrl::command
 {
     auto const default_result = command_handler_result::capture;
 
-    switch (cmd.type) {
-    case command_type::raw:
-        if (cmd.data0 == 'e'
-         && reinterpret_cast<bkrl::key_mod_state const*>(&cmd.data1)->test(key_mod::ctrl)
-        ) {
+    if (cmd.type == command_type::raw) {
+        auto const raw = get_command_data<command_type::raw>(cmd);
+        if (raw.virtual_key == 'e' && raw.mods.test(key_mod::ctrl)) {
             do_equip();
             return command_handler_result::filter;
         }
-
-        break;
-    case command_type::text:
-    {
-        auto const str = bklib::utf8_string_view {
-            reinterpret_cast<char const*>(cmd.data1)
-          , static_cast<size_t>(cmd.data0)
-        };
+    } else if (cmd.type == command_type::text) {
+        auto const str = get_command_data<command_type::text>(cmd);
 
         if (str.size() > 1) {
-            break;
+            return default_result;
         }
 
         auto const c = str.front();
         auto const i = bklib::alphanum_id::to_index(c);
         if (i < 0) {
-            break;
+            return default_result;
         }
 
         auto const n = static_cast<int>(rows_.size());
         if (i >= n) {
-            break;;
+            return default_result;
         }
 
         select(i);
-
-        break;
-    }
-    case command_type::dir_south: select_next(); break;
-    case command_type::dir_north: select_prev(); break;
-    case command_type::confirm:   do_confirm();  break;
-    case command_type::cancel:    do_cancel();   break;
-    default:
-        break;
+    } else if (cmd.type == command_type::dir_south) {
+        select_next();
+    } else if (cmd.type == command_type::dir_north) {
+        select_prev();
+    } else if (cmd.type == command_type::confirm) {
+        do_confirm();
+    } else if (cmd.type == command_type::cancel) {
+        do_cancel();
     }
 
     return default_result;

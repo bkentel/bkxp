@@ -49,13 +49,14 @@ TEST_CASE("random", "[bkrl][random]") {
         std::map<bklib::ipoint2, int> points;
 
         for (auto i = 0; i < iterations; ++i) {
-            ++points[bkrl::random_point_border(random, r)];
+            auto const p = bkrl::random_point_border(random, r);
+            ++points[p];
         }
 
-        auto const p = perimeter(r);
-        REQUIRE(static_cast<int>(points.size()) == p);
+        auto const perim = perimeter(r);
+        REQUIRE(static_cast<int>(points.size()) == perim);
 
-        auto const expected_n = iterations / p;
+        auto const expected_n = iterations / perim;
 
         for (auto const& p : points) {
             auto const delta = std::abs(expected_n - p.second);
