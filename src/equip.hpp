@@ -9,6 +9,10 @@
 
 namespace bkrl {
 
+enum class equip_result_t : int {
+    ok, not_equippable, slot_occupied, slot_not_present, slot_empty, already_equipped
+};
+
 //--------------------------------------------------------------------------------------------------
 //! An equipment list. It doesn't actually own the equipped items, but rather just observes them.
 //! Move only.
@@ -28,9 +32,7 @@ public:
     //
     //----------------------------------------------------------------------------------------------
     struct result_t {
-        enum class status_t {
-            ok, not_equippable, slot_occupied, slot_not_present, slot_empty, already_equipped
-        };
+        using status_t = equip_result_t;
 
         constexpr result_t() noexcept = default;
         constexpr result_t(status_t const status_value, uint32_t const data_value = 0) noexcept

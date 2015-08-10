@@ -6,7 +6,7 @@
 
 #include <catch/catch.hpp>
 
-TEST_CASE("get_item", "[bkrl][game]") {
+TEST_CASE("get and drop items", "[bkrl][game]") {
 
 }
 

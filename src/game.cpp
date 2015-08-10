@@ -75,11 +75,9 @@ public:
     void on_move(bklib::ivec3 v);
 
     void on_show_inventory();
-    void do_show_inventory();
 
     void on_show_equipment();
     void do_show_equipment();
-    void do_equip_item(item& i);
 
     command_handler_result on_command(command const& cmd);
 
@@ -623,7 +621,7 @@ void bkrl::game::on_drop()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::drop_item(
+bkrl::drop_item_result_t bkrl::drop_item(
     context&            ctx
   , creature&           subject
   , map&                current_map
@@ -635,12 +633,12 @@ void bkrl::drop_item(
 
     if (items.empty()) {
         ctx.out.write("You have nothing to drop.");
-        return;
+        return drop_item_result::no_items;
     }
 
     if (abs_max(where - subject.position()) > 1) {
         ctx.out.write("You can't drop that there from here.");
-        return;
+        return drop_item_result::out_of_range;
     }
 
     imenu.on_action([&, where](inventory::action const type, int const sel) {
@@ -671,23 +669,24 @@ void bkrl::drop_item(
     });
 
     commands.push_handler(make_item_list(ctx, imenu, items, "Drop which item?"));
+    return drop_item_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::get_item(
+bkrl::get_item_result_t bkrl::get_item(
     context& ctx, creature& subject, map& current_map, bklib::ipoint2 const where
   , inventory& imenu
   , command_translator& commands
 ) {
     if (abs_max(where - subject.position()) > 1) {
         ctx.out.write("You can't get that from here.");
-        return;
+        return get_item_result::out_of_range;
     }
 
     item_pile* const pile = current_map.items_at(where);
     if (!pile) {
         ctx.out.write("There is nothing here to get.");
-        return;
+        return get_item_result::no_items;
     }
 
     imenu.on_action([&, where](inventory::action const type, int const i) {
@@ -719,6 +718,7 @@ void bkrl::get_item(
     });
 
     commands.push_handler(make_item_list(ctx, imenu, *pile, "Get which item?"));
+    return get_item_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -767,39 +767,50 @@ void bkrl::game::on_show_inventory()
     inventory_.show(visible);
 
     if (visible) {
-        do_show_inventory();
+        show_inventory(ctx_, get_player(), inventory_, command_translator_);
     }
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_show_inventory()
+bkrl::show_inventory_result_t bkrl::show_inventory(
+    context&            ctx
+  , creature&           subject
+  , inventory&          imenu
+  , command_translator& commands
+)
 {
-    inventory_.on_action([this](inventory::action const type, int const i) {
+    auto& items = subject.item_list();
+    if (items.empty()) {
+        ctx.out.write("You have no items.");
+        return show_inventory_result::no_items;
+    }
+
+    imenu.on_action([&](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
-            inventory_.show(false);
-            command_translator_.pop_handler(); //TODO
+            imenu.show(false);
+            commands.pop_handler(); //TODO
         };
 
         if (i < 0 || type == inventory::action::cancel) {
             return;
         }
 
-        auto& itm = from_inventory_data(inventory_.data()).first;
+        auto& itm = from_inventory_data(imenu.data()).first;
 
         switch (type) {
         case inventory::action::confirm: {
             close.dismiss();
 
-            display_message("You chose the %d%s item -- %s"
+            ctx.out.write   ("You chose the %d%s item -- %s"
               , i + 1
               , bklib::oridinal_suffix(i + 1).data()
-              , itm.friendly_name(ctx_));
+              , itm.friendly_name(ctx));
 
             break;
         }
         case inventory::action::equip: {
             close.dismiss();
-            do_equip_item(itm);
+            equip_item(ctx, subject, itm);
 
             break;
         }
@@ -812,8 +823,8 @@ void bkrl::game::do_show_inventory()
         }
     });
 
-    auto const& player = get_player();
-    command_translator_.push_handler(make_item_list(ctx_, inventory_, player.item_list(), "Items"));
+    commands.push_handler(make_item_list(ctx, imenu, items, "Items"));
+    return show_inventory_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -828,12 +839,15 @@ void bkrl::game::do_show_equipment()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_equip_item(item& i)
-{
-    auto& eq = get_player().equip_list();
-    auto const result = eq.equip(i);
-
+bkrl::equip_item_result_t bkrl::equip_item(
+    context&  ctx
+  , creature& subject
+  , item&     itm
+) {
     using status_t = equipment::result_t::status_t;
+
+    auto& eq = subject.equip_list();
+    auto const result = eq.equip(itm);
 
     auto flags = item::format_flags {};
     flags.definite = true;
@@ -856,7 +870,7 @@ void bkrl::game::do_equip_item(item& i)
 
             out.write(" Your <color=r>{}</color> is occupied by {}."
                 , slot->name
-                , slot->itm->friendly_name(ctx_, flags));
+                , slot->itm->friendly_name(ctx, flags));
         };
 
         for_each_flag(slots, [&](equip_slot const es) {
@@ -872,13 +886,13 @@ void bkrl::game::do_equip_item(item& i)
     };
 
     auto const iname = [&] {
-        return i.friendly_name(ctx_, flags);
+        return itm.friendly_name(ctx, flags);
     };
 
     switch (result.status) {
     case status_t::ok:
         out.write("You equip {}.", iname());
-        print_slots(eq.where(i));
+        print_slots(eq.where(itm));
         break;
     case status_t::not_equippable:
         flags.capitalize = true;
@@ -894,7 +908,7 @@ void bkrl::game::do_equip_item(item& i)
         break;
     case status_t::already_equipped: {
         out.write("You already have {} equipped.", iname());
-        print_slots(eq.where(i));
+        print_slots(eq.where(itm));
         break;
     }
     case status_t::slot_empty: BK_FALLTHROUGH
@@ -902,7 +916,8 @@ void bkrl::game::do_equip_item(item& i)
         break;
     }
 
-    display_message(out.c_str());
+    ctx.out.write(out.c_str());
+    return result.status;
 }
 
 //--------------------------------------------------------------------------------------------------
