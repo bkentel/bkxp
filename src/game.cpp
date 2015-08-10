@@ -67,9 +67,7 @@ public:
     void do_open_close(bklib::ipoint2 p, command_type type);
 
     void on_get();
-
     void on_drop();
-    void do_drop(creature& subject, bklib::ipoint2 where);
 
     void do_wait(int turns);
 
@@ -620,22 +618,35 @@ void bkrl::game::on_get()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_drop()
 {
-    auto& player = get_player();
-    do_drop(player, player.position());
+    auto& subject = get_player();
+    drop_item(ctx_, subject, current_map(), subject.position(), inventory_, command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
-{
-    if (subject.item_list().empty()) {
-        display_message("You have nothing to drop.");
+void bkrl::drop_item(
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , bklib::ipoint2      where
+  , inventory&          imenu
+  , command_translator& commands
+) {
+    auto& items = subject.item_list();
+
+    if (items.empty()) {
+        ctx.out.write("You have nothing to drop.");
         return;
     }
 
-    inventory_.on_action([this, &subject, where](inventory::action const type, int const sel) {
+    if (abs_max(where - subject.position()) > 1) {
+        ctx.out.write("You can't drop that there from here.");
+        return;
+    }
+
+    imenu.on_action([&, where](inventory::action const type, int const sel) {
         BK_NAMED_SCOPE_EXIT(close) {
-            inventory_.show(false);
-            command_translator_.pop_handler(); //TODO
+            imenu.show(false);
+            commands.pop_handler(); //TODO
         };
 
         if (sel < 0 || type == inventory::action::cancel) {
@@ -647,20 +658,19 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
             return;
         }
 
-        auto const i = from_inventory_data(inventory_.data()).second;
+        auto const i = from_inventory_data(imenu.data()).second;
 
-        auto const result = with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
+        auto const result = with_pile_at(ctx.data, current_map, where, [&](item_pile& pile) {
             subject.drop_item(pile, i);
-            display_message("You dropped the %s.", pile.begin()->friendly_name(ctx_));
+            ctx.out.write("You dropped the %s.", pile.begin()->friendly_name(ctx));
         });
 
         if (!result) {
-            display_message("You can't drop that here.");
+            ctx.out.write("You can't drop that here.");
         }
     });
 
-    command_translator_.push_handler(make_item_list(
-        ctx_, inventory_, subject.item_list(), "Drop which item?"));
+    commands.push_handler(make_item_list(ctx, imenu, items, "Drop which item?"));
 }
 
 //--------------------------------------------------------------------------------------------------
