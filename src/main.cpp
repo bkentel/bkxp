@@ -11,7 +11,7 @@ int run_unit_tests();
 namespace {
 #if !defined(BK_TESTS_ONLY)
 void run_game() {
-    bkrl::game game;
+    bkrl::start_game();
 }
 #else
 void run_game() {
