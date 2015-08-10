@@ -67,7 +67,6 @@ public:
     void do_open_close(bklib::ipoint2 p, command_type type);
 
     void on_get();
-    void do_get(creature& subject, bklib::ipoint2 where);
 
     void on_drop();
     void do_drop(creature& subject, bklib::ipoint2 where);
@@ -123,6 +122,8 @@ private:
 
     text_layout inspect_text_ {text_renderer_, ""};
     bool show_inspect_text_ = false;
+
+    context ctx_;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -187,6 +188,7 @@ bkrl::game::game()
   , inventory_ {text_renderer_}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
   , message_log_ {text_renderer_}
+  , ctx_ (make_context())
 {
     //
     // set up output
@@ -203,8 +205,7 @@ bkrl::game::game()
     //
     // set up initial map
     //
-    auto ctx = make_context();
-    maps_.emplace_back(::generate_map(ctx));
+    maps_.emplace_back(::generate_map(ctx_));
     current_map_ = maps_.back().get();
     generate_map();
 
@@ -293,11 +294,10 @@ bkrl::game::game()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::generate_map()
 {
-    auto ctx = make_context();
     auto& m = current_map();
     auto& random = random_[random_stream::substantive];
 
-    generate_creature(ctx, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
+    generate_creature(ctx_, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
 
     creature_def def {"player"};
     def.flags.set(creature_flag::is_player);
@@ -312,7 +312,7 @@ void bkrl::game::generate_map()
     for (auto i = 0; i < 20; ++i) {
         player.get_item(item_factory_.create(
             random
-          , *ctx.data.random_item(random_, random_stream::substantive)
+          , *ctx_.data.random_item(random_, random_stream::substantive)
         ));
     }
 }
@@ -355,9 +355,7 @@ void bkrl::game::render(render_type const type)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    auto ctx = make_context();
-    bkrl::advance(ctx, current_map());
-
+    bkrl::advance(ctx_, current_map());
     render(render_type::force_update);
 }
 
@@ -615,8 +613,8 @@ void bkrl::game::on_open_close(command_type const type)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_get()
 {
-    auto& player = get_player();
-    do_get(player, player.position());
+    auto& subject = get_player();
+    get_item(ctx_, subject, current_map(), subject.position(), inventory_, command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -651,10 +649,9 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
 
         auto const i = from_inventory_data(inventory_.data()).second;
 
-        auto ctx = make_context();
         auto const result = with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
             subject.drop_item(pile, i);
-            display_message("You dropped the %s.", pile.begin()->friendly_name(ctx));
+            display_message("You dropped the %s.", pile.begin()->friendly_name(ctx_));
         });
 
         if (!result) {
@@ -662,35 +659,31 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
         }
     });
 
-    auto ctx = make_context();
     command_translator_.push_handler(make_item_list(
-        ctx, inventory_, subject.item_list(), "Drop which item?"));
+        ctx_, inventory_, subject.item_list(), "Drop which item?"));
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
-{
-    BK_NAMED_SCOPE_EXIT(on_fail) {
-        display_message("There is nothing here to get.");
-    };
-
-    auto const p = subject.position();
-
-    if (abs_max(where - p) > 1) {
+void bkrl::get_item(
+    context& ctx, creature& subject, map& current_map, bklib::ipoint2 const where
+  , inventory& imenu
+  , command_translator& commands
+) {
+    if (abs_max(where - subject.position()) > 1) {
+        ctx.out.write("You can't get that from here.");
         return;
     }
 
-    item_pile* const pile = current_map().items_at(where);
+    item_pile* const pile = current_map.items_at(where);
     if (!pile) {
+        ctx.out.write("There is nothing here to get.");
         return;
     }
 
-    on_fail.dismiss();
-
-    inventory_.on_action([this, &subject, where](inventory::action const type, int const i) {
+    imenu.on_action([&, where](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
-            inventory_.show(false);
-            command_translator_.pop_handler(); //TODO
+            imenu.show(false);
+            commands.pop_handler(); //TODO
         };
 
         if (i < 0 || type == inventory::action::cancel) {
@@ -702,23 +695,20 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
             return;
         }
 
-        auto const data = from_inventory_data(inventory_.data());
+        auto const data = from_inventory_data(imenu.data());
         auto&      itm   = data.first;
         auto const index = data.second;
 
-        auto ctx = make_context();
-
         if (!subject.can_get_item(itm)) {
-            display_message("You can't get the %s.", itm.friendly_name(ctx));
+            ctx.out.write("You can't get the %s.", itm.friendly_name(ctx));
             return;
         }
 
-        display_message("You got the %s.", itm.friendly_name(ctx));
-        subject.get_item(current_map().remove_item_at(where, index));
+        ctx.out.write("You got the %s.", itm.friendly_name(ctx));
+        subject.get_item(current_map.remove_item_at(where, index));
     });
 
-    auto ctx = make_context();
-    command_translator_.push_handler(make_item_list(ctx, inventory_, *pile, "Get which item?"));
+    commands.push_handler(make_item_list(ctx, imenu, *pile, "Get which item?"));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -732,11 +722,9 @@ void bkrl::game::do_wait(int const turns)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    auto ctx = make_context();
-
     auto const p = get_player().position();
 
-    auto const ok = move_by(ctx, get_player(), current_map(), bklib::truncate<2>(v));
+    auto const ok = move_by(ctx_, get_player(), current_map(), bklib::truncate<2>(v));
     if (!ok) {
         return;
     }
@@ -750,7 +738,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 
     if (auto const pile = current_map().items_at(q)) {
         for (auto const& i : *pile) {
-            display_message("You see here %s.", i.friendly_name(ctx));
+            display_message("You see here %s.", i.friendly_name(ctx_));
         }
     }
 }
@@ -792,11 +780,10 @@ void bkrl::game::do_show_inventory()
         case inventory::action::confirm: {
             close.dismiss();
 
-            auto ctx = make_context();
             display_message("You chose the %d%s item -- %s"
               , i + 1
               , bklib::oridinal_suffix(i + 1).data()
-              , itm.friendly_name(ctx));
+              , itm.friendly_name(ctx_));
 
             break;
         }
@@ -816,9 +803,7 @@ void bkrl::game::do_show_inventory()
     });
 
     auto const& player = get_player();
-    auto ctx = make_context();
-
-    command_translator_.push_handler(make_item_list(ctx, inventory_, player.item_list(), "Items"));
+    command_translator_.push_handler(make_item_list(ctx_, inventory_, player.item_list(), "Items"));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -835,8 +820,6 @@ void bkrl::game::do_show_equipment()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_equip_item(item& i)
 {
-    auto ctx = make_context();
-
     auto& eq = get_player().equip_list();
     auto const result = eq.equip(i);
 
@@ -863,7 +846,7 @@ void bkrl::game::do_equip_item(item& i)
 
             out.write(" Your <color=r>{}</color> is occupied by {}."
                 , slot->name
-                , slot->itm->friendly_name(ctx, flags));
+                , slot->itm->friendly_name(ctx_, flags));
         };
 
         for_each_flag(slots, [&](equip_slot const es) {
@@ -879,7 +862,7 @@ void bkrl::game::do_equip_item(item& i)
     };
 
     auto const iname = [&] {
-        return i.friendly_name(ctx, flags);
+        return i.friendly_name(ctx_, flags);
     };
 
     switch (result.status) {
@@ -983,8 +966,6 @@ void bkrl::game::debug_print(int const mx, int const my)
         return;
     }
 
-    auto ctx = const_cast<game*>(this)->make_context();
-
     bklib::ipoint2 const p {mx, my};
 
     std::ostringstream str;
@@ -1007,7 +988,7 @@ void bkrl::game::debug_print(int const mx, int const my)
     if (auto const& ip = current_map().items_at(p)) {
         str << fmt::sprintf("\nItem(s)");
         for (auto const& i : *ip) {
-            str << fmt::sprintf("\n  %s", i.friendly_name(ctx));
+            str << fmt::sprintf("\n  %s", i.friendly_name(ctx_));
         }
     }
 
