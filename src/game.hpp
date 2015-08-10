@@ -14,11 +14,13 @@ class map;
 
 enum class equip_result_t : int;
 
+//--------------------------------------------------------------------------------------------------
 template <typename T>
 struct result_t {
-    static_assert(std::is_enum<T>::value, "");                                    // T is an enum
-    static_assert(!std::is_convertible<T, std::underlying_type_t<T>>::value, ""); // T is an enum class
-    static_assert(static_cast<std::underlying_type_t<T>>(T::ok) || true, "");     // T has ok
+    // Check that T is a scoped enum with a member named ok.
+    static_assert(std::is_enum<T>::value, "");
+    static_assert(!std::is_convertible<T, std::underlying_type_t<T>>::value, "");
+    static_assert(static_cast<std::underlying_type_t<T>>(T::ok) || true, "");
 
     constexpr result_t(T const result) noexcept
       : value {result}
@@ -31,6 +33,31 @@ struct result_t {
 
     T value;
 };
+
+template <typename T>
+constexpr bool operator==(result_t<T> const lhs, result_t<T> const rhs) noexcept {
+    return lhs.value == rhs.value;
+}
+
+template <typename T>
+constexpr bool operator==(result_t<T> const lhs, T const rhs) noexcept {
+    return lhs.value == rhs;
+}
+
+template <typename T>
+constexpr bool operator==(T const lhs, result_t<T> const rhs) noexcept {
+    return lhs == rhs.value;
+}
+
+template <typename T, typename U>
+constexpr bool operator!=(result_t<T> const lhs, U const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+template <typename T, typename U>
+constexpr bool operator!=(U const lhs, result_t<T> const rhs) noexcept {
+    return !(lhs == rhs);
+}
 
 void start_game();
 
@@ -100,12 +127,12 @@ show_inventory_result_t show_inventory(
 using equip_item_result_t = result_t<equip_result_t>;
 
 //--------------------------------------------------------------------------------------------------
-//! Display a menu listing the @p subjects's current inventory if present.
+//! Equip the item given by @itm.
 //--------------------------------------------------------------------------------------------------
 equip_item_result_t equip_item(
-    context&  ctx      //!< The current context.
-  , creature& subject  //!< The subject doing the 'drop'.
-  , item&     itm      //!< The item to equip.
+    context&  ctx     //!< The current context.
+  , creature& subject //!< The subject doing the 'drop'.
+  , item&     itm     //!< The item to equip.
 );
 
 } //namespace bkrl

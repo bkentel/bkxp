@@ -146,6 +146,10 @@ private:
     def_id_t<tag_item>      def_;
 };
 
+inline decltype(auto) find_by_id(instance_id_t<tag_item> const id) noexcept {
+    return [id](item const& i) { return id == i.id(); };
+}
+
 //--------------------------------------------------------------------------------------------------
 //! @todo use a better data structure (segmented array).
 //--------------------------------------------------------------------------------------------------
@@ -191,6 +195,28 @@ public:
     decltype(auto) end()   const { return std::end(items_); }
     decltype(auto) begin()       { return std::begin(items_); }
     decltype(auto) end()         { return std::end(items_); }
+
+    item const& advance(int const n) const noexcept {
+        return const_cast<item_pile*>(this)->advance(n);
+    }
+
+    item& advance(int const n) noexcept {
+        return *std::next(items_.begin(), n);
+    }
+
+    item const* checked_advance(int const n) const noexcept {
+        auto it   = items_.begin();
+        auto last = items_.end();
+        for (int i = 0; i < n; ++i) {
+            if (it == last) {
+                break;
+            }
+
+            ++it;
+        }
+
+        return (it != last) ? &*it : nullptr;
+    }
 
     void move_items_to(item_pile& dst) {
         dst.items_.splice_after(dst.items_.before_begin(), items_);

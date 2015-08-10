@@ -197,7 +197,19 @@ public:
     void drop_item(item_pile& dst, int i = 0);
     void drop_items(item_pile& dst);
 
+    //! @pre the item @pi must be already held by this creature
+    equipment::result_t equip_item(item& i);
+
+    //! @pre index must be a valid index; i.e. index > 0 && index < size(items_)
+    equipment::result_t equip_item(int index);
+
+    bool has_item(item const& i) const;
+
     item_pile const& item_list() const {
+        return items_;
+    }
+
+    item_pile& item_list() {
         return items_;
     }
 

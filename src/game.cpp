@@ -846,8 +846,12 @@ bkrl::equip_item_result_t bkrl::equip_item(
 ) {
     using status_t = equipment::result_t::status_t;
 
+    if (!subject.has_item(itm)) {
+        return bkrl::equip_result_t::not_held;
+    }
+
     auto& eq = subject.equip_list();
-    auto const result = eq.equip(itm);
+    auto const result = subject.equip_item(itm);
 
     auto flags = item::format_flags {};
     flags.definite = true;
@@ -901,7 +905,7 @@ bkrl::equip_item_result_t bkrl::equip_item(
     case status_t::slot_occupied:
         flags.capitalize = true;
         out.write("{} can't be equipped.", iname());
-        print_slots(static_cast<item_slots>(result));
+        print_slots(result.slots());
         break;
     case status_t::slot_not_present:
         out.write("You can't seem to find an appropriate place to equip %s.", iname());

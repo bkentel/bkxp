@@ -10,7 +10,13 @@
 namespace bkrl {
 
 enum class equip_result_t : int {
-    ok, not_equippable, slot_occupied, slot_not_present, slot_empty, already_equipped
+    ok
+   , not_equippable
+   , slot_occupied
+   , slot_not_present
+   , slot_empty
+   , already_equipped
+   , not_held //!< The item isn't held by the subject trying to equip the item
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -44,11 +50,11 @@ public:
             return status == status_t::ok;
         }
 
-        operator item_slots() const noexcept {
+        item_slots slots() const noexcept {
             return *reinterpret_cast<item_slots const*>(&data);
         }
 
-        operator equip_slot() const noexcept {
+        equip_slot slot() const noexcept {
             return static_cast<equip_slot>(data);
         }
 

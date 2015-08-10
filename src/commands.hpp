@@ -93,6 +93,14 @@ command_raw_t get_command_data(command const cmd) noexcept {
     };
 }
 
+inline command make_command(command_raw_t const raw) noexcept {
+    return {
+        command_type::raw
+      , raw.virtual_key
+      , *reinterpret_cast<intptr_t const*>(&raw.mods)
+    };
+}
+
 template <command_type Type, std::enable_if_t<Type == command_type::text>* = nullptr>
 bklib::utf8_string_view get_command_data(command const cmd) noexcept {
     return {

@@ -40,7 +40,7 @@ TEST_CASE("equipment", "[bkrl][equip]") {
         auto result = eq.equip(itm);
         REQUIRE(!!result);
         REQUIRE(result.status == status_t::ok);
-        REQUIRE(static_cast<bkrl::item_slots>(result).test(bkrl::equip_slot::head));
+        REQUIRE(result.slots().test(bkrl::equip_slot::head));
     }
 
     SECTION("equip - double") {
@@ -56,14 +56,14 @@ TEST_CASE("equipment", "[bkrl][equip]") {
         auto const result = eq.unequip(bkrl::equip_slot::head);
         REQUIRE(!!result);
         REQUIRE(result.status == status_t::ok);
-        REQUIRE(static_cast<bkrl::item_slots>(result).test(bkrl::equip_slot::head));
+        REQUIRE(result.slots().test(bkrl::equip_slot::head));
     }
 
     SECTION("unequip - empty") {
         auto const result = eq.unequip(bkrl::equip_slot::torso);
         REQUIRE(!result);
         REQUIRE(result.status == status_t::slot_empty);
-        REQUIRE(static_cast<bkrl::equip_slot>(result) == bkrl::equip_slot::torso);
+        REQUIRE(result.slot() == bkrl::equip_slot::torso);
     }
 }
 
