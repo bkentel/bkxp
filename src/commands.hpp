@@ -149,6 +149,10 @@ void query_yn(command_translator& translator, Handler&& handler) {
 
     translator.push_handler([h = std::move(handler)](command const& cmd) {
         auto const type = cmd.type;
+        if (type == ct::raw || type == ct::text) {
+            return command_handler_result::capture;
+        }
+
         return h(type == ct::yes || type == ct::no || type == ct::cancel
             ? type : ct::invalid);
     });
@@ -163,6 +167,10 @@ void query_dir(command_translator& translator, Handler&& handler) {
 
     translator.push_handler([h = std::move(handler)](command const& cmd) {
         auto const type = cmd.type;
+        if (type == ct::raw || type == ct::text) {
+            return command_handler_result::capture;
+        }
+
         return h(type == ct::dir_up     || type == ct::dir_down  || type == ct::cancel
               || type == ct::dir_n_west || type == ct::dir_north || type == ct::dir_n_east
               || type == ct::dir_west   || type == ct::dir_here  || type == ct::dir_east

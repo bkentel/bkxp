@@ -150,6 +150,10 @@ inline decltype(auto) find_by_id(instance_id_t<tag_item> const id) noexcept {
     return [id](item const& i) { return id == i.id(); };
 }
 
+inline decltype(auto) find_by_flag(item_flag const flag) noexcept {
+    return [flag](item const& i) { return i.flags().test(flag); };
+}
+
 //--------------------------------------------------------------------------------------------------
 //! @todo use a better data structure (segmented array).
 //--------------------------------------------------------------------------------------------------

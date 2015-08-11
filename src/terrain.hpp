@@ -104,4 +104,18 @@ struct door : terrain_data_base {
     } data;
 };
 
+//--------------------------------------------------------------------------------------------------
+//! Check whether @p ter refers to a door with @p state.
+//--------------------------------------------------------------------------------------------------
+bool is_door(terrain_entry const& ter, door::state state) noexcept;
+
+//--------------------------------------------------------------------------------------------------
+//! Return a predicate which tests for doors matching state
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_door(door::state const state) noexcept {
+    return [state](terrain_entry const& ter) noexcept {
+        return is_door(ter, state);
+    };
+}
+
 } //namespace bkrl

@@ -601,3 +601,19 @@ void bkrl::advance(context& ctx, map& m)
 {
     m.advance(ctx);
 }
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::set_door_state(map& m, bklib::ipoint2 const p, door::state const state)
+{
+    auto& ter = m.at(p);
+    door d {ter};
+
+    if (!d.set_open_close(state)) {
+        return false;
+    }
+
+    ter = d;
+    m.update_render_data(p);
+
+    return true;
+}

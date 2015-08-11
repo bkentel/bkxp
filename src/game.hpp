@@ -127,12 +127,82 @@ show_inventory_result_t show_inventory(
 using equip_item_result_t = result_t<equip_result_t>;
 
 //--------------------------------------------------------------------------------------------------
-//! Equip the item given by @itm.
+//! Equip the item given by @p itm.
 //--------------------------------------------------------------------------------------------------
 equip_item_result_t equip_item(
     context&  ctx     //!< The current context.
   , creature& subject //!< The subject doing the 'drop'.
   , item&     itm     //!< The item to equip.
+);
+
+enum class open_result : int {
+    ok      //!< success
+  , nothing //!< nothing to open
+  , failed  //!< couldn't open
+  , canceled //! the open was canceled
+};
+
+using open_result_t = result_t<open_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Open something around @p subject.
+//--------------------------------------------------------------------------------------------------
+open_result_t open(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'open'.
+  , map&                current_map //!< The current map.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+//--------------------------------------------------------------------------------------------------
+open_result_t open_door_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+//--------------------------------------------------------------------------------------------------
+open_result_t open_cont_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+enum class close_result : int {
+    ok      //!< success
+  , nothing //!< nothing to open
+  , failed  //!< couldn't open
+  , canceled //! the open was canceled
+};
+
+using close_result_t = result_t<close_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Open something around @p subject.
+//--------------------------------------------------------------------------------------------------
+close_result_t close(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'open'.
+  , map&                current_map //!< The current map.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+//--------------------------------------------------------------------------------------------------
+close_result_t close_door_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+//--------------------------------------------------------------------------------------------------
+close_result_t close_cont_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
 );
 
 } //namespace bkrl

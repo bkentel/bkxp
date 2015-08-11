@@ -63,8 +63,8 @@ public:
     void do_quit();
     void on_quit();
 
-    void on_open_close(command_type type);
-    void do_open_close(bklib::ipoint2 p, command_type type);
+    void on_open();
+    void on_close();
 
     void on_get();
     void on_drop();
@@ -466,144 +466,217 @@ void bkrl::game::on_quit()
 }
 
 //--------------------------------------------------------------------------------------------------
-namespace bkrl {
+void bkrl::game::on_open()
+{
+    bkrl::open(ctx_, get_player(), current_map(), command_translator_);
+    advance(); // TODO not strictly correct
+}
 
 //--------------------------------------------------------------------------------------------------
-//! Update the state of a door at p.
-//! TODO add tests
-//--------------------------------------------------------------------------------------------------
-bool set_door_state(map& m, bklib::ipoint2 const p, door::state const state) {
-    auto& ter = m.at(p);
-    door d {ter};
+void bkrl::game::on_close()
+{
+    bkrl::close(ctx_, get_player(), current_map(), command_translator_);
+    advance(); // TODO not strictly correct
+}
 
-    if (!d.set_open_close(state)) {
-        return false;
+//--------------------------------------------------------------------------------------------------
+bkrl::open_result_t bkrl::open_door_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 const where
+) {
+    if (!set_door_state(current_map, where, door::state::open)) {
+        ctx.out.write("Couldn't open the door.");
+        return open_result::failed;
     }
 
-    ter = d;
-    m.update_render_data(p);
-
-    return true;
+    ctx.out.write("You opened the door.");
+    return open_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
-//! Return a predicate which tests for doors matching state
-//! TODO add tests
-//--------------------------------------------------------------------------------------------------
-inline decltype(auto) find_door(door::state const state) noexcept {
-    return [state](terrain_entry const& ter) noexcept {
-        if (ter.type != terrain_type::door) {
-            return false;
-        }
+bkrl::open_result_t bkrl::open_cont_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 const where
+) {
+    item_pile* const pile = current_map.items_at(where);
+    BK_PRECONDITION(pile);
 
-        door const d {ter};
+    item* const itm = bklib::find_maybe(*pile, find_by_flag(item_flag::is_container));
+    BK_PRECONDITION(itm);
 
-        switch (state) {
-        case door::state::open :   return d.is_open();
-        case door::state::closed : return d.is_closed();
-        default:
-            break;
-        }
-
-        return false;
-    };
-}
-
-} //namespace bkrl
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::game::do_open_close(bklib::ipoint2 const p, command_type const type)
-{
-    BK_PRECONDITION(type == command_type::open || type == command_type::close);
-
-    auto const state = (type == command_type::open)
-        ? door::state::open : door::state::closed;
-
-    if (!set_door_state(current_map(), p, state)) {
-        if (state == door::state::open) {
-            display_message("Couldn't open the door.");
-        } else if (state == door::state::closed) {
-            display_message("Couldn't close the door.");
-        }
-    } else {
-        if (state == door::state::open) {
-            display_message("You open the door.");
-        } else if (state == door::state::closed) {
-            display_message("You close the door.");
-        }
-    }
-
-    advance();
+    ctx.out.write("(TODO) You opened the %s.", itm->friendly_name(ctx));
+    return open_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::on_open_close(command_type const type)
-{
-    BK_PRECONDITION(type == command_type::open || type == command_type::close);
+bkrl::open_result_t bkrl::open(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'open'.
+  , map&                current_map //!< The current map.
+  , command_translator& commands    //!< The command translator stack.
+) {
+    auto const p = subject.position();
+    auto const door_candidates = find_around(current_map, p, find_door(door::state::closed));
 
-    auto& player = get_player();
-
-    auto const p = player.position();
-    auto const state = (type == command_type::open)
-        ? door::state::closed : door::state::open;
-
-    auto const candidates = find_around(current_map(), p, find_door(state));
+    auto const item_candidates = find_items_around(current_map, p, [](item_pile const& pile) {
+        return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
+    });
 
     //
     // Nothing to do.
     //
-    if (!candidates) {
-        if (type == command_type::open) {
-            display_message("There is nothing here to open.");
-        } else if (type == command_type::close) {
-            display_message("There is nothing here to close.");
-        }
-
-        return;
+    if (!door_candidates && !item_candidates) {
+        ctx.out.write("There is nothing here to open.");
+        return open_result::nothing;
     }
 
     //
     // Ok.
     //
-    if (candidates.count == 1) {
-        do_open_close(candidates.p, type);
-        return;
+    if (door_candidates.count + item_candidates.count == 1) {
+        return door_candidates
+          ? open_door_at(ctx, subject, current_map, door_candidates.p)
+          : open_cont_at(ctx, subject, current_map, item_candidates.p);
     }
 
     //
     // Have to choose a target.
     //
-    if (type == command_type::open) {
-        display_message("Open in which direction?");
-    } else if (type == command_type::close) {
-        display_message("Close in which direction?");
-    }
+    ctx.out.write("Which direction?");
 
-    query_dir(command_translator_, [this, p, type](command_type const cmd) {
+    query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
         if (cmd == command_type::cancel) {
-            display_message("Nevermind.");
+            ctx.out.write("Nevermind.");
             return command_handler_result::detach;
         }
 
         if (!is_direction(cmd)) {
-            display_message("Invalid choice.");
+            ctx.out.write("Invalid choice.");
             return command_handler_result::capture;
         }
 
-        auto const q = p + bklib::truncate<2>(direction_vector(cmd));
-        if (current_map().at(q).type != terrain_type::door) {
-            if (type == command_type::open) {
-                display_message("There is nothing there to open.");
-            } else if (type == command_type::close) {
-                display_message("There is nothing there to close.");
-            }
+        auto const v = bklib::truncate<2>(direction_vector(cmd));
+        bool const is_door = door_candidates.is_valid(v);
+        bool const is_cont = item_candidates.is_valid(v);
 
-            return command_handler_result::capture;
+        if (is_door && is_cont) {
+            BK_ASSERT(false && "TODO");
+        } else if (is_door) {
+            open_door_at(ctx, subject, current_map, p + v);
+        } else if (is_cont) {
+            open_cont_at(ctx, subject, current_map, p + v);
+        } else {
+            ctx.out.write("There is nothing there to open.");
         }
 
-        do_open_close(q, type);
         return command_handler_result::detach;
     });
+
+    return open_result::ok;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::close_result_t bkrl::close_door_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 const where
+) {
+    if (!set_door_state(current_map, where, door::state::closed)) {
+        ctx.out.write("Couldn't close the door.");
+        return close_result::failed;
+    }
+
+    ctx.out.write("You closed the door.");
+    return close_result::ok;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::close_result_t bkrl::close_cont_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 const where
+) {
+    item_pile* const pile = current_map.items_at(where);
+    BK_PRECONDITION(pile);
+
+    item* const itm = bklib::find_maybe(*pile, find_by_flag(item_flag::is_container));
+    BK_PRECONDITION(itm);
+
+    ctx.out.write("(TODO) You closed the %s.", itm->friendly_name(ctx));
+    return close_result::ok;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::close_result_t bkrl::close(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'open'.
+  , map&                current_map //!< The current map.
+  , command_translator& commands    //!< The command translator stack.
+) {
+    auto const p = subject.position();
+    auto const door_candidates = find_around(current_map, p, find_door(door::state::open));
+
+    auto const item_candidates = find_items_around(current_map, p, [](item_pile const& pile) {
+        return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
+    });
+
+    //
+    // Nothing to do.
+    //
+    if (!door_candidates && !item_candidates) {
+        ctx.out.write("There is nothing here to close.");
+        return close_result::nothing;
+    }
+
+    //
+    // Ok.
+    //
+    if (door_candidates.count + item_candidates.count == 1) {
+        return door_candidates
+          ? close_door_at(ctx, subject, current_map, door_candidates.p)
+          : close_cont_at(ctx, subject, current_map, item_candidates.p);
+    }
+
+    //
+    // Have to choose a target.
+    //
+    ctx.out.write("Which direction?");
+
+    query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
+        if (cmd == command_type::cancel) {
+            ctx.out.write("Nevermind.");
+            return command_handler_result::detach;
+        }
+
+        if (!is_direction(cmd)) {
+            ctx.out.write("Invalid choice.");
+            return command_handler_result::capture;
+        }
+
+        auto const v = bklib::truncate<2>(direction_vector(cmd));
+        bool const is_door = door_candidates.is_valid(v);
+        bool const is_cont = item_candidates.is_valid(v);
+
+        if (is_door && is_cont) {
+            BK_ASSERT(false && "TODO");
+        } else if (is_door) {
+            close_door_at(ctx, subject, current_map, p + v);
+        } else if (is_cont) {
+            close_cont_at(ctx, subject, current_map, p + v);
+        } else {
+            ctx.out.write("There is nothing there to close.");
+        }
+
+        return command_handler_result::detach;
+    });
+
+    return close_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -956,9 +1029,11 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
     case command_type::dir_down:
         on_move(direction_vector(cmd.type));
         break;
-    case command_type::open: BK_FALLTHROUGH
+    case command_type::open:
+        on_open();
+        break;
     case command_type::close:
-        on_open_close(cmd.type);
+        on_close();
         break;
     case command_type::quit:
         on_quit();
