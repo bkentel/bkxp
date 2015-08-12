@@ -2,6 +2,7 @@
 
 #include "bklib/math.hpp"
 #include <type_traits>
+#include <cstdint>
 
 namespace bkrl {
 
@@ -13,6 +14,7 @@ class item;
 class map;
 
 enum class equip_result_t : int;
+enum class command_type : uint32_t;
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>
@@ -63,8 +65,11 @@ void start_game();
 
 enum class get_item_result : int {
     ok           //!< success
+  , select
   , no_items     //!< nothing to get
   , out_of_range //!< target location is out of range
+  , failed
+  , canceled
 };
 
 using get_item_result_t = result_t<get_item_result>;
@@ -85,8 +90,11 @@ get_item_result_t get_item(
 
 enum class drop_item_result : int {
     ok           //!< success
+  , select       //!<
   , no_items     //!< nothing to drop
   , out_of_range //!< target location is out of range
+  , failed
+  , canceled
 };
 
 using drop_item_result_t = result_t<drop_item_result>;
@@ -108,6 +116,8 @@ drop_item_result_t drop_item(
 enum class show_inventory_result : int {
     ok       //!< success
   , no_items //!< inventory is empty
+  , select
+  , canceled
 };
 
 using show_inventory_result_t = result_t<show_inventory_result>;
@@ -137,6 +147,7 @@ equip_item_result_t equip_item(
 
 enum class open_result : int {
     ok      //!< success
+  , select
   , nothing //!< nothing to open
   , failed  //!< couldn't open
   , canceled //! the open was canceled
@@ -172,6 +183,7 @@ open_result_t open_cont_at(
 
 enum class close_result : int {
     ok      //!< success
+  , select
   , nothing //!< nothing to open
   , failed  //!< couldn't open
   , canceled //! the open was canceled
@@ -204,5 +216,25 @@ close_result_t close_cont_at(
   , map&           current_map //!< The current map.
   , bklib::ipoint2 where
 );
+
+template <typename T>
+inline void set_command_result(command_translator& commands, command_type const cmd, T const result)
+{
+    static_assert(std::is_enum<T>::value, "");
+    static_assert(sizeof(T) <= sizeof(size_t), "");
+    commands.on_command_result(cmd, static_cast<size_t>(result));
+}
+
+void set_command_result(command_translator& commands, get_item_result result);
+void set_command_result(command_translator& commands, drop_item_result result);
+void set_command_result(command_translator& commands, show_inventory_result result);
+void set_command_result(command_translator& commands, open_result result);
+void set_command_result(command_translator& commands, close_result result);
+void set_command_result(command_translator& commands, equip_result_t result);
+
+template <typename T>
+inline void set_command_result(command_translator& commands, result_t<T> const result) {
+    set_command_result(commands, result.value);
+}
 
 } //namespace bkrl

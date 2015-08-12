@@ -136,6 +136,10 @@ public:
     void on_mouse_down(int x, int y, int button);
     void on_mouse_up(int x, int y, int button);
     void on_text(bklib::utf8_string_view str);
+
+    using command_result_handler_t = std::function<void (command_type, size_t data)>;
+    void set_command_result_handler(command_result_handler_t handler);
+    void on_command_result(command_type command, size_t data);
 private:
     std::unique_ptr<detail::command_translator_impl> impl_;
 };

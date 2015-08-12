@@ -25,6 +25,7 @@
 #include "bklib/timer.hpp"
 
 namespace bkrl {
+
 //--------------------------------------------------------------------------------------------------
 // Game simulation state.
 //--------------------------------------------------------------------------------------------------
@@ -80,6 +81,7 @@ public:
     void do_show_equipment();
 
     command_handler_result on_command(command const& cmd);
+    void on_command_result(command_type cmd, size_t data);
 
     context make_context();
 
@@ -207,6 +209,10 @@ bkrl::game::game()
 
     command_translator_.push_handler([&](command const& cmd) {
         return on_command(cmd);
+    });
+
+    command_translator_.set_command_result_handler([&](command_type const cmd, size_t const data) {
+        on_command_result(cmd, data);
     });
 
     system_.on_window_resize = [&](int const w, int const h) {
@@ -481,9 +487,9 @@ void bkrl::game::on_close()
 
 //--------------------------------------------------------------------------------------------------
 bkrl::open_result_t bkrl::open_door_at(
-    context&       ctx         //!< The current context.
-  , creature&      subject     //!< The subject doing the 'open'.
-  , map&           current_map //!< The current map.
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
   , bklib::ipoint2 const where
 ) {
     if (!set_door_state(current_map, where, door::state::open)) {
@@ -497,9 +503,9 @@ bkrl::open_result_t bkrl::open_door_at(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::open_result_t bkrl::open_cont_at(
-    context&       ctx         //!< The current context.
-  , creature&      subject     //!< The subject doing the 'open'.
-  , map&           current_map //!< The current map.
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
   , bklib::ipoint2 const where
 ) {
     item_pile* const pile = current_map.items_at(where);
@@ -514,17 +520,14 @@ bkrl::open_result_t bkrl::open_cont_at(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::open_result_t bkrl::open(
-    context&            ctx         //!< The current context.
-  , creature&           subject     //!< The subject doing the 'open'.
-  , map&                current_map //!< The current map.
-  , command_translator& commands    //!< The command translator stack.
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , command_translator& commands
 ) {
     auto const p = subject.position();
     auto const door_candidates = find_around(current_map, p, find_door(door::state::closed));
-
-    auto const item_candidates = find_items_around(current_map, p, [](item_pile const& pile) {
-        return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
-    });
+    auto const item_candidates = find_items_around(current_map, p, find_container());
 
     //
     // Nothing to do.
@@ -551,11 +554,13 @@ bkrl::open_result_t bkrl::open(
     query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
         if (cmd == command_type::cancel) {
             ctx.out.write("Nevermind.");
+            set_command_result(commands, open_result::canceled);
             return command_handler_result::detach;
         }
 
         if (!is_direction(cmd)) {
             ctx.out.write("Invalid choice.");
+            set_command_result(commands, open_result::select);
             return command_handler_result::capture;
         }
 
@@ -566,24 +571,27 @@ bkrl::open_result_t bkrl::open(
         if (is_door && is_cont) {
             BK_ASSERT(false && "TODO");
         } else if (is_door) {
-            open_door_at(ctx, subject, current_map, p + v);
+            set_command_result(commands
+              , open_door_at(ctx, subject, current_map, p + v));
         } else if (is_cont) {
-            open_cont_at(ctx, subject, current_map, p + v);
+            set_command_result(commands
+              , open_cont_at(ctx, subject, current_map, p + v));
         } else {
             ctx.out.write("There is nothing there to open.");
+            set_command_result(commands, open_result::nothing);
         }
 
         return command_handler_result::detach;
     });
 
-    return open_result::ok;
+    return open_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::close_result_t bkrl::close_door_at(
-    context&       ctx         //!< The current context.
-  , creature&      subject     //!< The subject doing the 'open'.
-  , map&           current_map //!< The current map.
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
   , bklib::ipoint2 const where
 ) {
     if (!set_door_state(current_map, where, door::state::closed)) {
@@ -597,9 +605,9 @@ bkrl::close_result_t bkrl::close_door_at(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::close_result_t bkrl::close_cont_at(
-    context&       ctx         //!< The current context.
-  , creature&      subject     //!< The subject doing the 'open'.
-  , map&           current_map //!< The current map.
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
   , bklib::ipoint2 const where
 ) {
     item_pile* const pile = current_map.items_at(where);
@@ -614,17 +622,14 @@ bkrl::close_result_t bkrl::close_cont_at(
 
 //--------------------------------------------------------------------------------------------------
 bkrl::close_result_t bkrl::close(
-    context&            ctx         //!< The current context.
-  , creature&           subject     //!< The subject doing the 'open'.
-  , map&                current_map //!< The current map.
-  , command_translator& commands    //!< The command translator stack.
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , command_translator& commands
 ) {
     auto const p = subject.position();
     auto const door_candidates = find_around(current_map, p, find_door(door::state::open));
-
-    auto const item_candidates = find_items_around(current_map, p, [](item_pile const& pile) {
-        return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
-    });
+    auto const item_candidates = find_items_around(current_map, p, find_container());
 
     //
     // Nothing to do.
@@ -651,11 +656,13 @@ bkrl::close_result_t bkrl::close(
     query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
         if (cmd == command_type::cancel) {
             ctx.out.write("Nevermind.");
+            set_command_result(commands, close_result::canceled);
             return command_handler_result::detach;
         }
 
         if (!is_direction(cmd)) {
             ctx.out.write("Invalid choice.");
+            set_command_result(commands, close_result::select);
             return command_handler_result::capture;
         }
 
@@ -666,11 +673,14 @@ bkrl::close_result_t bkrl::close(
         if (is_door && is_cont) {
             BK_ASSERT(false && "TODO");
         } else if (is_door) {
-            close_door_at(ctx, subject, current_map, p + v);
+            set_command_result(commands
+              , close_door_at(ctx, subject, current_map, p + v));
         } else if (is_cont) {
-            close_cont_at(ctx, subject, current_map, p + v);
+            set_command_result(commands
+              , close_cont_at(ctx, subject, current_map, p + v));
         } else {
             ctx.out.write("There is nothing there to close.");
+            set_command_result(commands, close_result::nothing);
         }
 
         return command_handler_result::detach;
@@ -695,12 +705,12 @@ void bkrl::game::on_drop()
 
 //--------------------------------------------------------------------------------------------------
 bkrl::drop_item_result_t bkrl::drop_item(
-    context&            ctx
-  , creature&           subject
-  , map&                current_map
-  , bklib::ipoint2      where
-  , inventory&          imenu
-  , command_translator& commands
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+  , inventory&           imenu
+  , command_translator&  commands
 ) {
     auto& items = subject.item_list();
 
@@ -721,6 +731,7 @@ bkrl::drop_item_result_t bkrl::drop_item(
         };
 
         if (sel < 0 || type == inventory::action::cancel) {
+            set_command_result(commands, drop_item_result::canceled);
             return;
         }
 
@@ -729,27 +740,32 @@ bkrl::drop_item_result_t bkrl::drop_item(
             return;
         }
 
-        auto const i = from_inventory_data(imenu.data()).second;
-
         auto const result = with_pile_at(ctx.data, current_map, where, [&](item_pile& pile) {
-            subject.drop_item(pile, i);
+            subject.drop_item(pile, from_inventory_data(imenu.data()).second);
             ctx.out.write("You dropped the %s.", pile.begin()->friendly_name(ctx));
         });
 
         if (!result) {
             ctx.out.write("You can't drop that here.");
+            set_command_result(commands, drop_item_result::failed);
+            return;
         }
+
+        set_command_result(commands, drop_item_result::ok);
     });
 
     commands.push_handler(make_item_list(ctx, imenu, items, "Drop which item?"));
-    return drop_item_result::ok;
+    return drop_item_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
 bkrl::get_item_result_t bkrl::get_item(
-    context& ctx, creature& subject, map& current_map, bklib::ipoint2 const where
-  , inventory& imenu
-  , command_translator& commands
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+  , inventory&           imenu
+  , command_translator&  commands
 ) {
     if (abs_max(where - subject.position()) > 1) {
         ctx.out.write("You can't get that from here.");
@@ -769,6 +785,7 @@ bkrl::get_item_result_t bkrl::get_item(
         };
 
         if (i < 0 || type == inventory::action::cancel) {
+            set_command_result(commands, get_item_result::canceled);
             return;
         }
 
@@ -783,15 +800,17 @@ bkrl::get_item_result_t bkrl::get_item(
 
         if (!subject.can_get_item(itm)) {
             ctx.out.write("You can't get the %s.", itm.friendly_name(ctx));
+            set_command_result(commands, get_item_result::failed);
             return;
         }
 
         ctx.out.write("You got the %s.", itm.friendly_name(ctx));
         subject.get_item(current_map.remove_item_at(where, index));
+        set_command_result(commands, get_item_result::ok);
     });
 
     commands.push_handler(make_item_list(ctx, imenu, *pile, "Get which item?"));
-    return get_item_result::ok;
+    return get_item_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -865,39 +884,30 @@ bkrl::show_inventory_result_t bkrl::show_inventory(
         };
 
         if (i < 0 || type == inventory::action::cancel) {
+            set_command_result(commands, show_inventory_result::canceled);
             return;
         }
 
+        close.dismiss();
+
         auto& itm = from_inventory_data(imenu.data()).first;
 
-        switch (type) {
-        case inventory::action::confirm: {
-            close.dismiss();
-
-            ctx.out.write   ("You chose the %d%s item -- %s"
+        if (type == inventory::action::confirm) {
+            ctx.out.write("You chose the %d%s item -- %s"
               , i + 1
               , bklib::oridinal_suffix(i + 1).data()
               , itm.friendly_name(ctx));
+        } else if (type == inventory::action::equip) {
+            set_command_result(commands, equip_item(ctx, subject, itm));
+        } else {
+            return;
+        }
 
-            break;
-        }
-        case inventory::action::equip: {
-            close.dismiss();
-            equip_item(ctx, subject, itm);
-
-            break;
-        }
-        case inventory::action::select:
-            close.dismiss();
-            break;
-        case inventory::action::cancel: BK_FALLTHROUGH
-        default:
-            break;
-        }
+        set_command_result(commands, show_inventory_result::ok);
     });
 
     commands.push_handler(make_item_list(ctx, imenu, items, "Items"));
-    return show_inventory_result::ok;
+    return show_inventory_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1058,6 +1068,64 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::game::on_command_result(command_type const cmd, size_t const data)
+{
+    switch (cmd) {
+    case command_type::none:    break;
+    case command_type::raw:     break;
+    case command_type::text:    break;
+    case command_type::confirm: break;
+    case command_type::invalid: break;
+    case command_type::scroll:  break;
+    case command_type::cancel:  break;
+    case command_type::yes:     break;
+    case command_type::no:      break;
+    case command_type::use:     break;
+    case command_type::zoom:    break;
+    case command_type::dir_here:   BK_FALLTHROUGH
+    case command_type::dir_north:  BK_FALLTHROUGH
+    case command_type::dir_south:  BK_FALLTHROUGH
+    case command_type::dir_east:   BK_FALLTHROUGH
+    case command_type::dir_west:   BK_FALLTHROUGH
+    case command_type::dir_n_west: BK_FALLTHROUGH
+    case command_type::dir_n_east: BK_FALLTHROUGH
+    case command_type::dir_s_west: BK_FALLTHROUGH
+    case command_type::dir_s_east: BK_FALLTHROUGH
+    case command_type::dir_up:     BK_FALLTHROUGH
+    case command_type::dir_down:
+        break;
+    case command_type::open:
+        if (static_cast<open_result>(data) == open_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::close:
+        if (static_cast<close_result>(data) == close_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::quit:
+        break;
+    case command_type::get:
+        if (static_cast<get_item_result>(data) == get_item_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::drop:
+        if (static_cast<drop_item_result>(data) == drop_item_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::show_equipment:
+        break;
+    case command_type::show_inventory:
+        break;
+    default:
+        break;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::context bkrl::game::make_context()
 {
     return {random_, definitions_, output_, item_factory_, creature_factory_};
@@ -1121,4 +1189,28 @@ bkrl::map const& bkrl::game::current_map() const noexcept
 {
     BK_PRECONDITION(current_map_);
     return *current_map_;
+}
+
+void bkrl::set_command_result(command_translator & commands, get_item_result const result) {
+    set_command_result(commands, command_type::get, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, drop_item_result const result) {
+    set_command_result(commands, command_type::drop, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, show_inventory_result const result) {
+    set_command_result(commands, command_type::show_inventory, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, open_result const result) {
+    set_command_result(commands, command_type::open, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, close_result const result) {
+    set_command_result(commands, command_type::close, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, equip_result_t const result) {
+    set_command_result(commands, command_type::show_equipment, result);
 }

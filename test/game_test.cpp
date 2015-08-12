@@ -74,6 +74,13 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
         REQUIRE(result == expected);
     };
 
+    auto const expect_command_result = [&](bool& result, auto const expected_cmd, auto const expected_result) {
+        commands.set_command_result_handler([=, &result](auto const cmd, auto const data) {
+            result |= (cmd == expected_cmd)
+                && static_cast<decltype(expected_result)>(data) == expected_result;
+        });
+    };
+
     // helper to select the first (and only) item
     auto const select_first_item = [&] {
         imenu.command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
@@ -105,11 +112,15 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             bkrl::generate_item(ctx, m, idef0, p);
 
             expect_result(bkrl::get_item(ctx, creature, m, p, imenu, commands)
-              , bkrl::get_item_result::ok);
+              , bkrl::get_item_result::select);
 
             // should not yet have any items
             REQUIRE(creature.item_list().empty());
+
+            bool got_ok = false;
+            expect_command_result(got_ok, bkrl::command_type::get, bkrl::get_item_result::ok);
             select_first_item();
+            REQUIRE(got_ok);
 
             auto const& items = creature.item_list();
             REQUIRE(!items.empty());
@@ -138,9 +149,12 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
             SECTION("bad location") {
                 expect_result(bkrl::drop_item(ctx, creature, m, p, imenu, commands)
-                  , bkrl::drop_item_result::ok);
+                  , bkrl::drop_item_result::select);
 
+                bool got_ok = false;
+                expect_command_result(got_ok, bkrl::command_type::drop, bkrl::drop_item_result::failed);
                 select_first_item();
+                REQUIRE(got_ok);
 
                 REQUIRE(!creature.item_list().empty());
             }
@@ -149,7 +163,7 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
                 m.at(p).type = bkrl::terrain_type::floor;
 
                 expect_result(bkrl::drop_item(ctx, creature, m, p, imenu, commands)
-                  , bkrl::drop_item_result::ok);
+                  , bkrl::drop_item_result::select);
 
                 select_first_item();
 
@@ -173,13 +187,16 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             creature.get_item(ifac.create(random, idef0));
 
             expect_result(bkrl::show_inventory(ctx, creature, imenu, commands)
-              , bkrl::show_inventory_result::ok);
+              , bkrl::show_inventory_result::select);
 
             // equip via the inventory
             REQUIRE(!creature.item_list().begin()->flags().test(bkrl::item_flag::is_equipped));
             REQUIRE(!creature.equip_list().is_equipped(bkrl::equip_slot::torso));
 
+            bool got_ok = false;
+            expect_command_result(got_ok, bkrl::command_type::show_equipment, bkrl::equip_result_t::ok);
             equip_first_item();
+            REQUIRE(got_ok);
 
             REQUIRE(creature.item_list().begin()->flags().test(bkrl::item_flag::is_equipped));
             REQUIRE(creature.equip_list().is_equipped(bkrl::equip_slot::torso));

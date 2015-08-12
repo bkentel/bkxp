@@ -4,6 +4,7 @@
 #include "random.hpp"
 #include "definitions.hpp"
 
+#include "bklib/algorithm.hpp"
 #include "bklib/assert.hpp"
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
@@ -146,14 +147,6 @@ private:
     def_id_t<tag_item>      def_;
 };
 
-inline decltype(auto) find_by_id(instance_id_t<tag_item> const id) noexcept {
-    return [id](item const& i) { return id == i.id(); };
-}
-
-inline decltype(auto) find_by_flag(item_flag const flag) noexcept {
-    return [flag](item const& i) { return i.flags().test(flag); };
-}
-
 //--------------------------------------------------------------------------------------------------
 //! @todo use a better data structure (segmented array).
 //--------------------------------------------------------------------------------------------------
@@ -267,6 +260,23 @@ void visit_tags(item_def const& def, Visitor&& visitor) {
     for (auto const& tag : def.tags) {
         visitor(tag);
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_by_id(instance_id_t<tag_item> const id) noexcept {
+    return [id](item const& i) { return id == i.id(); };
+}
+
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_by_flag(item_flag const flag) noexcept {
+    return [flag](item const& i) { return i.flags().test(flag); };
+}
+
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_container() noexcept {
+    return [](item_pile const& pile) noexcept {
+        return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
+    };
 }
 
 } //namespace bkrl
