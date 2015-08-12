@@ -96,7 +96,7 @@ private:
     renderer            renderer_;
     text_renderer       text_renderer_;
     view                view_;
-    command_translator  command_translator_;
+    std::unique_ptr<command_translator> command_translator_;
     color_dictionary    color_dictionary_;
     creature_dictionary creature_dictionary_;
     item_dictionary     item_dictionary_;
@@ -173,7 +173,7 @@ bkrl::game::game()
   , renderer_(system_)
   , text_renderer_()
   , view_(system_.client_width(), system_.client_height(), 18, 18)
-  , command_translator_()
+  , command_translator_ {make_command_translator()}
   , color_dictionary_ {}
   , creature_dictionary_ {}
   , item_dictionary_ {}
@@ -207,11 +207,11 @@ bkrl::game::game()
     current_map_ = maps_.back().get();
     generate_map();
 
-    command_translator_.push_handler([&](command const& cmd) {
+    command_translator_->push_handler([&](command const& cmd) {
         return on_command(cmd);
     });
 
-    command_translator_.set_command_result_handler([&](command_type const cmd, size_t const data) {
+    command_translator_->set_command_result_handler([&](command_type const cmd, size_t const data) {
         on_command_result(cmd, data);
     });
 
@@ -220,7 +220,7 @@ bkrl::game::game()
     };
 
     system_.on_text_input = [&](bklib::utf8_string_view const str) {
-        command_translator_.on_text(str);
+        command_translator_->on_text(str);
     };
 
     auto const check_key_mods_changed = [&] {
@@ -236,12 +236,12 @@ bkrl::game::game()
 
     system_.on_key_up = [&](int const key) {
         check_key_mods_changed();
-        command_translator_.on_key_up(key, prev_key_mods_);
+        command_translator_->on_key_up(key, prev_key_mods_);
     };
 
     system_.on_key_down = [&](int const key) {
         check_key_mods_changed();
-        command_translator_.on_key_down(key, prev_key_mods_);
+        command_translator_->on_key_down(key, prev_key_mods_);
     };
 
     system_.on_mouse_motion = [&](mouse_state const m) {
@@ -454,7 +454,7 @@ void bkrl::game::on_quit()
 {
     display_message("Are you sure you want to quit? Y/N");
 
-    query_yn(command_translator_, [this](command_type const cmd) {
+    query_yn(*command_translator_, [this](command_type const cmd) {
         if (cmd == command_type::yes) {
             do_quit();
             return command_handler_result::detach;
@@ -474,14 +474,14 @@ void bkrl::game::on_quit()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_open()
 {
-    bkrl::open(ctx_, get_player(), current_map(), command_translator_);
+    bkrl::open(ctx_, get_player(), current_map(), *command_translator_);
     advance(); // TODO not strictly correct
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_close()
 {
-    bkrl::close(ctx_, get_player(), current_map(), command_translator_);
+    bkrl::close(ctx_, get_player(), current_map(), *command_translator_);
     advance(); // TODO not strictly correct
 }
 
@@ -693,14 +693,14 @@ bkrl::close_result_t bkrl::close(
 void bkrl::game::on_get()
 {
     auto& subject = get_player();
-    get_item(ctx_, subject, current_map(), subject.position(), inventory_, command_translator_);
+    get_item(ctx_, subject, current_map(), subject.position(), inventory_, *command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_drop()
 {
     auto& subject = get_player();
-    drop_item(ctx_, subject, current_map(), subject.position(), inventory_, command_translator_);
+    drop_item(ctx_, subject, current_map(), subject.position(), inventory_, *command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -859,7 +859,7 @@ void bkrl::game::on_show_inventory()
     inventory_.show(visible);
 
     if (visible) {
-        show_inventory(ctx_, get_player(), inventory_, command_translator_);
+        show_inventory(ctx_, get_player(), inventory_, *command_translator_);
     }
 }
 
