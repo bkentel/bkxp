@@ -28,7 +28,9 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
     bkrl::creature_dictionary cdefs;
     bkrl::creature_factory    cfac;
     bkrl::text_renderer       trender;
-    bkrl::command_translator  commands;
+
+    auto commands_ptr = bkrl::make_command_translator();
+    auto& commands = *commands_ptr;
 
     bkrl::definitions const defs {nullptr, nullptr, nullptr};
 

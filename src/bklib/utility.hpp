@@ -2,6 +2,8 @@
 
 #include "string.hpp"
 
+#include "bklib/assert.hpp"
+
 #include <vector>
 #include <array>
 #include <type_traits>
@@ -51,6 +53,70 @@ inline decltype(auto) pseudo_cast(From const& from, To&& to) noexcept {
 
     std::memcpy(std::addressof(to), std::addressof(from), size_from);
     return std::forward<To>(to);
+}
+
+namespace detail {
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::true_type, std::true_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_signed<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_signed<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr To const lo = std::numeric_limits<To>::min();
+    constexpr To const hi = std::numeric_limits<To>::max();
+
+    BK_PRECONDITION(static_cast<T>(n) >= lo && static_cast<T>(n) <= hi);
+
+    return static_cast<To>(n);
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::true_type, std::false_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_signed<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_unsigned<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr To const hi = static_cast<T>(std::numeric_limits<To>::max());
+    BK_PRECONDITION(static_cast<T>(n) >= 0 && static_cast<T>(n) <= hi);
+
+    return static_cast<To>(n);
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::false_type, std::true_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_unsigned<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_signed<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr auto const hi = static_cast<T>(std::numeric_limits<To>::max());
+
+    BK_PRECONDITION(static_cast<T>(n) <= hi);
+    return static_cast<To>(n);
+}
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n, std::false_type, std::false_type) noexcept {
+    static_assert(std::is_integral<From>::value && std::is_unsigned<From>::value, "");
+    static_assert(std::is_integral<To>::value && std::is_unsigned<To>::value, "");
+
+    using T = std::common_type_t<From, To>;
+
+    constexpr auto const hi = static_cast<T>(std::numeric_limits<To>::max());
+
+    BK_PRECONDITION(static_cast<T>(n) <= hi);
+    return static_cast<To>(n);
+}
+} //namespace detail
+
+template <typename To, typename From>
+inline To checked_integral_cast(From const n) noexcept {
+    static_assert(std::is_integral<To>::value, "");
+    static_assert(std::is_integral<From>::value, "");
+
+    return detail::checked_integral_cast<To>(n, std::is_signed<From> {}, std::is_signed<To> {});
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
