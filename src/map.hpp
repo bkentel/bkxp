@@ -270,7 +270,7 @@ struct find_around_result {
 
         for (auto i = 0u; i < 9u; ++i) {
             if (x_off[i] == xi && y_off[i] == yi) {
-                return i;
+                return static_cast<int>(i);
             }
         }
 
@@ -279,7 +279,7 @@ struct find_around_result {
 
     bool is_valid(bklib::ivec2 const v) const noexcept {
         auto const i = index_of(v);
-        return i > 0 ? valid[i] : false;
+        return i > 0 ? valid[static_cast<size_t>(i)] : false;
     }
 };
 

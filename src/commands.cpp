@@ -199,6 +199,16 @@ public:
     void on_command_result(command_type const command, size_t const data) {
         result_handler_(command, data);
     }
+
+    void send_command(command const cmd) {
+        if (handlers_.empty()) {
+            return;
+        }
+
+        if (handlers_.back()(cmd) == command_handler_result::detach) {
+            handlers_.pop_back();
+        }
+    }
 private:
     std::vector<command_handler_t> handlers_;
     command_result_handler_t result_handler_;
@@ -253,6 +263,11 @@ void bkrl::command_translator::on_mouse_up(int const x, int const y, int const b
 //----------------------------------------------------------------------------------------------
 void bkrl::command_translator::on_text(bklib::utf8_string_view const str) {
     impl_->on_text(str);
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::send_command(command const cmd) {
+    impl_->send_command(cmd);
 }
 
 //----------------------------------------------------------------------------------------------

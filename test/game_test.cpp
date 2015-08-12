@@ -71,7 +71,7 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             REQUIRE(!result);
         }
 
-        REQUIRE(result == expected);
+        REQUIRE((result == expected));
     };
 
     auto const expect_command_result = [&](bool& result, auto const expected_cmd, auto const expected_result) {
@@ -229,6 +229,79 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
             expect_result(bkrl::equip_item(ctx, creature, creature.item_list().advance(1))
               , bkrl::equip_result_t::slot_occupied);
+        }
+    }
+
+    SECTION("open / close") {
+        auto const make_door_at = [&](bklib::ipoint2 const where, bkrl::door::state const state) {
+            auto& ter =  m.at(where);
+            bkrl::door d {};
+            d.set_open_close(state);
+
+            ter.type = bkrl::terrain_type::door;
+            ter = d;
+        };
+
+        SECTION("no door") {
+            expect_result(bkrl::open(ctx, creature, m, commands)
+              , bkrl::open_result::nothing);
+
+            expect_result(bkrl::close(ctx, creature, m, commands)
+              , bkrl::close_result::nothing);
+        }
+
+        SECTION("closed door") {
+            make_door_at(p + bklib::ivec2 {1, 1}, bkrl::door::state::closed);
+
+            expect_result(bkrl::close(ctx, creature, m, commands)
+              , bkrl::close_result::nothing);
+
+            expect_result(bkrl::open(ctx, creature, m, commands)
+              , bkrl::open_result::ok);
+        }
+
+        SECTION("open door") {
+            make_door_at(p + bklib::ivec2 {1, 1}, bkrl::door::state::open);
+
+            expect_result(bkrl::open(ctx, creature, m, commands)
+              , bkrl::open_result::nothing);
+
+            expect_result(bkrl::close(ctx, creature, m, commands)
+              , bkrl::close_result::ok);
+        }
+
+        SECTION("multiple closed doors") {
+            make_door_at(p + bklib::ivec2 {1, 1}, bkrl::door::state::closed);
+            make_door_at(p + bklib::ivec2 {1, 0}, bkrl::door::state::closed);
+            make_door_at(p + bklib::ivec2 {0, 1}, bkrl::door::state::closed);
+
+            expect_result(bkrl::close(ctx, creature, m, commands)
+              , bkrl::close_result::nothing);
+
+            expect_result(bkrl::open(ctx, creature, m, commands)
+              , bkrl::open_result::select);
+
+            bool got_ok = false;
+            expect_command_result(got_ok, bkrl::command_type::open, bkrl::open_result::ok);
+            commands.send_command(bkrl::command {bkrl::command_type::dir_east, 0, 0});
+            REQUIRE(got_ok);
+        }
+
+        SECTION("multiple open doors") {
+            make_door_at(p + bklib::ivec2 {1, 1}, bkrl::door::state::open);
+            make_door_at(p + bklib::ivec2 {1, 0}, bkrl::door::state::open);
+            make_door_at(p + bklib::ivec2 {0, 1}, bkrl::door::state::open);
+
+            expect_result(bkrl::open(ctx, creature, m, commands)
+              , bkrl::open_result::nothing);
+
+            expect_result(bkrl::close(ctx, creature, m, commands)
+              , bkrl::close_result::select);
+
+            bool got_ok = false;
+            expect_command_result(got_ok, bkrl::command_type::close, bkrl::close_result::ok);
+            commands.send_command(bkrl::command {bkrl::command_type::dir_east, 0, 0});
+            REQUIRE(got_ok);
         }
     }
 }

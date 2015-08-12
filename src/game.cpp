@@ -686,7 +686,7 @@ bkrl::close_result_t bkrl::close(
         return command_handler_result::detach;
     });
 
-    return close_result::ok;
+    return close_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1191,26 +1191,36 @@ bkrl::map const& bkrl::game::current_map() const noexcept
     return *current_map_;
 }
 
+namespace {
+template <typename T>
+inline void set_command_result(bkrl::command_translator& commands, bkrl::command_type const cmd, T const result)
+{
+    static_assert(std::is_enum<T>::value, "");
+    static_assert(sizeof(T) <= sizeof(size_t), "");
+    commands.on_command_result(cmd, static_cast<size_t>(result));
+}
+} //namespace
+
 void bkrl::set_command_result(command_translator & commands, get_item_result const result) {
-    set_command_result(commands, command_type::get, result);
+    ::set_command_result(commands, command_type::get, result);
 }
 
 void bkrl::set_command_result(command_translator & commands, drop_item_result const result) {
-    set_command_result(commands, command_type::drop, result);
+    ::set_command_result(commands, command_type::drop, result);
 }
 
 void bkrl::set_command_result(command_translator & commands, show_inventory_result const result) {
-    set_command_result(commands, command_type::show_inventory, result);
+    ::set_command_result(commands, command_type::show_inventory, result);
 }
 
 void bkrl::set_command_result(command_translator & commands, open_result const result) {
-    set_command_result(commands, command_type::open, result);
+    ::set_command_result(commands, command_type::open, result);
 }
 
 void bkrl::set_command_result(command_translator & commands, close_result const result) {
-    set_command_result(commands, command_type::close, result);
+    ::set_command_result(commands, command_type::close, result);
 }
 
 void bkrl::set_command_result(command_translator & commands, equip_result_t const result) {
-    set_command_result(commands, command_type::show_equipment, result);
+    ::set_command_result(commands, command_type::show_equipment, result);
 }

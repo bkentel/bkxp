@@ -197,7 +197,7 @@ public:
     void drop_item(item_pile& dst, int i = 0);
     void drop_items(item_pile& dst);
 
-    //! @pre the item @pi must be already held by this creature
+    //! @pre the item @p i must be already held by this creature
     equipment::result_t equip_item(item& i);
 
     //! @pre index must be a valid index; i.e. index > 0 && index < size(items_)

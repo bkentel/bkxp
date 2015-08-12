@@ -217,14 +217,6 @@ close_result_t close_cont_at(
   , bklib::ipoint2 where
 );
 
-template <typename T>
-inline void set_command_result(command_translator& commands, command_type const cmd, T const result)
-{
-    static_assert(std::is_enum<T>::value, "");
-    static_assert(sizeof(T) <= sizeof(size_t), "");
-    commands.on_command_result(cmd, static_cast<size_t>(result));
-}
-
 void set_command_result(command_translator& commands, get_item_result result);
 void set_command_result(command_translator& commands, drop_item_result result);
 void set_command_result(command_translator& commands, show_inventory_result result);
