@@ -39,6 +39,7 @@ void bkrl::process_tags(item_def& def)
         case "CORPSE"_hash        : def.flags.set(item_flag::is_corpse);     break;
         case "CAT_WEAPON"_hash    : def.flags.set(item_flag::is_equippable); break;
         case "CAT_ARMOR"_hash     : def.flags.set(item_flag::is_equippable); break;
+        case "CAT_CONTAINER"_hash : def.flags.set(item_flag::is_container);  break;
         case "EQS_HAND_MAIN"_hash : def.slots.set(equip_slot::hand_main);    break;
         case "EQS_HAND_OFF"_hash  : def.slots.set(equip_slot::hand_off);     break;
         case "EQS_HAND_ANY"_hash  : def.slots.set(equip_slot::hand_any);     break;

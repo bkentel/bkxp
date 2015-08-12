@@ -82,6 +82,11 @@ inline To checked_integral_cast(From const n) noexcept {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class bkrl::detail::command_translator_impl {
 public:
+    command_translator_impl()
+    {
+        result_handler_ = [](auto&&, auto&&) {};
+    }
+
     void push_handler(command_handler_t&& handler) {
         handlers_.emplace_back(std::move(handler));
     }
@@ -184,8 +189,29 @@ public:
             handlers_.pop_back();
         }
     }
+
+    using command_result_handler_t = command_translator::command_result_handler_t;
+
+    void set_command_result_handler(command_result_handler_t handler) {
+        result_handler_ = std::move(handler);
+    }
+
+    void on_command_result(command_type const command, size_t const data) {
+        result_handler_(command, data);
+    }
+
+    void send_command(command const cmd) {
+        if (handlers_.empty()) {
+            return;
+        }
+
+        if (handlers_.back()(cmd) == command_handler_result::detach) {
+            handlers_.pop_back();
+        }
+    }
 private:
     std::vector<command_handler_t> handlers_;
+    command_result_handler_t result_handler_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -234,6 +260,22 @@ void bkrl::command_translator::on_mouse_up(int const x, int const y, int const b
     impl_->on_mouse_up(x, y, button);
 }
 
+//----------------------------------------------------------------------------------------------
 void bkrl::command_translator::on_text(bklib::utf8_string_view const str) {
     impl_->on_text(str);
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::send_command(command const cmd) {
+    impl_->send_command(cmd);
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::set_command_result_handler(command_result_handler_t handler) {
+    impl_->set_command_result_handler(std::move(handler));
+}
+
+//----------------------------------------------------------------------------------------------
+void bkrl::command_translator::on_command_result(command_type const command, size_t const data) {
+    impl_->on_command_result(command, data);
 }

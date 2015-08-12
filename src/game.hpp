@@ -1,131 +1,232 @@
 #pragma once
 
-#include "system.hpp"
-#include "renderer.hpp"
-#include "text.hpp"
-#include "message_log.hpp"
-#include "commands.hpp"
-#include "creature.hpp"
-#include "map.hpp"
-#include "random.hpp"
-#include "view.hpp"
-#include "color.hpp"
-#include "definitions.hpp"
-#include "output.hpp"
-#include "inventory.hpp"
-
-#include "bklib/string.hpp"
 #include "bklib/math.hpp"
-#include "bklib/timer.hpp"
-#include "bklib/dictionary.hpp"
+#include <type_traits>
+#include <cstdint>
 
 namespace bkrl {
 
-//--------------------------------------------------------------------------------------------------
-// Game simulation state.
-//--------------------------------------------------------------------------------------------------
-class game {
-public:
-    game();
+class command_translator;
+struct context;
+class creature;
+class inventory;
+class item;
+class map;
 
-    void generate_map();
-
-    enum class render_type {
-        wait, force_update
-    };
-
-    void render(render_type type = render_type::wait);
-    void advance();
-
-    creature& get_player();
-    creature const& get_player() const;
-
-    void display_message(bklib::utf8_string_view msg);
-
-    template <typename Arg0, typename... Args>
-    void display_message(bklib::utf8_string_view const format, Arg0 const& arg0, Args const&... args) {
-        output_.write(format, arg0, args...);
-    }
-
-    void on_mouse_over(int x, int y);
-    void do_mouse_over(int x, int y);
-
-    void on_zoom(double zx, double zy);
-    void do_zoom(double zx, double zy);
-
-    void on_scroll(double dx, double dy);
-    void do_scroll(double dx, double dy);
-
-    void do_quit();
-    void on_quit();
-
-    void on_open_close(command_type type);
-    void do_open_close(bklib::ipoint2 p, command_type type);
-
-    void on_get();
-    void do_get(creature& subject, bklib::ipoint2 where);
-
-    void on_drop();
-    void do_drop(creature& subject, bklib::ipoint2 where);
-
-    void do_wait(int turns);
-
-    void do_move(bklib::ivec3 v);
-    void on_move(bklib::ivec3 v);
-
-    void on_show_inventory();
-    void do_show_inventory();
-
-    void on_show_equipment();
-    void do_show_equipment();
-    void do_equip_item(item& i);
-
-    command_handler_result on_command(command const& cmd);
-
-    context make_context();
-
-    void debug_print(int x, int y);
-
-    map&       current_map()       noexcept;
-    map const& current_map() const noexcept;
-private:
-    bklib::timer        timer_;
-    random_state        random_;
-    system              system_;
-    renderer            renderer_;
-    text_renderer       text_renderer_;
-    view                view_;
-    command_translator  command_translator_;
-    color_dictionary    color_dictionary_;
-    creature_dictionary creature_dictionary_;
-    item_dictionary     item_dictionary_;
-    definitions         definitions_;
-    creature_factory    creature_factory_;
-    item_factory        item_factory_;
-    std::vector<std::unique_ptr<map>> maps_;
-    map*                current_map_;
-    output              output_;
-    inventory           inventory_;
-
-    std::chrono::high_resolution_clock::time_point last_frame_;
-
-    key_mod_state  prev_key_mods_ = system_.current_key_mods();
-    bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
-    bklib::ipoint2 mouse_last_pos_screen_ = bklib::ipoint2 {0, 0};
-
-    message_log message_log_;
-
-    bklib::timer::id_t timer_message_log_ {0};
-
-    text_layout inspect_text_ {text_renderer_, ""};
-    bool show_inspect_text_ = false;
-};
+enum class equip_result_t : int;
+enum class command_type : uint32_t;
 
 //--------------------------------------------------------------------------------------------------
 template <typename T>
-inline decltype(auto) random_definition(random_t& random, bklib::dictionary<T> const& dic) {
-    BK_PRECONDITION(!dic.empty());
-    return random_element(random, dic);
+struct result_t {
+    // Check that T is a scoped enum with a member named ok.
+    static_assert(std::is_enum<T>::value, "");
+    static_assert(!std::is_convertible<T, std::underlying_type_t<T>>::value, "");
+    static_assert(static_cast<std::underlying_type_t<T>>(T::ok) || true, "");
+
+    constexpr result_t(T const result) noexcept
+      : value {result}
+    {
+    }
+
+    constexpr explicit operator bool() const noexcept {
+        return value == T::ok;
+    }
+
+    T value;
+};
+
+template <typename T>
+constexpr bool operator==(result_t<T> const lhs, result_t<T> const rhs) noexcept {
+    return lhs.value == rhs.value;
+}
+
+template <typename T>
+constexpr bool operator==(result_t<T> const lhs, T const rhs) noexcept {
+    return lhs.value == rhs;
+}
+
+template <typename T>
+constexpr bool operator==(T const lhs, result_t<T> const rhs) noexcept {
+    return lhs == rhs.value;
+}
+
+template <typename T, typename U>
+constexpr bool operator!=(result_t<T> const lhs, U const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+template <typename T, typename U>
+constexpr bool operator!=(U const lhs, result_t<T> const rhs) noexcept {
+    return !(lhs == rhs);
+}
+
+void start_game();
+
+enum class get_item_result : int {
+    ok           //!< success
+  , select
+  , no_items     //!< nothing to get
+  , out_of_range //!< target location is out of range
+  , failed
+  , canceled
+};
+
+using get_item_result_t = result_t<get_item_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Display a menu to select an item to get at the location specified by @p where.
+//!
+//! @pre @p where is a valid location in @p current_map.
+//--------------------------------------------------------------------------------------------------
+get_item_result_t get_item(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'get'.
+  , map&                current_map //!< The current map.
+  , bklib::ipoint2      where       //!< The location to get from.
+  , inventory&          imenu       //!< The menu used to display a list of choices.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+enum class drop_item_result : int {
+    ok           //!< success
+  , select       //!<
+  , no_items     //!< nothing to drop
+  , out_of_range //!< target location is out of range
+  , failed
+  , canceled
+};
+
+using drop_item_result_t = result_t<drop_item_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Display a menu to select an item to drop at the location specified by @p where.
+//!
+//! @pre @p where is a valid location in @p current_map.
+//--------------------------------------------------------------------------------------------------
+drop_item_result_t drop_item(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'drop'.
+  , map&                current_map //!< The current map.
+  , bklib::ipoint2      where       //!< The location to get from.
+  , inventory&          imenu       //!< The menu used to display a list of choices.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+enum class show_inventory_result : int {
+    ok       //!< success
+  , no_items //!< inventory is empty
+  , select
+  , canceled
+};
+
+using show_inventory_result_t = result_t<show_inventory_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Display a menu listing the @p subjects's current inventory if present.
+//!
+//! @note Also allows equipping of items.
+//--------------------------------------------------------------------------------------------------
+show_inventory_result_t show_inventory(
+    context&            ctx      //!< The current context.
+  , creature&           subject  //!< The subject doing the 'drop'.
+  , inventory&          imenu    //!< The menu used to display the list.
+  , command_translator& commands //!< The command translator stack.
+);
+
+using equip_item_result_t = result_t<equip_result_t>;
+
+//--------------------------------------------------------------------------------------------------
+//! Equip the item given by @p itm.
+//--------------------------------------------------------------------------------------------------
+equip_item_result_t equip_item(
+    context&  ctx     //!< The current context.
+  , creature& subject //!< The subject doing the 'drop'.
+  , item&     itm     //!< The item to equip.
+);
+
+enum class open_result : int {
+    ok      //!< success
+  , select
+  , nothing //!< nothing to open
+  , failed  //!< couldn't open
+  , canceled //! the open was canceled
+};
+
+using open_result_t = result_t<open_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Open something around @p subject.
+//--------------------------------------------------------------------------------------------------
+open_result_t open(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'open'.
+  , map&                current_map //!< The current map.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+//--------------------------------------------------------------------------------------------------
+open_result_t open_door_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+//--------------------------------------------------------------------------------------------------
+open_result_t open_cont_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+enum class close_result : int {
+    ok      //!< success
+  , select
+  , nothing //!< nothing to open
+  , failed  //!< couldn't open
+  , canceled //! the open was canceled
+};
+
+using close_result_t = result_t<close_result>;
+
+//--------------------------------------------------------------------------------------------------
+//! Open something around @p subject.
+//--------------------------------------------------------------------------------------------------
+close_result_t close(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'open'.
+  , map&                current_map //!< The current map.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+//--------------------------------------------------------------------------------------------------
+close_result_t close_door_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+//--------------------------------------------------------------------------------------------------
+close_result_t close_cont_at(
+    context&       ctx         //!< The current context.
+  , creature&      subject     //!< The subject doing the 'open'.
+  , map&           current_map //!< The current map.
+  , bklib::ipoint2 where
+);
+
+void set_command_result(command_translator& commands, get_item_result result);
+void set_command_result(command_translator& commands, drop_item_result result);
+void set_command_result(command_translator& commands, show_inventory_result result);
+void set_command_result(command_translator& commands, open_result result);
+void set_command_result(command_translator& commands, close_result result);
+void set_command_result(command_translator& commands, equip_result_t result);
+
+template <typename T>
+inline void set_command_result(command_translator& commands, result_t<T> const result) {
+    set_command_result(commands, result.value);
 }
 
 } //namespace bkrl

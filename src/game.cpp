@@ -1,12 +1,137 @@
 #include "game.hpp"
-#include "direction.hpp"
-#include "json.hpp"
-#include "context.hpp"
 
 #include "bsp_layout.hpp"
+#include "color.hpp"
+#include "commands.hpp"
+#include "context.hpp"
+#include "creature.hpp"
+#include "definitions.hpp"
+#include "direction.hpp"
+#include "inventory.hpp"
+#include "json.hpp"
+#include "map.hpp"
+#include "message_log.hpp"
+#include "output.hpp"
+#include "random.hpp"
+#include "renderer.hpp"
+#include "system.hpp"
+#include "text.hpp"
+#include "view.hpp"
 
-#include "bklib/string.hpp"
+#include "bklib/dictionary.hpp"
+#include "bklib/math.hpp"
 #include "bklib/scope_guard.hpp"
+#include "bklib/string.hpp"
+#include "bklib/timer.hpp"
+
+namespace bkrl {
+
+//--------------------------------------------------------------------------------------------------
+// Game simulation state.
+//--------------------------------------------------------------------------------------------------
+class game {
+public:
+    game();
+
+    void generate_map();
+
+    enum class render_type {
+        wait, force_update
+    };
+
+    void render(render_type type = render_type::wait);
+    void advance();
+
+    creature& get_player();
+    creature const& get_player() const;
+
+    void display_message(bklib::utf8_string_view msg);
+
+    template <typename Arg0, typename... Args>
+    void display_message(bklib::utf8_string_view const format, Arg0 const& arg0, Args const&... args) {
+        output_.write(format, arg0, args...);
+    }
+
+    void on_mouse_over(int x, int y);
+    void do_mouse_over(int x, int y);
+
+    void on_zoom(double zx, double zy);
+    void do_zoom(double zx, double zy);
+
+    void on_scroll(double dx, double dy);
+    void do_scroll(double dx, double dy);
+
+    void do_quit();
+    void on_quit();
+
+    void on_open();
+    void on_close();
+
+    void on_get();
+    void on_drop();
+
+    void do_wait(int turns);
+
+    void do_move(bklib::ivec3 v);
+    void on_move(bklib::ivec3 v);
+
+    void on_show_inventory();
+
+    void on_show_equipment();
+    void do_show_equipment();
+
+    command_handler_result on_command(command const& cmd);
+    void on_command_result(command_type cmd, size_t data);
+
+    context make_context();
+
+    void debug_print(int x, int y);
+
+    map&       current_map()       noexcept;
+    map const& current_map() const noexcept;
+private:
+    bklib::timer        timer_;
+    random_state        random_;
+    system              system_;
+    renderer            renderer_;
+    text_renderer       text_renderer_;
+    view                view_;
+    command_translator  command_translator_;
+    color_dictionary    color_dictionary_;
+    creature_dictionary creature_dictionary_;
+    item_dictionary     item_dictionary_;
+    definitions         definitions_;
+    creature_factory    creature_factory_;
+    item_factory        item_factory_;
+    std::vector<std::unique_ptr<map>> maps_;
+    map*                current_map_;
+    output              output_;
+    inventory           inventory_;
+
+    std::chrono::high_resolution_clock::time_point last_frame_;
+
+    key_mod_state  prev_key_mods_ = system_.current_key_mods();
+    bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
+    bklib::ipoint2 mouse_last_pos_screen_ = bklib::ipoint2 {0, 0};
+
+    message_log message_log_;
+
+    bklib::timer::id_t timer_message_log_ {0};
+
+    text_layout inspect_text_ {text_renderer_, ""};
+    bool show_inspect_text_ = false;
+
+    context ctx_;
+};
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline decltype(auto) random_definition(random_t& random, bklib::dictionary<T> const& dic) {
+    BK_PRECONDITION(!dic.empty());
+    return random_element(random, dic);
+}
+
+} //namespace bkrl
 
 namespace {
 
@@ -35,6 +160,12 @@ std::unique_ptr<bkrl::map> generate_map(bkrl::context& ctx)
 } //namespace
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::start_game()
+{
+    bkrl::game game;
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::game::game()
   : timer_()
   , random_()
@@ -55,6 +186,7 @@ bkrl::game::game()
   , inventory_ {text_renderer_}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
   , message_log_ {text_renderer_}
+  , ctx_ (make_context())
 {
     //
     // set up output
@@ -71,13 +203,16 @@ bkrl::game::game()
     //
     // set up initial map
     //
-    auto ctx = make_context();
-    maps_.emplace_back(::generate_map(ctx));
+    maps_.emplace_back(::generate_map(ctx_));
     current_map_ = maps_.back().get();
     generate_map();
 
     command_translator_.push_handler([&](command const& cmd) {
         return on_command(cmd);
+    });
+
+    command_translator_.set_command_result_handler([&](command_type const cmd, size_t const data) {
+        on_command_result(cmd, data);
     });
 
     system_.on_window_resize = [&](int const w, int const h) {
@@ -161,11 +296,10 @@ bkrl::game::game()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::generate_map()
 {
-    auto ctx = make_context();
     auto& m = current_map();
     auto& random = random_[random_stream::substantive];
 
-    generate_creature(ctx, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
+    generate_creature(ctx_, m, random_definition(random, creature_dictionary_), bklib::ipoint2 {2, 2});
 
     creature_def def {"player"};
     def.flags.set(creature_flag::is_player);
@@ -180,7 +314,7 @@ void bkrl::game::generate_map()
     for (auto i = 0; i < 20; ++i) {
         player.get_item(item_factory_.create(
             random
-          , *ctx.data.random_item(random_, random_stream::substantive)
+          , *ctx_.data.random_item(random_, random_stream::substantive)
         ));
     }
 }
@@ -223,9 +357,7 @@ void bkrl::game::render(render_type const type)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::advance()
 {
-    auto ctx = make_context();
-    bkrl::advance(ctx, current_map());
-
+    bkrl::advance(ctx_, current_map());
     render(render_type::force_update);
 }
 
@@ -340,175 +472,266 @@ void bkrl::game::on_quit()
 }
 
 //--------------------------------------------------------------------------------------------------
-namespace bkrl {
+void bkrl::game::on_open()
+{
+    bkrl::open(ctx_, get_player(), current_map(), command_translator_);
+    advance(); // TODO not strictly correct
+}
 
 //--------------------------------------------------------------------------------------------------
-//! Update the state of a door at p.
-//! TODO add tests
-//--------------------------------------------------------------------------------------------------
-bool set_door_state(map& m, bklib::ipoint2 const p, door::state const state) {
-    auto& ter = m.at(p);
-    door d {ter};
+void bkrl::game::on_close()
+{
+    bkrl::close(ctx_, get_player(), current_map(), command_translator_);
+    advance(); // TODO not strictly correct
+}
 
-    if (!d.set_open_close(state)) {
-        return false;
+//--------------------------------------------------------------------------------------------------
+bkrl::open_result_t bkrl::open_door_at(
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+) {
+    if (!set_door_state(current_map, where, door::state::open)) {
+        ctx.out.write("Couldn't open the door.");
+        return open_result::failed;
     }
 
-    ter = d;
-    m.update_render_data(p);
-
-    return true;
+    ctx.out.write("You opened the door.");
+    return open_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
-//! Return a predicate which tests for doors matching state
-//! TODO add tests
-//--------------------------------------------------------------------------------------------------
-inline decltype(auto) find_door(door::state const state) noexcept {
-    return [state](terrain_entry const& ter) noexcept {
-        if (ter.type != terrain_type::door) {
-            return false;
-        }
+bkrl::open_result_t bkrl::open_cont_at(
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+) {
+    item_pile* const pile = current_map.items_at(where);
+    BK_PRECONDITION(pile);
 
-        door const d {ter};
+    item* const itm = bklib::find_maybe(*pile, find_by_flag(item_flag::is_container));
+    BK_PRECONDITION(itm);
 
-        switch (state) {
-        case door::state::open :   return d.is_open();
-        case door::state::closed : return d.is_closed();
-        default:
-            break;
-        }
-
-        return false;
-    };
-}
-
-} //namespace bkrl
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::game::do_open_close(bklib::ipoint2 const p, command_type const type)
-{
-    BK_PRECONDITION(type == command_type::open || type == command_type::close);
-
-    auto const state = (type == command_type::open)
-        ? door::state::open : door::state::closed;
-
-    if (!set_door_state(current_map(), p, state)) {
-        if (state == door::state::open) {
-            display_message("Couldn't open the door.");
-        } else if (state == door::state::closed) {
-            display_message("Couldn't close the door.");
-        }
-    } else {
-        if (state == door::state::open) {
-            display_message("You open the door.");
-        } else if (state == door::state::closed) {
-            display_message("You close the door.");
-        }
-    }
-
-    advance();
+    ctx.out.write("(TODO) You opened the %s.", itm->friendly_name(ctx));
+    return open_result::ok;
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::on_open_close(command_type const type)
-{
-    BK_PRECONDITION(type == command_type::open || type == command_type::close);
-
-    auto& player = get_player();
-
-    auto const p = player.position();
-    auto const state = (type == command_type::open)
-        ? door::state::closed : door::state::open;
-
-    auto const candidates = find_around(current_map(), p, find_door(state));
+bkrl::open_result_t bkrl::open(
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , command_translator& commands
+) {
+    auto const p = subject.position();
+    auto const door_candidates = find_around(current_map, p, find_door(door::state::closed));
+    auto const item_candidates = find_items_around(current_map, p, find_container());
 
     //
     // Nothing to do.
     //
-    if (!candidates) {
-        if (type == command_type::open) {
-            display_message("There is nothing here to open.");
-        } else if (type == command_type::close) {
-            display_message("There is nothing here to close.");
-        }
-
-        return;
+    if (!door_candidates && !item_candidates) {
+        ctx.out.write("There is nothing here to open.");
+        return open_result::nothing;
     }
 
     //
     // Ok.
     //
-    if (candidates.count == 1) {
-        do_open_close(candidates.p, type);
-        return;
+    if (door_candidates.count + item_candidates.count == 1) {
+        return door_candidates
+          ? open_door_at(ctx, subject, current_map, door_candidates.p)
+          : open_cont_at(ctx, subject, current_map, item_candidates.p);
     }
 
     //
     // Have to choose a target.
     //
-    if (type == command_type::open) {
-        display_message("Open in which direction?");
-    } else if (type == command_type::close) {
-        display_message("Close in which direction?");
-    }
+    ctx.out.write("Which direction?");
 
-    query_dir(command_translator_, [this, p, type](command_type const cmd) {
+    query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
         if (cmd == command_type::cancel) {
-            display_message("Nevermind.");
+            ctx.out.write("Nevermind.");
+            set_command_result(commands, open_result::canceled);
             return command_handler_result::detach;
         }
 
         if (!is_direction(cmd)) {
-            display_message("Invalid choice.");
+            ctx.out.write("Invalid choice.");
+            set_command_result(commands, open_result::select);
             return command_handler_result::capture;
         }
 
-        auto const q = p + bklib::truncate<2>(direction_vector(cmd));
-        if (current_map().at(q).type != terrain_type::door) {
-            if (type == command_type::open) {
-                display_message("There is nothing there to open.");
-            } else if (type == command_type::close) {
-                display_message("There is nothing there to close.");
-            }
+        auto const v = bklib::truncate<2>(direction_vector(cmd));
+        bool const is_door = door_candidates.is_valid(v);
+        bool const is_cont = item_candidates.is_valid(v);
 
-            return command_handler_result::capture;
+        if (is_door && is_cont) {
+            BK_ASSERT(false && "TODO");
+        } else if (is_door) {
+            set_command_result(commands
+              , open_door_at(ctx, subject, current_map, p + v));
+        } else if (is_cont) {
+            set_command_result(commands
+              , open_cont_at(ctx, subject, current_map, p + v));
+        } else {
+            ctx.out.write("There is nothing there to open.");
+            set_command_result(commands, open_result::nothing);
         }
 
-        do_open_close(q, type);
         return command_handler_result::detach;
     });
+
+    return open_result::select;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::close_result_t bkrl::close_door_at(
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+) {
+    if (!set_door_state(current_map, where, door::state::closed)) {
+        ctx.out.write("Couldn't close the door.");
+        return close_result::failed;
+    }
+
+    ctx.out.write("You closed the door.");
+    return close_result::ok;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::close_result_t bkrl::close_cont_at(
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+) {
+    item_pile* const pile = current_map.items_at(where);
+    BK_PRECONDITION(pile);
+
+    item* const itm = bklib::find_maybe(*pile, find_by_flag(item_flag::is_container));
+    BK_PRECONDITION(itm);
+
+    ctx.out.write("(TODO) You closed the %s.", itm->friendly_name(ctx));
+    return close_result::ok;
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::close_result_t bkrl::close(
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , command_translator& commands
+) {
+    auto const p = subject.position();
+    auto const door_candidates = find_around(current_map, p, find_door(door::state::open));
+    auto const item_candidates = find_items_around(current_map, p, find_container());
+
+    //
+    // Nothing to do.
+    //
+    if (!door_candidates && !item_candidates) {
+        ctx.out.write("There is nothing here to close.");
+        return close_result::nothing;
+    }
+
+    //
+    // Ok.
+    //
+    if (door_candidates.count + item_candidates.count == 1) {
+        return door_candidates
+          ? close_door_at(ctx, subject, current_map, door_candidates.p)
+          : close_cont_at(ctx, subject, current_map, item_candidates.p);
+    }
+
+    //
+    // Have to choose a target.
+    //
+    ctx.out.write("Which direction?");
+
+    query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
+        if (cmd == command_type::cancel) {
+            ctx.out.write("Nevermind.");
+            set_command_result(commands, close_result::canceled);
+            return command_handler_result::detach;
+        }
+
+        if (!is_direction(cmd)) {
+            ctx.out.write("Invalid choice.");
+            set_command_result(commands, close_result::select);
+            return command_handler_result::capture;
+        }
+
+        auto const v = bklib::truncate<2>(direction_vector(cmd));
+        bool const is_door = door_candidates.is_valid(v);
+        bool const is_cont = item_candidates.is_valid(v);
+
+        if (is_door && is_cont) {
+            BK_ASSERT(false && "TODO");
+        } else if (is_door) {
+            set_command_result(commands
+              , close_door_at(ctx, subject, current_map, p + v));
+        } else if (is_cont) {
+            set_command_result(commands
+              , close_cont_at(ctx, subject, current_map, p + v));
+        } else {
+            ctx.out.write("There is nothing there to close.");
+            set_command_result(commands, close_result::nothing);
+        }
+
+        return command_handler_result::detach;
+    });
+
+    return close_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_get()
 {
-    auto& player = get_player();
-    do_get(player, player.position());
+    auto& subject = get_player();
+    get_item(ctx_, subject, current_map(), subject.position(), inventory_, command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_drop()
 {
-    auto& player = get_player();
-    do_drop(player, player.position());
+    auto& subject = get_player();
+    drop_item(ctx_, subject, current_map(), subject.position(), inventory_, command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
-{
-    if (subject.item_list().empty()) {
-        display_message("You have nothing to drop.");
-        return;
+bkrl::drop_item_result_t bkrl::drop_item(
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+  , inventory&           imenu
+  , command_translator&  commands
+) {
+    auto& items = subject.item_list();
+
+    if (items.empty()) {
+        ctx.out.write("You have nothing to drop.");
+        return drop_item_result::no_items;
     }
 
-    inventory_.on_action([this, &subject, where](inventory::action const type, int const sel) {
+    if (abs_max(where - subject.position()) > 1) {
+        ctx.out.write("You can't drop that there from here.");
+        return drop_item_result::out_of_range;
+    }
+
+    imenu.on_action([&, where](inventory::action const type, int const sel) {
         BK_NAMED_SCOPE_EXIT(close) {
-            inventory_.show(false);
-            command_translator_.pop_handler(); //TODO
+            imenu.show(false);
+            commands.pop_handler(); //TODO
         };
 
         if (sel < 0 || type == inventory::action::cancel) {
+            set_command_result(commands, drop_item_result::canceled);
             return;
         }
 
@@ -517,51 +740,52 @@ void bkrl::game::do_drop(creature& subject, bklib::ipoint2 const where)
             return;
         }
 
-        auto const i = from_inventory_data(inventory_.data()).second;
-
-        auto ctx = make_context();
-        auto const result = with_pile_at(definitions_, current_map(), where, [&](item_pile& pile) {
-            subject.drop_item(pile, i);
-            display_message("You dropped the %s.", pile.begin()->friendly_name(ctx));
+        auto const result = with_pile_at(ctx.data, current_map, where, [&](item_pile& pile) {
+            subject.drop_item(pile, from_inventory_data(imenu.data()).second);
+            ctx.out.write("You dropped the %s.", pile.begin()->friendly_name(ctx));
         });
 
         if (!result) {
-            display_message("You can't drop that here.");
+            ctx.out.write("You can't drop that here.");
+            set_command_result(commands, drop_item_result::failed);
+            return;
         }
+
+        set_command_result(commands, drop_item_result::ok);
     });
 
-    auto ctx = make_context();
-    command_translator_.push_handler(make_item_list(
-        ctx, inventory_, subject.item_list(), "Drop which item?"));
+    commands.push_handler(make_item_list(ctx, imenu, items, "Drop which item?"));
+    return drop_item_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
-{
-    BK_NAMED_SCOPE_EXIT(on_fail) {
-        display_message("There is nothing here to get.");
-    };
-
-    auto const p = subject.position();
-
-    if (abs_max(where - p) > 1) {
-        return;
+bkrl::get_item_result_t bkrl::get_item(
+    context&             ctx
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+  , inventory&           imenu
+  , command_translator&  commands
+) {
+    if (abs_max(where - subject.position()) > 1) {
+        ctx.out.write("You can't get that from here.");
+        return get_item_result::out_of_range;
     }
 
-    item_pile* const pile = current_map().items_at(where);
+    item_pile* const pile = current_map.items_at(where);
     if (!pile) {
-        return;
+        ctx.out.write("There is nothing here to get.");
+        return get_item_result::no_items;
     }
 
-    on_fail.dismiss();
-
-    inventory_.on_action([this, &subject, where](inventory::action const type, int const i) {
+    imenu.on_action([&, where](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
-            inventory_.show(false);
-            command_translator_.pop_handler(); //TODO
+            imenu.show(false);
+            commands.pop_handler(); //TODO
         };
 
         if (i < 0 || type == inventory::action::cancel) {
+            set_command_result(commands, get_item_result::canceled);
             return;
         }
 
@@ -570,23 +794,23 @@ void bkrl::game::do_get(creature& subject, bklib::ipoint2 const where)
             return;
         }
 
-        auto const data = from_inventory_data(inventory_.data());
+        auto const data = from_inventory_data(imenu.data());
         auto&      itm   = data.first;
         auto const index = data.second;
 
-        auto ctx = make_context();
-
         if (!subject.can_get_item(itm)) {
-            display_message("You can't get the %s.", itm.friendly_name(ctx));
+            ctx.out.write("You can't get the %s.", itm.friendly_name(ctx));
+            set_command_result(commands, get_item_result::failed);
             return;
         }
 
-        display_message("You got the %s.", itm.friendly_name(ctx));
-        subject.get_item(current_map().remove_item_at(where, index));
+        ctx.out.write("You got the %s.", itm.friendly_name(ctx));
+        subject.get_item(current_map.remove_item_at(where, index));
+        set_command_result(commands, get_item_result::ok);
     });
 
-    auto ctx = make_context();
-    command_translator_.push_handler(make_item_list(ctx, inventory_, *pile, "Get which item?"));
+    commands.push_handler(make_item_list(ctx, imenu, *pile, "Get which item?"));
+    return get_item_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -600,11 +824,9 @@ void bkrl::game::do_wait(int const turns)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_move(bklib::ivec3 const v)
 {
-    auto ctx = make_context();
-
     auto const p = get_player().position();
 
-    auto const ok = move_by(ctx, get_player(), current_map(), bklib::truncate<2>(v));
+    auto const ok = move_by(ctx_, get_player(), current_map(), bklib::truncate<2>(v));
     if (!ok) {
         return;
     }
@@ -618,7 +840,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 
     if (auto const pile = current_map().items_at(q)) {
         for (auto const& i : *pile) {
-            display_message("You see here %s.", i.friendly_name(ctx));
+            display_message("You see here %s.", i.friendly_name(ctx_));
         }
     }
 }
@@ -637,56 +859,55 @@ void bkrl::game::on_show_inventory()
     inventory_.show(visible);
 
     if (visible) {
-        do_show_inventory();
+        show_inventory(ctx_, get_player(), inventory_, command_translator_);
     }
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_show_inventory()
+bkrl::show_inventory_result_t bkrl::show_inventory(
+    context&            ctx
+  , creature&           subject
+  , inventory&          imenu
+  , command_translator& commands
+)
 {
-    inventory_.on_action([this](inventory::action const type, int const i) {
+    auto& items = subject.item_list();
+    if (items.empty()) {
+        ctx.out.write("You have no items.");
+        return show_inventory_result::no_items;
+    }
+
+    imenu.on_action([&](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
-            inventory_.show(false);
-            command_translator_.pop_handler(); //TODO
+            imenu.show(false);
+            commands.pop_handler(); //TODO
         };
 
         if (i < 0 || type == inventory::action::cancel) {
+            set_command_result(commands, show_inventory_result::canceled);
             return;
         }
 
-        auto& itm = from_inventory_data(inventory_.data()).first;
+        close.dismiss();
 
-        switch (type) {
-        case inventory::action::confirm: {
-            close.dismiss();
+        auto& itm = from_inventory_data(imenu.data()).first;
 
-            auto ctx = make_context();
-            display_message("You chose the %d%s item -- %s"
+        if (type == inventory::action::confirm) {
+            ctx.out.write("You chose the %d%s item -- %s"
               , i + 1
               , bklib::oridinal_suffix(i + 1).data()
               , itm.friendly_name(ctx));
+        } else if (type == inventory::action::equip) {
+            set_command_result(commands, equip_item(ctx, subject, itm));
+        } else {
+            return;
+        }
 
-            break;
-        }
-        case inventory::action::equip: {
-            close.dismiss();
-            do_equip_item(itm);
-
-            break;
-        }
-        case inventory::action::select:
-            close.dismiss();
-            break;
-        case inventory::action::cancel: BK_FALLTHROUGH
-        default:
-            break;
-        }
+        set_command_result(commands, show_inventory_result::ok);
     });
 
-    auto const& player = get_player();
-    auto ctx = make_context();
-
-    command_translator_.push_handler(make_item_list(ctx, inventory_, player.item_list(), "Items"));
+    commands.push_handler(make_item_list(ctx, imenu, items, "Items"));
+    return show_inventory_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -701,14 +922,19 @@ void bkrl::game::do_show_equipment()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::do_equip_item(item& i)
-{
-    auto ctx = make_context();
-
-    auto& eq = get_player().equip_list();
-    auto const result = eq.equip(i);
-
+bkrl::equip_item_result_t bkrl::equip_item(
+    context&  ctx
+  , creature& subject
+  , item&     itm
+) {
     using status_t = equipment::result_t::status_t;
+
+    if (!subject.has_item(itm)) {
+        return bkrl::equip_result_t::not_held;
+    }
+
+    auto& eq = subject.equip_list();
+    auto const result = subject.equip_item(itm);
 
     auto flags = item::format_flags {};
     flags.definite = true;
@@ -747,13 +973,13 @@ void bkrl::game::do_equip_item(item& i)
     };
 
     auto const iname = [&] {
-        return i.friendly_name(ctx, flags);
+        return itm.friendly_name(ctx, flags);
     };
 
     switch (result.status) {
     case status_t::ok:
         out.write("You equip {}.", iname());
-        print_slots(eq.where(i));
+        print_slots(eq.where(itm));
         break;
     case status_t::not_equippable:
         flags.capitalize = true;
@@ -762,14 +988,14 @@ void bkrl::game::do_equip_item(item& i)
     case status_t::slot_occupied:
         flags.capitalize = true;
         out.write("{} can't be equipped.", iname());
-        print_slots(static_cast<item_slots>(result));
+        print_slots(result.slots());
         break;
     case status_t::slot_not_present:
         out.write("You can't seem to find an appropriate place to equip %s.", iname());
         break;
     case status_t::already_equipped: {
         out.write("You already have {} equipped.", iname());
-        print_slots(eq.where(i));
+        print_slots(eq.where(itm));
         break;
     }
     case status_t::slot_empty: BK_FALLTHROUGH
@@ -777,7 +1003,8 @@ void bkrl::game::do_equip_item(item& i)
         break;
     }
 
-    display_message(out.c_str());
+    ctx.out.write(out.c_str());
+    return result.status;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -812,9 +1039,11 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
     case command_type::dir_down:
         on_move(direction_vector(cmd.type));
         break;
-    case command_type::open: BK_FALLTHROUGH
+    case command_type::open:
+        on_open();
+        break;
     case command_type::close:
-        on_open_close(cmd.type);
+        on_close();
         break;
     case command_type::quit:
         on_quit();
@@ -839,6 +1068,64 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::game::on_command_result(command_type const cmd, size_t const data)
+{
+    switch (cmd) {
+    case command_type::none:    break;
+    case command_type::raw:     break;
+    case command_type::text:    break;
+    case command_type::confirm: break;
+    case command_type::invalid: break;
+    case command_type::scroll:  break;
+    case command_type::cancel:  break;
+    case command_type::yes:     break;
+    case command_type::no:      break;
+    case command_type::use:     break;
+    case command_type::zoom:    break;
+    case command_type::dir_here:   BK_FALLTHROUGH
+    case command_type::dir_north:  BK_FALLTHROUGH
+    case command_type::dir_south:  BK_FALLTHROUGH
+    case command_type::dir_east:   BK_FALLTHROUGH
+    case command_type::dir_west:   BK_FALLTHROUGH
+    case command_type::dir_n_west: BK_FALLTHROUGH
+    case command_type::dir_n_east: BK_FALLTHROUGH
+    case command_type::dir_s_west: BK_FALLTHROUGH
+    case command_type::dir_s_east: BK_FALLTHROUGH
+    case command_type::dir_up:     BK_FALLTHROUGH
+    case command_type::dir_down:
+        break;
+    case command_type::open:
+        if (static_cast<open_result>(data) == open_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::close:
+        if (static_cast<close_result>(data) == close_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::quit:
+        break;
+    case command_type::get:
+        if (static_cast<get_item_result>(data) == get_item_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::drop:
+        if (static_cast<drop_item_result>(data) == drop_item_result::ok) {
+            advance();
+        }
+        break;
+    case command_type::show_equipment:
+        break;
+    case command_type::show_inventory:
+        break;
+    default:
+        break;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::context bkrl::game::make_context()
 {
     return {random_, definitions_, output_, item_factory_, creature_factory_};
@@ -850,8 +1137,6 @@ void bkrl::game::debug_print(int const mx, int const my)
     if (!system_.current_key_mods().test(key_mod::shift)) {
         return;
     }
-
-    auto ctx = const_cast<game*>(this)->make_context();
 
     bklib::ipoint2 const p {mx, my};
 
@@ -875,7 +1160,7 @@ void bkrl::game::debug_print(int const mx, int const my)
     if (auto const& ip = current_map().items_at(p)) {
         str << fmt::sprintf("\nItem(s)");
         for (auto const& i : *ip) {
-            str << fmt::sprintf("\n  %s", i.friendly_name(ctx));
+            str << fmt::sprintf("\n  %s", i.friendly_name(ctx_));
         }
     }
 
@@ -904,4 +1189,38 @@ bkrl::map const& bkrl::game::current_map() const noexcept
 {
     BK_PRECONDITION(current_map_);
     return *current_map_;
+}
+
+namespace {
+template <typename T>
+inline void set_command_result(bkrl::command_translator& commands, bkrl::command_type const cmd, T const result)
+{
+    static_assert(std::is_enum<T>::value, "");
+    static_assert(sizeof(T) <= sizeof(size_t), "");
+    commands.on_command_result(cmd, static_cast<size_t>(result));
+}
+} //namespace
+
+void bkrl::set_command_result(command_translator & commands, get_item_result const result) {
+    ::set_command_result(commands, command_type::get, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, drop_item_result const result) {
+    ::set_command_result(commands, command_type::drop, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, show_inventory_result const result) {
+    ::set_command_result(commands, command_type::show_inventory, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, open_result const result) {
+    ::set_command_result(commands, command_type::open, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, close_result const result) {
+    ::set_command_result(commands, command_type::close, result);
+}
+
+void bkrl::set_command_result(command_translator & commands, equip_result_t const result) {
+    ::set_command_result(commands, command_type::show_equipment, result);
 }

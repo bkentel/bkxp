@@ -12,6 +12,9 @@ template <typename T>
 struct flag_set_base {
     static_assert(std::is_unsigned<T>::value, "");
 
+    flag_set_base() = default;
+    flag_set_base(T const value) noexcept : flags {value_of(value)} {}
+
     static constexpr T value_of(T const flag) noexcept {
         return T {1} << flag;
     }
@@ -84,6 +87,9 @@ struct flag_set {
     using type = std::underlying_type_t<Enum>;
 
     static constexpr auto bits = sizeof(type) * 8;
+
+    flag_set() = default;
+    flag_set(Enum const flag) noexcept : value {value_of(flag)} {}
 
     static constexpr type value_of(Enum const flag) noexcept {
         return static_cast<type>(flag);

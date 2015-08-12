@@ -104,6 +104,7 @@
     <ClCompile Include="test\creature_test.cpp" />
     <ClCompile Include="test\door_test.cpp" />
     <ClCompile Include="test\equip_test.cpp" />
+    <ClCompile Include="test\game_test.cpp" />
     <ClCompile Include="test\inventory_test.cpp" />
     <ClCompile Include="test\item_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />

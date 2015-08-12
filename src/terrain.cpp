@@ -114,3 +114,22 @@ uint64_t bkrl::door::to_data() const noexcept
     uint64_t result;
     return bklib::pseudo_cast(data, result);
 }
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::is_door(terrain_entry const& ter, door::state const state) noexcept
+{
+    if (ter.type != terrain_type::door) {
+        return false;
+    }
+
+    door const d {ter};
+
+    switch (state) {
+    case door::state::open :   return d.is_open();
+    case door::state::closed : return d.is_closed();
+    default:
+        break;
+    }
+
+    return false;
+}

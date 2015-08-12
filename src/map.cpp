@@ -95,23 +95,29 @@ public:
         update_pos_(item_data_, from, to);
     }
 
-    void update_or_add(item_def const& idef, point_t const p) {
+    void update_or_add(item_def const* idef, point_t const p) {
+        constexpr uint16_t const fallback_symbol = '?';
+        color4 const fallback_color = make_color(255, 0, 255);
+
         item_render_data_t data {
             static_cast<int16_t>(x(p))
           , static_cast<int16_t>(y(p))
-          , static_cast<uint16_t>(idef.symbol[0])
-          , get_color_(idef)
+          , static_cast<uint16_t>(idef ? idef->symbol[0] : fallback_symbol)
+          , idef ? get_color_(*idef) : fallback_color
         };
 
         update_or_add_(item_data_, p, std::move(data));
     }
 
-    void update_or_add(creature_def const& cdef, point_t const p) {
+    void update_or_add(creature_def const* cdef, point_t const p) {
+        constexpr uint16_t const fallback_symbol = '?';
+        color4 const fallback_color = make_color(255, 0, 255);
+
         creature_render_data_t data {
             static_cast<int16_t>(x(p))
           , static_cast<int16_t>(y(p))
-          , static_cast<uint16_t>(cdef.symbol[0])
-          , get_color_(cdef)
+          , static_cast<uint16_t>(cdef ? cdef->symbol[0] : fallback_symbol)
+          , cdef ? get_color_(*cdef) : fallback_color
         };
 
         update_or_add_(creature_data_, p, std::move(data));
@@ -345,7 +351,7 @@ bkrl::item_pile* bkrl::map::place_item_at(
     }();
 
     pile.insert(std::move(itm));
-    render_data_->update_or_add(def, p);
+    render_data_->update_or_add(&def, p);
 
     return &pile;
 }
@@ -363,9 +369,8 @@ bkrl::item_pile* bkrl::map::place_items_at(definitions const& defs, item_pile&& 
     }
 
     auto const maybe_idef = defs.find(pile.begin()->def());
-    BK_PRECONDITION(maybe_idef);
 
-    render_data_->update_or_add(*maybe_idef, p);
+    render_data_->update_or_add(maybe_idef, p);
     return &items_.insert(p, std::move(pile));
 }
 
@@ -379,7 +384,7 @@ void bkrl::map::place_creature_at(
     BK_PRECONDITION(!creature_at(p));
 
     creatures_.insert(p, std::move(c));
-    render_data_->update_or_add(def, p);
+    render_data_->update_or_add(&def, p);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -595,4 +600,20 @@ bool bkrl::can_place_at(map const& m, bklib::ipoint2 const p, item const& i)
 void bkrl::advance(context& ctx, map& m)
 {
     m.advance(ctx);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::set_door_state(map& m, bklib::ipoint2 const p, door::state const state)
+{
+    auto& ter = m.at(p);
+    door d {ter};
+
+    if (!d.set_open_close(state)) {
+        return false;
+    }
+
+    ter = d;
+    m.update_render_data(p);
+
+    return true;
 }

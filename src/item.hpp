@@ -4,6 +4,7 @@
 #include "random.hpp"
 #include "definitions.hpp"
 
+#include "bklib/algorithm.hpp"
 #include "bklib/assert.hpp"
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
@@ -192,6 +193,28 @@ public:
     decltype(auto) begin()       { return std::begin(items_); }
     decltype(auto) end()         { return std::end(items_); }
 
+    item const& advance(int const n) const noexcept {
+        return const_cast<item_pile*>(this)->advance(n);
+    }
+
+    item& advance(int const n) noexcept {
+        return *std::next(items_.begin(), n);
+    }
+
+    item const* checked_advance(int const n) const noexcept {
+        auto it   = items_.begin();
+        auto last = items_.end();
+        for (int i = 0; i < n; ++i) {
+            if (it == last) {
+                break;
+            }
+
+            ++it;
+        }
+
+        return (it != last) ? &*it : nullptr;
+    }
+
     void move_items_to(item_pile& dst) {
         dst.items_.splice_after(dst.items_.before_begin(), items_);
     }
@@ -237,6 +260,23 @@ void visit_tags(item_def const& def, Visitor&& visitor) {
     for (auto const& tag : def.tags) {
         visitor(tag);
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_by_id(instance_id_t<tag_item> const id) noexcept {
+    return [id](item const& i) { return id == i.id(); };
+}
+
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_by_flag(item_flag const flag) noexcept {
+    return [flag](item const& i) { return i.flags().test(flag); };
+}
+
+//--------------------------------------------------------------------------------------------------
+inline decltype(auto) find_container() noexcept {
+    return [](item_pile const& pile) noexcept {
+        return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
+    };
 }
 
 } //namespace bkrl

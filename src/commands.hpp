@@ -93,6 +93,14 @@ command_raw_t get_command_data(command const cmd) noexcept {
     };
 }
 
+inline command make_command(command_raw_t const raw) noexcept {
+    return {
+        command_type::raw
+      , raw.virtual_key
+      , *reinterpret_cast<intptr_t const*>(&raw.mods)
+    };
+}
+
 template <command_type Type, std::enable_if_t<Type == command_type::text>* = nullptr>
 bklib::utf8_string_view get_command_data(command const cmd) noexcept {
     return {
@@ -128,6 +136,12 @@ public:
     void on_mouse_down(int x, int y, int button);
     void on_mouse_up(int x, int y, int button);
     void on_text(bklib::utf8_string_view str);
+
+    void send_command(command cmd);
+
+    using command_result_handler_t = std::function<void (command_type, size_t data)>;
+    void set_command_result_handler(command_result_handler_t handler);
+    void on_command_result(command_type command, size_t data);
 private:
     std::unique_ptr<detail::command_translator_impl> impl_;
 };
@@ -141,6 +155,10 @@ void query_yn(command_translator& translator, Handler&& handler) {
 
     translator.push_handler([h = std::move(handler)](command const& cmd) {
         auto const type = cmd.type;
+        if (type == ct::raw || type == ct::text) {
+            return command_handler_result::capture;
+        }
+
         return h(type == ct::yes || type == ct::no || type == ct::cancel
             ? type : ct::invalid);
     });
@@ -155,6 +173,10 @@ void query_dir(command_translator& translator, Handler&& handler) {
 
     translator.push_handler([h = std::move(handler)](command const& cmd) {
         auto const type = cmd.type;
+        if (type == ct::raw || type == ct::text) {
+            return command_handler_result::capture;
+        }
+
         return h(type == ct::dir_up     || type == ct::dir_down  || type == ct::cancel
               || type == ct::dir_n_west || type == ct::dir_north || type == ct::dir_n_east
               || type == ct::dir_west   || type == ct::dir_here  || type == ct::dir_east

@@ -254,12 +254,33 @@ using base_type_of_t = std::remove_const_t<
     >
 >;
 
+static constexpr int const x_off[] = {-1,  0,  1, -1,  1, -1,  0,  1, 0};
+static constexpr int const y_off[] = {-1, -1, -1,  0,  0,  1,  1,  1, 0};
+
 struct find_around_result {
     explicit operator bool() const noexcept { return count > 0; }
 
     int                 count; //!< number of results found.
     bklib::ipoint2      p;     //!< position of the last match.
     std::array<bool, 9> valid; //!<
+
+    static int index_of(bklib::ivec2 const v) noexcept {
+        auto const xi = x(v);
+        auto const yi = y(v);
+
+        for (auto i = 0u; i < 9u; ++i) {
+            if (x_off[i] == xi && y_off[i] == yi) {
+                return static_cast<int>(i);
+            }
+        }
+
+        return -1;
+    }
+
+    bool is_valid(bklib::ivec2 const v) const noexcept {
+        auto const i = index_of(v);
+        return i > 0 ? valid[static_cast<size_t>(i)] : false;
+    }
 };
 
 //----------------------------------------------------------------------------------------------
@@ -267,16 +288,44 @@ struct find_around_result {
 template <typename Map, typename Predicate>
 find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred)
 {
-    constexpr int const dx[] = {-1,  0,  1, -1,  1, -1,  0,  1, 0};
-    constexpr int const dy[] = {-1, -1, -1,  0,  0,  1,  1,  1, 0};
-
     find_around_result result {};
 
     auto const bounds = m.bounds();
 
     for (auto i = 0u; i < 9u; ++i) {
-        auto const q = p + bklib::ivec2 {dx[i], dy[i]};
+        auto const q = p + bklib::ivec2 {x_off[i], y_off[i]};
         if (!bklib::intersects(q, bounds) || !pred(m.at(q))) {
+            continue;
+        }
+
+        ++result.count;
+        result.p = q;
+        result.valid[i] = true;
+    }
+
+    return result;
+}
+
+template <typename Map, typename Predicate>
+find_around_result find_items_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred)
+{
+    find_around_result result {};
+
+    auto const bounds = m.bounds();
+
+    for (auto i = 0u; i < 9u; ++i) {
+        auto const q = p + bklib::ivec2 {x_off[i], y_off[i]};
+
+        if (!bklib::intersects(q, bounds)) {
+            continue;
+        }
+
+        auto* const pile = m.items_at(q);
+        if (!pile) {
+            continue;
+        }
+
+        if (!pred(*pile)) {
             continue;
         }
 
@@ -294,13 +343,10 @@ find_around_result find_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred
 template <typename Map, typename Predicate>
 placement_result_t find_first_around(Map&& m, bklib::ipoint2 const p, Predicate&& pred)
 {
-    constexpr int const dx[] = {0, -1,  0,  1, -1,  1, -1,  0,  1};
-    constexpr int const dy[] = {0, -1, -1, -1,  0,  0,  1,  1,  1};
-
     auto const bounds = m.bounds();
 
     for (auto i = 0u; i < 9u; ++i) {
-        auto const q = p + bklib::ivec2 {dx[i], dy[i]};
+        auto const q = p + bklib::ivec2 {x_off[i], y_off[i]};
         if (!bklib::intersects(q, bounds)) {
             continue;
         }
@@ -340,6 +386,11 @@ item_pile* with_pile_at(definitions const& defs, Map&& m, bklib::ipoint2 const p
     f(pile);
     return m.place_items_at(defs, std::move(pile), p);
 }
+
+//--------------------------------------------------------------------------------------------------
+//! Update the state of a door at p.
+//--------------------------------------------------------------------------------------------------
+bool set_door_state(map& m, bklib::ipoint2 p, door::state state);
 
 //----------------------------------------------------------------------------------------------
 //! @pre @p p lies within the bounds of the map @p m

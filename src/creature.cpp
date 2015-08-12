@@ -123,6 +123,26 @@ void bkrl::creature::drop_items(item_pile& dst)
 }
 
 //--------------------------------------------------------------------------------------------------
+bkrl::equipment::result_t bkrl::creature::equip_item(item& i)
+{
+    BK_PRECONDITION(has_item(i));
+    return equip_list().equip(i);
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::equipment::result_t bkrl::creature::equip_item(int const index)
+{
+    BK_PRECONDITION(!!item_list().checked_advance(index));
+    return equip_list().equip(item_list().advance(index));
+}
+
+//--------------------------------------------------------------------------------------------------
+bool bkrl::creature::has_item(item const& i) const
+{
+    return !!bklib::find_maybe(items_, find_by_id(i.id()));
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature::creature(
     instance_id_t<tag_creature> const  id
   , creature_def                const& def
