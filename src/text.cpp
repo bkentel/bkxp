@@ -325,9 +325,10 @@ void bkrl::text_layout::set_text(
 
             auto const n = data_.size();
 
-            if (break_candidate != break_last // mid-word break
-             && break_candidate != n          // break at a candidate
-            ) {
+            bool const is_mid_word     = (break_candidate == break_last); // mid-word break
+            bool const is_at_candidate = (break_candidate == n);          // break at a candidate
+
+            if (!is_mid_word && !is_at_candidate) {
                 // break after a candidate -- shift and move down the spill-over
                 auto const first = break_candidate;
                 auto const dx = data_[first].dst_x;
@@ -345,7 +346,9 @@ void bkrl::text_layout::set_text(
 
             if (c == '\n' || c == ' ') {
                 break_candidate = ++break_last;
-                continue;
+                if (is_mid_word) {
+                    continue;
+                }
             }
         }
 
@@ -420,4 +423,29 @@ bklib::irect bkrl::text_layout::bounds() const noexcept
     auto const max_y  = (h_ == unlimited) ? std::numeric_limits<size_type>::max() : y_ + h_;
 
     return {x_, y_, max_x, max_y};
+}
+
+//--------------------------------------------------------------------------------------------------
+bkrl::text_layout::size_type
+bkrl::text_layout::glyphs_at_line(int const i) const noexcept
+{
+    auto const next = [](auto const first, auto const last, size_type const y) noexcept {
+        return std::find_if_not(first, last, [y](auto const& glyph) { return glyph.dst_y == y; });
+    };
+
+    auto const line_begin = [next, i](auto it, auto const last, size_type y) noexcept {
+        int line = 0;
+
+        while (line++ < i && it != last) {
+            y  = it->dst_y;
+            it = next(++it, last, y);
+        }
+
+        return it;
+    };
+
+    auto const last  = end(data_);
+    auto const first = line_begin(begin(data_), last, 0);
+
+    return (first != last) ? static_cast<size_type>(std::distance(first, next(first, last, first->dst_y))) : 0;
 }

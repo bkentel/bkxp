@@ -196,6 +196,20 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 1);
     }
+
+    SECTION("complex wrapping (bug related case)") {
+        constexpr auto const str = bklib::make_string_view(
+            "You already have the <color=gy>torn rags</color> equipped. Your <color=r>torso</color> is occupied by a <color=gy>torn rags</color>."
+        );
+
+        bkrl::text_layout layout {trender, str, 0, 0, 640, 180};
+
+        auto const lines = layout.extent().height() / trender.line_spacing();
+        REQUIRE(lines == 3);
+        REQUIRE(layout.glyphs_at_line(0) == 31);
+        REQUIRE(layout.glyphs_at_line(1) == 33);
+        REQUIRE(layout.glyphs_at_line(2) == 15);
+    }
 }
 
 #endif // BK_NO_UNIT_TESTS

@@ -71,6 +71,8 @@ public:
 
     bklib::irect extent() const noexcept;
     bklib::irect bounds() const noexcept;
+
+    size_type glyphs_at_line(int i) const noexcept;
 private:
     struct render_info {
         size_type src_x;
