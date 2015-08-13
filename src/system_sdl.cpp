@@ -121,8 +121,10 @@ private:
 //--------------------------------------------------------------------------------------------------
 class bkrl::system_sdl_impl final : public system {
 public:
+    //----------------------------------------------------------------------------------------------
     virtual ~system_sdl_impl();
 
+    //----------------------------------------------------------------------------------------------
     system_sdl_impl() {
         on_window_resize = [](int, int) { };
         on_text_input    = [](bklib::utf8_string_view const&) { };
@@ -140,6 +142,7 @@ public:
         return x(client_size_());
     }
 
+    //----------------------------------------------------------------------------------------------
     int client_height() const noexcept override final {
         return y(client_size_());
     }
@@ -157,6 +160,7 @@ public:
     //----------------------------------------------------------------------------------------------
     void do_events_nowait() override final { do_events_(false); }
 
+    //----------------------------------------------------------------------------------------------
     void do_events_wait() override final { do_events_(true); }
 
     //----------------------------------------------------------------------------------------------
@@ -169,6 +173,7 @@ public:
     sdl_window&       window()       noexcept { return window_; }
     sdl_window const& window() const noexcept { return window_; }
 private:
+    //----------------------------------------------------------------------------------------------
     bklib::ipoint2 client_size_() const noexcept {
         int w {0};
         int h {0};
@@ -178,15 +183,17 @@ private:
         return {w, h};
     }
 
+    //----------------------------------------------------------------------------------------------
     void do_events_(bool wait);
 
+    //----------------------------------------------------------------------------------------------
     void handle_keyboard_(SDL_KeyboardEvent const& event);
     void handle_mouse_motion_(SDL_MouseMotionEvent const& event);
     void handle_mouse_wheel_(SDL_MouseWheelEvent const& event);
     void handle_mouse_button_(SDL_MouseButtonEvent const& event);
     void handle_window_(SDL_WindowEvent const& event);
     void handle_text_input_(SDL_TextInputEvent const& event);
-
+private:
     sdl_state   sdl_ {};
     sdl_window  window_ {};
     mouse_state last_mouse_ {};
@@ -198,6 +205,7 @@ private:
 //--------------------------------------------------------------------------------------------------
 class bkrl::renderer_sdl_impl final : public renderer {
 public:
+    //----------------------------------------------------------------------------------------------
     void clear_clip_region() override final {
         if (SDL_RenderSetClipRect(handle(), nullptr)) {
             BOOST_THROW_EXCEPTION(bklib::platform_error {}
@@ -205,41 +213,49 @@ public:
         }
     }
 
-    void set_clip_region(rect_t r) override final {
+    //----------------------------------------------------------------------------------------------
+    void set_clip_region(rect_t const r) override final {
         if (SDL_RenderSetClipRect(handle(), reinterpret_cast<SDL_Rect const*>(&r))) {
             BOOST_THROW_EXCEPTION(bklib::platform_error {}
               << boost::errinfo_api_function {"SDL_RenderSetClipRect"});
         }
     }
 
+    //----------------------------------------------------------------------------------------------
     rect_t get_clip_region() override final {
         rect_t result;
         SDL_RenderGetClipRect(handle(), reinterpret_cast<SDL_Rect*>(&result));
         return result;
     }
 
-    void set_scale(double sx, double sy) override final {
+    //----------------------------------------------------------------------------------------------
+    void set_scale(double const sx, double const sy) override final {
         sx_ = sx;
         sy_ = sy;
     }
 
-    void set_scale(double scale) override final {
+    //----------------------------------------------------------------------------------------------
+    void set_scale(double const scale) override final {
         set_scale(scale, scale);
     }
 
-    void set_translation(double dx, double dy) override final {
+    //----------------------------------------------------------------------------------------------
+    void set_translation(double const dx, double const dy) override final {
         tx_ = dx;
         ty_ = dy;
     }
 
+    //----------------------------------------------------------------------------------------------
     bklib::point_t<2, double> get_scale() const override final {
         return {sx_, sy_};
     }
 
+    //----------------------------------------------------------------------------------------------
     bklib::point_t<2, double> get_translation() const override final {
         return {tx_, ty_};
     }
 
+    //----------------------------------------------------------------------------------------------
     void clear() override final {
         if (SDL_SetRenderDrawColor(handle(), 255, 0, 0, 255)) {
             BOOST_THROW_EXCEPTION(bklib::platform_error {}
@@ -252,16 +268,42 @@ public:
         }
     }
 
+    //----------------------------------------------------------------------------------------------
     void present() override final {
         SDL_RenderPresent(handle());
     }
 
-    void set_active_texture(texture) override final { }
+    //----------------------------------------------------------------------------------------------
+    void set_active_texture(texture const) override final { }
 
-    void draw_filled_rect(rect_t r) override final { }
-    void draw_filled_rect(rect_t r, color4 c) override final { }
+    //----------------------------------------------------------------------------------------------
+    void draw_filled_rect(rect_t const r) override final {
+        SDL_Rect const r0 = convert_rect(r);
+        if (SDL_RenderFillRect(handle(), &r0)) {
+            BOOST_THROW_EXCEPTION(bklib::platform_error {}
+              << boost::errinfo_api_function {"SDL_RenderFillRect"});
+        }
+    }
 
-    void draw_cell(int cell_x, int cell_y, int tile_index) override final {
+    //----------------------------------------------------------------------------------------------
+    void draw_filled_rect(rect_t const r, color4 const c) override final {
+        auto const h = handle();
+
+        if (c[3] != 0xFF && SDL_SetRenderDrawBlendMode(h, SDL_BlendMode::SDL_BLENDMODE_BLEND)) {
+            BOOST_THROW_EXCEPTION(bklib::platform_error {}
+              << boost::errinfo_api_function {"SDL_SetRenderDrawBlendMode"});
+        }
+
+        if (SDL_SetRenderDrawColor(h, c[0], c[1], c[2], c[3])) {
+            BOOST_THROW_EXCEPTION(bklib::platform_error {}
+              << boost::errinfo_api_function {"SDL_SetRenderDrawColor"});
+        }
+
+        draw_filled_rect(r);
+    }
+
+    //----------------------------------------------------------------------------------------------
+    void draw_cell(int const cell_x, int const cell_y, int const tile_index) override final {
         auto const r = tile_tilemap_.get_bounds(tile_index);
         auto const w = tile_tilemap_.tile_w();
         auto const h = tile_tilemap_.tile_h();
@@ -272,7 +314,10 @@ public:
         render_copy(tile_texture_, src, dst);
     }
 
-    void draw_cell(int cell_x, int cell_y, int tile_index, color4 color) override final {
+    //----------------------------------------------------------------------------------------------
+    void draw_cell(int const cell_x, int const cell_y
+                 , int const tile_index, const color4 color
+    ) override final {
         auto const tex_handle = tile_texture_.handle();
 
         color4 const old = [tex_handle] {
@@ -289,18 +334,12 @@ public:
         draw_cell(cell_x, cell_y, tile_index);
     }
 
-    void draw_rect(rect_t src, rect_t dst) override final {
-        static_assert(sizeof(rect_t) == sizeof(SDL_Rect), "");
-        static_assert(alignof(rect_t) == alignof(SDL_Rect), "");
-        static_assert(std::is_pod<rect_t>::value, "");
-        static_assert(std::is_pod<SDL_Rect>::value, "");
-
-        render_copy(tile_texture_
-            , reinterpret_cast<SDL_Rect const&>(src)
-            , reinterpret_cast<SDL_Rect const&>(dst)
-        );
+    //----------------------------------------------------------------------------------------------
+    void draw_rect(rect_t const src, rect_t const dst) override final {
+        render_copy(tile_texture_, convert_rect(src), convert_rect(dst));
     }
 
+    //----------------------------------------------------------------------------------------------
     void draw_cells(
         int xoff, int yoff
       , size_t w, size_t h
@@ -309,6 +348,7 @@ public:
       , size_t stride
     ) override final;
 
+    //----------------------------------------------------------------------------------------------
     void draw_rects(
         int xoff, int yoff
       , size_t count
@@ -319,6 +359,7 @@ public:
       , size_t stride
     ) override final;
 public:
+    //----------------------------------------------------------------------------------------------
     explicit renderer_sdl_impl(system_sdl_impl& sys)
       : handle_       {create_(sys.window())}
       , tile_texture_ {*this, "data/tiles.bmp"}
@@ -326,12 +367,15 @@ public:
     {
     }
 
+    //----------------------------------------------------------------------------------------------
     virtual ~renderer_sdl_impl();
 
+    //----------------------------------------------------------------------------------------------
     SDL_Renderer* handle()       noexcept { return handle_.get(); }
     SDL_Renderer* handle() const noexcept { return handle_.get(); }
 
-    void render_copy(sdl_texture const& texture, SDL_Rect src, SDL_Rect dst) {
+    //----------------------------------------------------------------------------------------------
+    void render_copy(sdl_texture const& texture, SDL_Rect const src, SDL_Rect dst) {
         dst.x = bklib::floor_to<int>(dst.x * sx_ + tx_);
         dst.y = bklib::floor_to<int>(dst.y * sy_ + ty_);
         dst.w = bklib::ceil_to<int>(dst.w * sx_);
@@ -342,31 +386,10 @@ public:
               << boost::errinfo_api_function {"SDL_RenderCopy"});
         }
     }
-
-    void render_fill_rect(int x, int y, int w, int h) {
-        SDL_Rect const r {x, y, w, h};
-        if (SDL_RenderFillRect(handle(), &r)) {
-            BOOST_THROW_EXCEPTION(bklib::platform_error {}
-              << boost::errinfo_api_function {"SDL_RenderFillRect"});
-        }
-    }
-
-    void render_fill_rect(int x, int y, int w, int h, color4 c) {
-        if (c[3] != 0xFF && SDL_SetRenderDrawBlendMode(handle(), SDL_BlendMode::SDL_BLENDMODE_BLEND)) {
-            BOOST_THROW_EXCEPTION(bklib::platform_error {}
-              << boost::errinfo_api_function {"SDL_SetRenderDrawBlendMode"});
-        }
-
-        if (SDL_SetRenderDrawColor(handle(), c[0], c[1], c[2], c[3])) {
-            BOOST_THROW_EXCEPTION(bklib::platform_error {}
-              << boost::errinfo_api_function {"SDL_SetRenderDrawColor"});
-        }
-
-        render_fill_rect(x, y, w, h);
-    }
 private:
     using handle_t = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
 
+    //----------------------------------------------------------------------------------------------
     static handle_t create_(sdl_window const& w) {
         auto const result = SDL_CreateRenderer(w.handle(), -1, SDL_RENDERER_ACCELERATED);
 
@@ -378,11 +401,22 @@ private:
         return handle_t(result, &SDL_DestroyRenderer);
     }
 
+    //----------------------------------------------------------------------------------------------
     static tilemap make_tilemap_(sdl_texture const& tex) {
         auto const size = tex.get_size(tex);
         return {18, 18, size.first, size.second};
     }
 
+    //----------------------------------------------------------------------------------------------
+    inline static SDL_Rect convert_rect(rect_t const r) noexcept {
+        static_assert(sizeof(rect_t) == sizeof(SDL_Rect), "");
+        static_assert(alignof(rect_t) == alignof(SDL_Rect), "");
+        static_assert(std::is_pod<rect_t>::value, "");
+        static_assert(std::is_pod<SDL_Rect>::value, "");
+
+        return *reinterpret_cast<SDL_Rect const*>(&r);
+    }
+private:
     handle_t handle_;
 
     double sx_ = 1.0;
