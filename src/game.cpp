@@ -92,8 +92,8 @@ public:
 private:
     bklib::timer        timer_;
     random_state        random_;
-    system              system_;
-    renderer            renderer_;
+    std::unique_ptr<system>   system_;
+    std::unique_ptr<renderer> renderer_;
     text_renderer       text_renderer_;
     view                view_;
     std::unique_ptr<command_translator> command_translator_;
@@ -110,7 +110,7 @@ private:
 
     std::chrono::high_resolution_clock::time_point last_frame_;
 
-    key_mod_state  prev_key_mods_ = system_.current_key_mods();
+    key_mod_state  prev_key_mods_ = system_->current_key_mods();
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
     bklib::ipoint2 mouse_last_pos_screen_ = bklib::ipoint2 {0, 0};
 
@@ -169,10 +169,10 @@ void bkrl::start_game()
 bkrl::game::game()
   : timer_()
   , random_()
-  , system_()
-  , renderer_(system_)
+  , system_ {make_system()}
+  , renderer_ {make_renderer(*system_)}
   , text_renderer_()
-  , view_(system_.client_width(), system_.client_height(), 18, 18)
+  , view_(system_->client_width(), system_->client_height(), 18, 18)
   , command_translator_ {make_command_translator()}
   , color_dictionary_ {}
   , creature_dictionary_ {}
@@ -215,16 +215,16 @@ bkrl::game::game()
         on_command_result(cmd, data);
     });
 
-    system_.on_window_resize = [&](int const w, int const h) {
+    system_->on_window_resize = [&](int const w, int const h) {
         view_.set_window_size(w, h);
     };
 
-    system_.on_text_input = [&](bklib::utf8_string_view const str) {
+    system_->on_text_input = [&](bklib::utf8_string_view const str) {
         command_translator_->on_text(str);
     };
 
     auto const check_key_mods_changed = [&] {
-        auto const cur = system_.current_key_mods();
+        auto const cur = system_->current_key_mods();
         if (cur == prev_key_mods_) {
             return;
         }
@@ -234,17 +234,17 @@ bkrl::game::game()
         show_inspect_text_ = cur.test(key_mod::shift);
     };
 
-    system_.on_key_up = [&](int const key) {
+    system_->on_key_up = [&](int const key) {
         check_key_mods_changed();
         command_translator_->on_key_up(key, prev_key_mods_);
     };
 
-    system_.on_key_down = [&](int const key) {
+    system_->on_key_down = [&](int const key) {
         check_key_mods_changed();
         command_translator_->on_key_down(key, prev_key_mods_);
     };
 
-    system_.on_mouse_motion = [&](mouse_state const m) {
+    system_->on_mouse_motion = [&](mouse_state const m) {
         if (inventory_.mouse_move(m)) {
             return;
         }
@@ -256,7 +256,7 @@ bkrl::game::game()
         }
     };
 
-    system_.on_mouse_scroll = [&](mouse_state const m) {
+    system_->on_mouse_scroll = [&](mouse_state const m) {
         if (inventory_.mouse_scroll(m)) {
             return;
         }
@@ -268,15 +268,15 @@ bkrl::game::game()
         }
     };
 
-    system_.on_mouse_button = [&](mouse_button_state const m) {
+    system_->on_mouse_button = [&](mouse_button_state const m) {
         if (inventory_.mouse_button(m)) {
             return;
         }
     };
 
-    system_.on_request_quit = [&] {
+    system_->on_request_quit = [&] {
         on_quit();
-        return !system_.is_running();
+        return !system_->is_running();
     };
 
     ////
@@ -286,8 +286,8 @@ bkrl::game::game()
         message_log_.show(message_log::show_type::less);
     });
 
-    while (system_.is_running()) {
-        system_.do_events_wait();
+    while (system_->is_running()) {
+        system_->do_events_wait();
         timer_.update();
         render();
     }
@@ -332,26 +332,26 @@ void bkrl::game::render(render_type const type)
 
     last_frame_ = now;
 
-    renderer_.clear();
+    renderer_->clear();
 
     auto const scale = view_.get_zoom();
     auto const trans = view_.get_scroll();
 
-    renderer_.set_scale(x(scale), y(scale));
-    renderer_.set_translation(x(trans), y(trans));
+    renderer_->set_scale(x(scale), y(scale));
+    renderer_->set_translation(x(trans), y(trans));
 
-    current_map().draw(renderer_, view_);
+    current_map().draw(*renderer_, view_);
 
-    message_log_.draw(renderer_);
-    inventory_.draw(renderer_);
+    message_log_.draw(*renderer_);
+    inventory_.draw(*renderer_);
 
     if (show_inspect_text_) {
         auto const r = make_renderer_rect(add_border(inspect_text_.extent(), 4));
-        renderer_.draw_filled_rect(r, make_color(200, 200, 200, 200));
-        inspect_text_.draw(renderer_);
+        renderer_->draw_filled_rect(r, make_color(200, 200, 200, 200));
+        inspect_text_.draw(*renderer_);
     }
 
-    renderer_.present();
+    renderer_->present();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -446,7 +446,7 @@ void bkrl::game::do_scroll(double const dx, double const dy)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_quit()
 {
-    system_.quit();
+    system_->quit();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1134,7 +1134,7 @@ bkrl::context bkrl::game::make_context()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::debug_print(int const mx, int const my)
 {
-    if (!system_.current_key_mods().test(key_mod::shift)) {
+    if (!system_->current_key_mods().test(key_mod::shift)) {
         return;
     }
 
@@ -1168,7 +1168,7 @@ void bkrl::game::debug_print(int const mx, int const my)
     inspect_text_.set_position(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
 
     auto const ext = inspect_text_.extent();
-    auto const dr  = system_.client_width() - ext.right;
+    auto const dr  = system_->client_width() - ext.right;
 
     if (dr < 0) {
         inspect_text_.set_position(x(mouse_last_pos_screen_) + dr, y(mouse_last_pos_screen_));

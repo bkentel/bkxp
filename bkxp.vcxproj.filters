@@ -42,9 +42,6 @@
     <ClInclude Include="src\system.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>
-    <ClInclude Include="src\system_sdl.hpp">
-      <Filter>bkrl</Filter>
-    </ClInclude>
     <ClInclude Include="src\map.hpp">
       <Filter>bkrl</Filter>
     </ClInclude>

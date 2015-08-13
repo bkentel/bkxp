@@ -50,7 +50,6 @@
     <ClInclude Include="src\random.hpp" />
     <ClInclude Include="src\renderer.hpp" />
     <ClInclude Include="src\system.hpp" />
-    <ClInclude Include="src\system_sdl.hpp" />
     <ClInclude Include="src\terrain.hpp" />
     <ClInclude Include="src\text.hpp" />
     <ClInclude Include="src\view.hpp" />

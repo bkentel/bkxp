@@ -8,10 +8,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace bkrl {
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class system;
-
-namespace detail { class renderer_impl; }
 
 class tilemap {
 public:
@@ -74,6 +73,9 @@ constexpr inline uint32_t color_code(color4 const c) noexcept {
          | static_cast<uint32_t>(c[3]) << 24;
 }
 
+//--------------------------------------------------------------------------------------------------
+//! ABC for the rendering method.
+//--------------------------------------------------------------------------------------------------
 class renderer {
 public:
     enum class texture {
@@ -85,42 +87,40 @@ public:
         int w, h;
     };
 
-    explicit renderer(system& sys);
-    ~renderer();
+    virtual ~renderer();
 
-    void   clear_clip_region();
-    void   set_clip_region(rect_t r);
-    rect_t get_clip_region();
+    virtual void   clear_clip_region() = 0;
+    virtual void   set_clip_region(rect_t r) = 0;
+    virtual rect_t get_clip_region() = 0;
 
-    void set_scale(double sx, double sy);
-    void set_scale(double scale);
+    virtual void set_scale(double sx, double sy) = 0;
+    virtual void set_scale(double scale) = 0;
+    virtual void set_translation(double dx, double dy) = 0;
 
-    void set_translation(double dx, double dy);
+    virtual bklib::point_t<2, double> get_scale() const = 0;
+    virtual bklib::point_t<2, double> get_translation() const = 0;
 
-    bklib::point_t<2, double> get_scale() const;
-    bklib::point_t<2, double> get_translation() const;
+    virtual void clear() = 0;
+    virtual void present() = 0;
 
-    void clear();
-    void present();
+    virtual void set_active_texture(texture tex) = 0;
 
-    void set_active_texture(texture tex);
+    virtual void draw_filled_rect(rect_t r) = 0;
+    virtual void draw_filled_rect(rect_t r, color4 c) = 0;
+    virtual void draw_cell(int cell_x, int cell_y, int tile_index) = 0;
+    virtual void draw_cell(int cell_x, int cell_y, int tile_index, color4 color) = 0;
 
-    void draw_filled_rect(rect_t r);
-    void draw_filled_rect(rect_t r, color4 c);
-    void draw_cell(int cell_x, int cell_y, int tile_index);
-    void draw_cell(int cell_x, int cell_y, int tile_index, color4 color);
+    virtual void draw_rect(rect_t src, rect_t dst) = 0;
 
-    void draw_rect(rect_t src, rect_t dst);
-
-    void draw_cells(
+    virtual void draw_cells(
         int xoff, int yoff
       , size_t w, size_t h
       , void const* data
       , ptrdiff_t tex_offset, size_t tex_size
       , size_t stride
-    );
+    ) = 0;
 
-    void draw_rects(
+    virtual void draw_rects(
         int xoff, int yoff
       , size_t count
       , void const* data
@@ -128,10 +128,13 @@ public:
       , ptrdiff_t dst_pos_offset, size_t dst_pos_size
       , ptrdiff_t color_offset,   size_t color_size
       , size_t stride
-    );
-private:
-    std::unique_ptr<detail::renderer_impl> impl_;
+    ) = 0;
 };
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+std::unique_ptr<renderer> make_renderer(system& sys);
 
 constexpr inline auto make_renderer_rect(bklib::irect const r) noexcept {
     return renderer::rect_t {r.left, r.top, r.width(), r.height()};
@@ -156,5 +159,6 @@ struct item_render_data_t {
     color4 color;
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
