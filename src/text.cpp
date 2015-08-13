@@ -279,6 +279,9 @@ void bkrl::text_layout::set_text(
         auto beg = text.substr(i, 1);
         auto c   = beg[0];
 
+        //
+        // Process \escape sequences and <tags>
+        //
         switch (c) {
         case '\\':
             std::tie(i, c) = parse_escape(text, i);
@@ -308,8 +311,17 @@ void bkrl::text_layout::set_text(
         auto const w = glyph_info.width();
         auto const h = glyph_info.height();
 
-        // wrap, or move, to next line
-        if (c == '\n' || (x + w > max_x)) {
+        if (c == ' ') {
+            break_candidate = data_.size();
+        }
+
+        auto const is_new_line = (c == '\n');
+        auto const is_too_long = (x + w > max_x);
+
+        //
+        // The line is too long or there is an embedded newline
+        //
+        if (is_new_line || is_too_long) {
             size_type const next_y = y + line_h;
 
             // no vertical space left
@@ -325,12 +337,21 @@ void bkrl::text_layout::set_text(
 
             auto const n = data_.size();
 
+            //
+            // Break the line at the embedded newline
+            //
+            if (is_new_line) {
+                break_last      = n - 1;
+                break_candidate = n;
+                continue;
+            }
+
             bool const is_mid_word     = (break_candidate == break_last); // mid-word break
-            bool const is_at_candidate = (break_candidate == n);          // break at a candidate
+            bool const is_at_candidate = (n - break_candidate <= 1);      // break at a candidate
 
             if (!is_mid_word && !is_at_candidate) {
                 // break after a candidate -- shift and move down the spill-over
-                auto const first = break_candidate;
+                auto const first = break_candidate + 1;
                 auto const dx = data_[first].dst_x;
 
                 for (auto j = first; j < n; ++j) {
@@ -339,21 +360,14 @@ void bkrl::text_layout::set_text(
                 }
 
                 x = data_.back().dst_x + data_.back().src_w;
+            } else if (c == ' ') {
+                break_last      = n;
+                break_candidate = n;
+                continue;
             }
 
             break_last      = n - 1;
-            break_candidate = break_last;
-
-            if (c == '\n' || c == ' ') {
-                break_candidate = ++break_last;
-                if (is_mid_word) {
-                    continue;
-                }
-            }
-        }
-
-        if (c == ' ') {
-            break_candidate = data_.size() + 1;
+            break_candidate = n - 1;
         }
 
         data_.push_back(render_info {

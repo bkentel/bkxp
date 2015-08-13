@@ -142,11 +142,13 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
     SECTION("escaped text") {
         bkrl::text_layout layout {trender, R"(\<not a tag\>)"};
         REQUIRE((layout.extent().width() / x(bbox)) == 11);
+        REQUIRE(layout.glyphs_at_line(0) == 11);
     }
 
     SECTION("colored text") {
         bkrl::text_layout layout {trender, "<color=y>text</color>"};
         REQUIRE((layout.extent().width() / x(bbox)) == 4);
+        REQUIRE(layout.glyphs_at_line(0) == 4);
     }
 
     SECTION("text with embedded newline") {
@@ -155,6 +157,9 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
 
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 3);
+        REQUIRE(layout.glyphs_at_line(0) == 5);
+        REQUIRE(layout.glyphs_at_line(1) == 5);
+        REQUIRE(layout.glyphs_at_line(2) == 5);
     }
 
     SECTION("wrapped text before space") {
@@ -163,6 +168,9 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
 
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 3);
+        REQUIRE(layout.glyphs_at_line(0) == 5);
+        REQUIRE(layout.glyphs_at_line(1) == 5);
+        REQUIRE(layout.glyphs_at_line(2) == 5);
     }
 
     SECTION("wrapped text on space") {
@@ -171,6 +179,9 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
 
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 3);
+        REQUIRE(layout.glyphs_at_line(0) == 6);
+        REQUIRE(layout.glyphs_at_line(1) == 6);
+        REQUIRE(layout.glyphs_at_line(2) == 5);
     }
 
     SECTION("wrapped text after space") {
@@ -179,6 +190,9 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
 
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 3);
+        REQUIRE(layout.glyphs_at_line(0) == 6);
+        REQUIRE(layout.glyphs_at_line(1) == 6);
+        REQUIRE(layout.glyphs_at_line(2) == 5);
     }
 
     SECTION("wrapped text after space, mid-tag") {
@@ -207,8 +221,8 @@ TEST_CASE("text rendering", "[text][graphics][bkrl]") {
         auto const lines = layout.extent().height() / trender.line_spacing();
         REQUIRE(lines == 3);
         REQUIRE(layout.glyphs_at_line(0) == 31);
-        REQUIRE(layout.glyphs_at_line(1) == 33);
-        REQUIRE(layout.glyphs_at_line(2) == 15);
+        REQUIRE(layout.glyphs_at_line(1) == 35);
+        REQUIRE(layout.glyphs_at_line(2) == 12);
     }
 }
 
