@@ -117,4 +117,46 @@ TEST_CASE("intersections", "[bklib][math]") {
     //TODO more tests
 }
 
+TEST_CASE("move_rect_inside", "[bklib][math]") {
+    constexpr auto const left   = 0;
+    constexpr auto const right  = 5;
+    constexpr auto const top    = 10;
+    constexpr auto const bottom = 20;
+
+    constexpr auto const bounds = bklib::make_rect(left, top, right, bottom);
+
+    SECTION("too big") {
+        constexpr auto const r = add_border(bounds, 1);
+        REQUIRE(move_rect_inside(bounds, add_border(bounds, 1)) == std::make_pair(r, false));
+    }
+
+    SECTION("top left") {
+        constexpr auto const r = bklib::make_rect(left, top, left + 5, top + 5);
+        REQUIRE(move_rect_inside(bounds, translate(r, -10,   0)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r,   0, -10)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r, -10, -10)) == std::make_pair(r, true));
+    }
+
+    SECTION("top right") {
+        constexpr auto const r = bklib::make_rect(right - 5, top, right, top + 5);
+        REQUIRE(move_rect_inside(bounds, translate(r, 10,   0)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r,  0, -10)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r, 10, -10)) == std::make_pair(r, true));
+    }
+
+    SECTION("bottom left") {
+        constexpr auto const r = bklib::make_rect(left, bottom - 5, left + 5, bottom);
+        REQUIRE(move_rect_inside(bounds, translate(r, -10,  0)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r,   0, 10)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r, -10, 10)) == std::make_pair(r, true));
+    }
+
+    SECTION("bottom right") {
+        constexpr auto const r = bklib::make_rect(right - 5, bottom - 5, right, bottom);
+        REQUIRE(move_rect_inside(bounds, translate(r, 10,  0)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r,  0, 10)) == std::make_pair(r, true));
+        REQUIRE(move_rect_inside(bounds, translate(r, 10, 10)) == std::make_pair(r, true));
+    }
+}
+
 #endif //BK_NO_UNIT_TESTS
