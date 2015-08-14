@@ -11,7 +11,8 @@
 #include "bklib/dictionary.hpp"
 
 TEST_CASE("text rendering metrics", "[text][graphics][bkrl]") {
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
 
     using size_type = bkrl::text_renderer::size_type;
     size_type const w = 18;
@@ -22,7 +23,8 @@ TEST_CASE("text rendering metrics", "[text][graphics][bkrl]") {
 }
 
 TEST_CASE("text layout metrics", "[text][graphics][bkrl]") {
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
     bkrl::text_layout layout {trender, "", 10, 20, 100, 200};
 
     auto const extent = layout.extent();
@@ -52,7 +54,8 @@ TEST_CASE("text layout metrics", "[text][graphics][bkrl]") {
 TEST_CASE("text layout default", "[text][graphics][bkrl]") {
     using size_type = bkrl::text_layout::size_type;
 
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
     bkrl::text_layout layout {trender, ""};
 
     auto const extent = layout.extent();
@@ -77,7 +80,8 @@ TEST_CASE("text rendering colors", "[text][graphics][bkrl]") {
     col0.short_name = "0";
     col0.color = bkrl::make_color(10, 20, 30, 40);
 
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
 
     auto const fallback_color =  bkrl::make_color(255, 255, 255);
 
@@ -105,7 +109,8 @@ TEST_CASE("text rendering colors", "[text][graphics][bkrl]") {
 }
 
 TEST_CASE("text rendering - simple", "[text][graphics][bkrl]") {
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
     auto const line_spacing = trender.line_spacing();
 
     using size_type = bkrl::text_layout::size_type;
@@ -134,7 +139,8 @@ TEST_CASE("text rendering - simple", "[text][graphics][bkrl]") {
 }
 
 TEST_CASE("text rendering", "[text][graphics][bkrl]") {
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
     auto const bbox = trender.bbox();
 
     using size_type = bkrl::text_renderer::size_type;

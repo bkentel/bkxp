@@ -16,7 +16,8 @@
 #include "random.hpp"
 
 TEST_CASE("inventory", "[inventory][bkrl]") {
-    bkrl::text_renderer trender;
+    auto text_render = bkrl::make_text_renderer();
+    bkrl::text_renderer& trender = *text_render;
 
     SECTION("sanity checks") {
         bkrl::inventory i {trender};

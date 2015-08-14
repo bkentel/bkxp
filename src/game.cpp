@@ -92,9 +92,9 @@ public:
 private:
     bklib::timer        timer_;
     random_state        random_;
-    std::unique_ptr<system>   system_;
-    std::unique_ptr<renderer> renderer_;
-    text_renderer       text_renderer_;
+    std::unique_ptr<system>        system_;
+    std::unique_ptr<renderer>      renderer_;
+    std::unique_ptr<text_renderer> text_renderer_;
     view                view_;
     std::unique_ptr<command_translator> command_translator_;
     color_dictionary    color_dictionary_;
@@ -118,7 +118,7 @@ private:
 
     bklib::timer::id_t timer_message_log_ {0};
 
-    text_layout inspect_text_ {text_renderer_, ""};
+    text_layout inspect_text_ {*text_renderer_, ""};
     bool show_inspect_text_ = false;
 
     context ctx_;
@@ -171,7 +171,7 @@ bkrl::game::game()
   , random_()
   , system_ {make_system()}
   , renderer_ {make_renderer(*system_)}
-  , text_renderer_()
+  , text_renderer_ {make_text_renderer()}
   , view_(system_->client_width(), system_->client_height(), 18, 18)
   , command_translator_ {make_command_translator()}
   , color_dictionary_ {}
@@ -183,9 +183,9 @@ bkrl::game::game()
   , maps_ {}
   , current_map_ {nullptr}
   , output_ {}
-  , inventory_ {text_renderer_}
+  , inventory_ {*text_renderer_}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
-  , message_log_ {text_renderer_}
+  , message_log_ {*text_renderer_}
   , ctx_ (make_context())
 {
     //
@@ -198,7 +198,7 @@ bkrl::game::game()
     //
     // set text colors
     //
-    text_renderer_.set_colors(&color_dictionary_);
+    text_renderer_->set_colors(&color_dictionary_);
 
     //
     // set up initial map
@@ -1164,7 +1164,7 @@ void bkrl::game::debug_print(int const mx, int const my)
         }
     }
 
-    inspect_text_.set_text(text_renderer_, str.str());
+    inspect_text_.set_text(*text_renderer_, str.str());
     inspect_text_.set_position(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
 
     auto const ext = inspect_text_.extent();
