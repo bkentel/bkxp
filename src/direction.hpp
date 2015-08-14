@@ -8,6 +8,30 @@ namespace bkrl {
 
 enum class command_type : uint32_t;
 
+static constexpr int const x_off[] = {-1,  0,  1, -1,  1, -1,  0,  1, 0};
+static constexpr int const y_off[] = {-1, -1, -1,  0,  0,  1,  1,  1, 0};
+
+constexpr bklib::ivec2 index_to_offset(size_t const i) noexcept {
+    return {x_off[i], y_off[i]};
+}
+
+constexpr size_t offset_to_index(int const xi, int const yi) noexcept {
+    return (xi == x_off[0]) && (yi == y_off[0]) ? 0
+         : (xi == x_off[1]) && (yi == y_off[1]) ? 1
+         : (xi == x_off[2]) && (yi == y_off[2]) ? 2
+         : (xi == x_off[3]) && (yi == y_off[3]) ? 3
+         : (xi == x_off[4]) && (yi == y_off[4]) ? 4
+         : (xi == x_off[5]) && (yi == y_off[5]) ? 5
+         : (xi == x_off[6]) && (yi == y_off[6]) ? 6
+         : (xi == x_off[7]) && (yi == y_off[7]) ? 7
+         : (xi == x_off[8]) && (yi == y_off[8]) ? 8
+         : 8;
+}
+
+constexpr size_t offset_to_index(bklib::ivec2 const v) noexcept {
+    return offset_to_index(x(v), y(v));
+}
+
 static constexpr bklib::ivec3 const vec_here   { 0,  0,  0};
 static constexpr bklib::ivec3 const vec_north  { 0, -1,  0};
 static constexpr bklib::ivec3 const vec_south  { 0,  1,  0};

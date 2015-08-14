@@ -118,8 +118,14 @@ inline command make_command(bklib::utf8_string_view const text) noexcept {
     };
 }
 
+template <command_type Type>
+inline command make_command() noexcept {
+    return {Type, 0, 0};
+}
+
 enum class command_handler_result {
     detach  //!< stop accepting input
+  , detach_passthrough //!< stop accepting input and pass the current input on to the next handler.
   , capture //!< continue processing input
   , filter  //!< for raw commands, whether to continue to translate the combo into a command.
 };

@@ -6,6 +6,36 @@
 #include "bklib/dictionary.hpp"
 #include "external/format.h"
 
+bkrl::item_data_t::item_data_t(item_data_t&& other) noexcept
+{
+    swap(other);
+}
+
+bkrl::item_data_t& bkrl::item_data_t::operator=(item_data_t&& other) noexcept
+{
+    swap(other);
+    return *this;
+}
+
+bkrl::item_data_t::~item_data_t()
+{
+    if (!data) {
+        return;
+    }
+
+    switch (type) {
+    case item_data_type::container:
+        delete reinterpret_cast<item_pile*>(data);
+        break;
+    case item_data_type::corpse:
+        break;
+    case item_data_type::none: BK_FALLTHROUGH
+    default:
+        BK_PRECONDITION_SAFE(false && "unreachable");
+        break;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::item
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -21,12 +51,14 @@ bkrl::item::item(
     instance_id_t<tag_item> const  id
   , item_def                const& def
 )
-  : data_  {}
+  : def_   {get_id(def)}
+  , id_    {id}
   , flags_ (def.flags)
   , slots_ (def.slots)
-  , id_    {id}
-  , def_   {get_id(def)}
+  , data_  {}
 {
+    static_assert(std::is_nothrow_move_assignable<item>::value, "");
+    static_assert(std::is_nothrow_move_constructible<item>::value, "");
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -151,7 +183,7 @@ get_corpse_name(bkrl::context const& ctx, bkrl::item const& i)
 {
     using namespace bkrl;
 
-    auto const cid = def_id_t<tag_creature>(static_cast<uint32_t>(i.data()));
+    auto const cid = def_id_t<tag_creature>(static_cast<uint32_t>(i.data().data));
     if (!cid) {
         return "{unknown}";
     }
@@ -207,9 +239,32 @@ bklib::utf8_string bkrl::item::friendly_name(context const& ctx, item::format_fl
 }
 
 //--------------------------------------------------------------------------------------------------
-bkrl::item bkrl::item_factory::create(random_t& random, item_def const& def)
+bkrl::item
+bkrl::item_factory::create(random_t& random, item_dictionary const& idic, item_def const& def)
 {
-    return item {instance_id_t<tag_item> {++next_id_}, def};
+    item result {instance_id_t<tag_item> {++next_id_}, def};
+
+    if (def.flags.test(item_flag::is_corpse)) {
+        result.data() = item_data_t {item_data_type::corpse, 0};
+    } else if (def.flags.test(item_flag::is_container)) {
+        auto pile = std::make_unique<item_pile>();
+
+        for (auto i = 0; i < 10; ++i) {
+            auto const idef = random_item(random, idic);
+            if (!idef || idef->flags.test(item_flag::is_container)) {
+                continue;
+            }
+
+            pile->insert(create(random, idic, *idef));
+        }
+
+        result.data() = item_data_t {
+            item_data_type::container
+          , reinterpret_cast<uintptr_t>(pile.release())
+        };
+    }
+
+    return result;
 }
 
 //--------------------------------------------------------------------------------------------------

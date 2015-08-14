@@ -111,9 +111,17 @@ public:
 
     //----------------------------------------------------------------------------------------------
     void send_command(command const cmd) override final {
-        if (handlers_.back()(cmd) == command_handler_result::detach) {
-            handlers_.pop_back();
-        }
+        do {
+            auto const result = handlers_.back()(cmd);
+            if (result == command_handler_result::detach) {
+                handlers_.pop_back();
+                break;
+            } else if (result == command_handler_result::detach_passthrough) {
+                handlers_.pop_back();
+            } else {
+                break;
+            }
+        } while (!handlers_.empty());
     }
 
     //----------------------------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
+#include "bklib/simple_future.hpp"
 
 #include <type_traits>
 #include <cstdint>
@@ -13,6 +14,7 @@ struct context;
 class creature;
 class inventory;
 class item;
+class item_pile;
 class map;
 
 enum class equip_result_t : int;
@@ -98,6 +100,22 @@ get_item_result_t get_item(
   , command_translator& commands    //!< The command translator stack.
 );
 
+enum class command_result {
+    ok, none_present, out_of_range, canceled, failed
+};
+
+using command_future  = bklib::simple_future<command_result>;
+using command_promise = bklib::simple_promise<command_result>;
+
+command_future get_item(
+    context&            ctx         //!< The current context.
+  , creature&           subject     //!< The subject doing the 'get'.
+  , item_pile&          source
+  , inventory&          imenu       //!< The menu used to display a list of choices.
+  , command_translator& commands    //!< The command translator stack.
+);
+
+
 enum class drop_item_result : int {
     ok           //!< success
   , select       //!<
@@ -168,10 +186,11 @@ using open_result_t = result_t<open_result>;
 //--------------------------------------------------------------------------------------------------
 //! Open something around @p subject.
 //--------------------------------------------------------------------------------------------------
-open_result_t open(
+bklib::simple_future<command_result> open(
     context&            ctx         //!< The current context.
   , creature&           subject     //!< The subject doing the 'open'.
   , map&                current_map //!< The current map.
+  , inventory&          imenu
   , command_translator& commands    //!< The command translator stack.
 );
 

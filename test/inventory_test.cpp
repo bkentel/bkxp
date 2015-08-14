@@ -72,8 +72,8 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
     };
 
     bkrl::item_pile pile;
-    pile.insert(ifac.create(random, idef0));
-    pile.insert(ifac.create(random, idef1));
+    pile.insert(ifac.create(random, idefs, idef0));
+    pile.insert(ifac.create(random, idefs, idef1));
 
     bkrl::inventory i {trender};
 

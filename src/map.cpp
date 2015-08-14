@@ -544,7 +544,7 @@ bkrl::generate_creature(context& ctx, map& m, creature_def const& def, bklib::ip
     c.move_to(result);
 
     if (auto const idef = ctx.data.random_item(ctx.random, random_stream::creature)) {
-        auto itm = ctx.ifactory.create(random, *idef);
+        auto itm = ctx.ifactory.create(random, ctx.data.items(), *idef);
         c.get_item(std::move(itm));
     }
 
@@ -563,7 +563,7 @@ bkrl::generate_creature(context& ctx, map& m, creature_def const& def)
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
 bkrl::generate_item(context& ctx, map& m, item_def const& def, bklib::ipoint2 const p) {
-    auto i = ctx.ifactory.create(ctx.random[random_stream::substantive], def);
+    auto i = ctx.ifactory.create(ctx.random[random_stream::substantive], ctx.data.items(), def);
 
     auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
         return can_place_at(m, q, i);

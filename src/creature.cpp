@@ -368,8 +368,11 @@ bkrl::item_pile* bkrl::make_corpse(context& ctx, map& m, creature const& c)
             BK_ASSERT(false); //TODO
         }
 
-        auto corpse = ctx.ifactory.create(ctx.random[random_stream::item], *corpse_def);
-        corpse.data() = static_cast<uint32_t>(c.def());
+        auto corpse = ctx.ifactory.create(ctx.random[random_stream::item], ctx.data.items(), *corpse_def);
+        corpse.data() = item_data_t {
+            item_data_type::corpse
+          , static_cast<uint32_t>(c.def())
+        };
         corpse.flags().set(item_flag::is_corpse);
 
         pile.insert(std::move(corpse));

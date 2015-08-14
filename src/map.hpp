@@ -5,6 +5,7 @@
 #include "item.hpp"
 #include "identifier.hpp"
 #include "random.hpp"
+#include "direction.hpp"
 
 #include "bklib/math.hpp"
 #include "bklib/spatial_map.hpp"
@@ -253,9 +254,6 @@ using base_type_of_t = std::remove_const_t<
         std::remove_all_extents_t<T>
     >
 >;
-
-static constexpr int const x_off[] = {-1,  0,  1, -1,  1, -1,  0,  1, 0};
-static constexpr int const y_off[] = {-1, -1, -1,  0,  0,  1,  1,  1, 0};
 
 struct find_around_result {
     explicit operator bool() const noexcept { return count > 0; }

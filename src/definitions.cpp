@@ -35,7 +35,27 @@ T const* random_definition(
     return dic ? std::addressof(bkrl::random_element(rnd[stream], *dic)) : nullptr;
 }
 
+template <typename T>
+T const* random_definition(
+    bkrl::random_t&             rnd
+  , bklib::dictionary<T> const& dic
+) {
+    return std::addressof(bkrl::random_element(rnd, dic));
+}
+
 } //namespace
+
+bkrl::creature_def const* bkrl::random_creature(random_t& rnd, bklib::dictionary<creature_def> const& dic) {
+    return random_definition(rnd, dic);
+}
+
+bkrl::item_def const* bkrl::random_item(random_t& rnd, bklib::dictionary<item_def> const& dic) {
+    return random_definition(rnd, dic);
+}
+
+bkrl::color_def const* bkrl::random_color(random_t& rnd, bklib::dictionary<color_def> const& dic) {
+    return random_definition(rnd, dic);
+}
 
 bkrl::creature_def const*
 bkrl::definitions::random_creature(random_state& rnd, random_stream const stream) const

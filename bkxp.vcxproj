@@ -23,6 +23,7 @@
     <ClInclude Include="src\bklib\hash.hpp" />
     <ClInclude Include="src\bklib\math.hpp" />
     <ClInclude Include="src\bklib\scope_guard.hpp" />
+    <ClInclude Include="src\bklib\simple_future.hpp" />
     <ClInclude Include="src\bklib\spatial_map.hpp" />
     <ClInclude Include="src\bklib\stack_arena_allocator.hpp" />
     <ClInclude Include="src\bklib\string.hpp" />

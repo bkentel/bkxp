@@ -1,6 +1,7 @@
 #pragma once
 
 #include "identifier.hpp"
+#include "random.hpp"
 
 #include "bklib/assert.hpp"
 #include "bklib/string.hpp"
@@ -16,8 +17,9 @@ struct creature_def;
 struct item_def;
 struct color_def;
 
-enum class random_stream : int;
-class random_state;
+creature_def const* random_creature(random_t& rnd, bklib::dictionary<creature_def> const& dic);
+item_def     const* random_item(random_t& rnd, bklib::dictionary<item_def> const& dic);
+color_def    const* random_color(random_t& rnd, bklib::dictionary<color_def> const& dic);
 
 class definitions {
 public:

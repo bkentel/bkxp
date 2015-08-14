@@ -133,6 +133,9 @@
     <ClInclude Include="src\bklib\stack_arena_allocator.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\bklib\simple_future.hpp">
+      <Filter>bklib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
