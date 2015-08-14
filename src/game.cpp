@@ -90,6 +90,8 @@ public:
     map&       current_map()       noexcept;
     map const& current_map() const noexcept;
 private:
+    void set_inspect_message_position_();
+private:
     bklib::timer        timer_;
     random_state        random_;
     std::unique_ptr<system>        system_;
@@ -232,6 +234,9 @@ bkrl::game::game()
         BK_SCOPE_EXIT { prev_key_mods_ = cur; };
 
         show_inspect_text_ = cur.test(key_mod::shift);
+        if (show_inspect_text_) {
+            set_inspect_message_position_();
+        }
     };
 
     system_->on_key_up = [&](int const key) {
@@ -397,6 +402,9 @@ void bkrl::game::do_mouse_over(int const mx, int const my)
     auto const p = view_.screen_to_world(mx, my);
 
     if (p == mouse_last_pos_) {
+        if (show_inspect_text_) {
+            set_inspect_message_position_();
+        }
         return;
     }
 
@@ -1132,49 +1140,70 @@ bkrl::context bkrl::game::make_context()
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::game::set_inspect_message_position_()
+{
+    auto const result = move_rect_inside(
+        bklib::irect {0, 0, system_->client_width(), system_->client_height()}
+      , translate_to(add_border(inspect_text_.extent(), 4)
+                   , x(mouse_last_pos_screen_), y(mouse_last_pos_screen_)));
+
+    if (!result.second) {
+        BK_ASSERT(false && "TODO");
+    }
+
+    inspect_text_.set_position(result.first.left, result.first.top);
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::game::debug_print(int const mx, int const my)
 {
     if (!system_->current_key_mods().test(key_mod::shift)) {
         return;
     }
 
-    bklib::ipoint2 const p {mx, my};
+    inspect_text_.set_text(*text_renderer_
+      , inspect_tile(ctx_, get_player(), current_map(), bklib::ipoint2 {mx, my}));
 
-    std::ostringstream str;
+    set_inspect_message_position_();
+    show_inspect_text_ = true;
+}
 
-    auto const& ter = current_map().at(p);
-    str << fmt::sprintf("[%3.3d, %3.3d] (%d::%d)"
-        , x(p), y(p), static_cast<uint16_t>(ter.type), ter.variant);
+//--------------------------------------------------------------------------------------------------
+bklib::utf8_string bkrl::inspect_tile(
+    context&              ctx
+  , creature       const& subject
+  , map            const& current_map
+  , bklib::ipoint2 const  where
+) {
+    if (!intersects(current_map.bounds(), where)) {
+        return {};
+    }
 
-    if (auto const& c = current_map().creature_at(p)) {
-        str << fmt::sprintf(
-            "\nCreature (%#08x)\n"
-            "  Def  : %s (%#08x)\n"
-            "  Name : <color=o>%s</color>"
+    fmt::MemoryWriter out;
+
+    auto const& ter = current_map.at(where);
+    out.write("[{}, {}] = ({}:{})",
+        x(where), y(where), static_cast<uint16_t>(ter.type), ter.variant);
+
+    if (auto const& c = current_map.creature_at(where)) {
+        out.write("\n"
+            "Creature ({})\n"
+            " Def : {} ({:0x})\n"
+            " Name: {}"
           , static_cast<uint32_t>(c->id())
           , c->def().c_str(), static_cast<uint32_t>(c->def())
-          , c->friendly_name(definitions_)
+          , c->friendly_name(ctx.data)
         );
     }
 
-    if (auto const& ip = current_map().items_at(p)) {
-        str << fmt::sprintf("\nItem(s)");
+    if (auto const& ip = current_map.items_at(where)) {
+        out.write("\nItem(s)");
         for (auto const& i : *ip) {
-            str << fmt::sprintf("\n  %s", i.friendly_name(ctx_));
+            out.write("\n {}", i.friendly_name(ctx));
         }
     }
 
-    inspect_text_.set_text(*text_renderer_, str.str());
-    inspect_text_.set_position(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
-
-    auto const ext = inspect_text_.extent();
-    auto const dr  = system_->client_width() - ext.right;
-
-    if (dr < 0) {
-        inspect_text_.set_position(x(mouse_last_pos_screen_) + dr, y(mouse_last_pos_screen_));
-    }
-
-    show_inspect_text_ = true;
+    return out.str();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1201,26 +1230,26 @@ inline void set_command_result(bkrl::command_translator& commands, bkrl::command
 }
 } //namespace
 
-void bkrl::set_command_result(command_translator & commands, get_item_result const result) {
+void bkrl::set_command_result(command_translator& commands, get_item_result const result) {
     ::set_command_result(commands, command_type::get, result);
 }
 
-void bkrl::set_command_result(command_translator & commands, drop_item_result const result) {
+void bkrl::set_command_result(command_translator& commands, drop_item_result const result) {
     ::set_command_result(commands, command_type::drop, result);
 }
 
-void bkrl::set_command_result(command_translator & commands, show_inventory_result const result) {
+void bkrl::set_command_result(command_translator& commands, show_inventory_result const result) {
     ::set_command_result(commands, command_type::show_inventory, result);
 }
 
-void bkrl::set_command_result(command_translator & commands, open_result const result) {
+void bkrl::set_command_result(command_translator& commands, open_result const result) {
     ::set_command_result(commands, command_type::open, result);
 }
 
-void bkrl::set_command_result(command_translator & commands, close_result const result) {
+void bkrl::set_command_result(command_translator& commands, close_result const result) {
     ::set_command_result(commands, command_type::close, result);
 }
 
-void bkrl::set_command_result(command_translator & commands, equip_result_t const result) {
+void bkrl::set_command_result(command_translator& commands, equip_result_t const result) {
     ::set_command_result(commands, command_type::show_equipment, result);
 }

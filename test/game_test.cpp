@@ -308,6 +308,61 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             REQUIRE(got_ok);
         }
     }
+
+    SECTION("inspect tile") {
+        //TODO these checks are pretty primitive, but perhaps enough
+
+        auto const count_lines = [](auto const& str) {
+            return std::count(begin(str), end(str), '\n');
+        };
+
+        SECTION("out of bounds") {
+            auto const b = m.bounds();
+
+            REQUIRE("" == bkrl::inspect_tile(ctx, creature, m, bklib::ipoint2 {b.left - 1, b.top}));
+            REQUIRE("" == bkrl::inspect_tile(ctx, creature, m, bklib::ipoint2 {b.left, b.top - 1}));
+            REQUIRE("" == bkrl::inspect_tile(ctx, creature, m, bklib::ipoint2 {b.right, b.top}));
+            REQUIRE("" == bkrl::inspect_tile(ctx, creature, m, bklib::ipoint2 {b.left, b.bottom}));
+        }
+
+        SECTION("no items, no creatures") {
+            auto const str = bkrl::inspect_tile(ctx, creature, m, bklib::ipoint2 {0, 0});
+            REQUIRE(!str.empty());
+            REQUIRE(count_lines(str) == 0);
+        }
+
+        SECTION("no items, one creature") {
+            auto const where = bklib::ipoint2 {0, 0};
+            m.at(where).type = bkrl::terrain_type::floor;
+
+            bkrl::generate_creature(ctx, m, cdef0, where);
+            auto const str = bkrl::inspect_tile(ctx, creature, m, where);
+            REQUIRE(count_lines(str) == 3);
+        }
+
+        SECTION("one item, one creature") {
+            auto const where = bklib::ipoint2 {0, 0};
+            m.at(where).type = bkrl::terrain_type::floor;
+
+            bkrl::generate_creature(ctx, m, cdef0, where);
+            bkrl::generate_item(ctx, m, idef0, where);
+
+            auto const str = bkrl::inspect_tile(ctx, creature, m, where);
+            REQUIRE(count_lines(str) == 5);
+        }
+
+        SECTION("two items, one creature") {
+            auto const where = bklib::ipoint2 {0, 0};
+            m.at(where).type = bkrl::terrain_type::floor;
+
+            bkrl::generate_creature(ctx, m, cdef0, where);
+            bkrl::generate_item(ctx, m, idef0, where);
+            bkrl::generate_item(ctx, m, idef0, where);
+
+            auto const str = bkrl::inspect_tile(ctx, creature, m, where);
+            REQUIRE(count_lines(str) == 6);
+        }
+    }
 }
 
 #endif // BK_NO_UNIT_TESTS
