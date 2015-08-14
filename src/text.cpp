@@ -12,14 +12,15 @@
 // text_renderer
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//--------------------------------------------------------------------------------------------------
-class bkrl::detail::text_renderer_impl {
-public:
-    using size_type = text_renderer::size_type;
-    using rect_t = text_renderer::rect_t;
-    using point_t = text_renderer::point_t;
+namespace bkrl { class text_renderer_impl; }
 
-    rect_t load_glyph_info(bklib::utf8_string_view const text) {
+//--------------------------------------------------------------------------------------------------
+class bkrl::text_renderer_impl final : public text_renderer {
+public:
+    virtual ~text_renderer_impl();
+
+    //--------------------------------------------------------------------------------------------------
+    rect_t load_glyph_info(bklib::utf8_string_view const text) override final {
         if (text.empty() || static_cast<std::uint8_t>(text.front()) & std::uint8_t {0b1000'0000}) {
             return {0, 0, 18, 18};
         }
@@ -34,15 +35,18 @@ public:
         return {x, y, static_cast<size_type>(x + w), static_cast<size_type>(y + h)};
     }
 
-    size_type line_spacing() const noexcept {
+    //--------------------------------------------------------------------------------------------------
+    size_type line_spacing() const noexcept override final {
         return 18;
     }
 
-    point_t bbox() const noexcept {
+    //--------------------------------------------------------------------------------------------------
+    point_t bbox() const noexcept override final {
         return {18, 18};
     }
 
-    void set_colors(color_dictionary const* const colors) {
+    //--------------------------------------------------------------------------------------------------
+    void set_colors(color_dictionary const* const colors) override final {
         if (!colors) {
             colors_.clear();
             return;
@@ -53,7 +57,7 @@ public:
           , std::end(*colors)
           , std::back_inserter(colors_)
           , [&](color_def const& def) {
-                return color_t {make_color_key(def.short_name), def.color};
+                return color_t {make_color_key_(def.short_name), def.color};
           });
 
         auto const last = end(colors_);
@@ -64,9 +68,10 @@ public:
         }
     }
 
-    color4 get_color(bklib::utf8_string_view const code) noexcept {
+    //--------------------------------------------------------------------------------------------------
+    color4 get_color(bklib::utf8_string_view const code) noexcept override final {
         auto const last = end(colors_);
-        auto const key  = make_color_key(code);
+        auto const key  = make_color_key_(code);
         auto const it   = std::lower_bound(begin(colors_), last, key);
 
         return (it != last && it->key == key)
@@ -74,6 +79,7 @@ public:
           : make_color(255, 255, 255);
     }
 private:
+    //--------------------------------------------------------------------------------------------------
     struct color_t {
         uint32_t key;
         color4   value;
@@ -95,7 +101,8 @@ private:
         }
     };
 
-    static uint32_t make_color_key(bklib::utf8_string_view const code) noexcept {
+    //--------------------------------------------------------------------------------------------------
+    static uint32_t make_color_key_(bklib::utf8_string_view const code) noexcept {
         uint32_t key = 0;
 
         switch (code.size()) {
@@ -109,48 +116,22 @@ private:
 
         return key;
     }
-
+private:
     std::vector<color_t> colors_;
 };
 
 //--------------------------------------------------------------------------------------------------
-bkrl::text_renderer::text_renderer()
-  : impl_ {std::make_unique<detail::text_renderer_impl>()}
-{
+bkrl::text_renderer_impl::~text_renderer_impl() {
 }
 
 //--------------------------------------------------------------------------------------------------
-bkrl::text_renderer::~text_renderer() = default;
-
-//--------------------------------------------------------------------------------------------------
-bkrl::text_renderer::rect_t
-bkrl::text_renderer::load_glyph_info(bklib::utf8_string_view const text)
-{
-    return impl_->load_glyph_info(text);
+bkrl::text_renderer::~text_renderer() {
 }
 
 //--------------------------------------------------------------------------------------------------
-bkrl::text_renderer::size_type
-bkrl::text_renderer::line_spacing() const noexcept
-{
-    return impl_->line_spacing();
+std::unique_ptr<bkrl::text_renderer> bkrl::make_text_renderer() {
+    return std::make_unique<text_renderer_impl>();
 }
-
-//--------------------------------------------------------------------------------------------------
-bkrl::text_renderer::point_t bkrl::text_renderer::bbox() const noexcept {
-    return impl_->bbox();
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::text_renderer::set_colors(color_dictionary const* const colors) {
-    impl_->set_colors(colors);
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::color4 bkrl::text_renderer::get_color(bklib::utf8_string_view const code) noexcept {
-    return impl_->get_color(code);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // text_layout

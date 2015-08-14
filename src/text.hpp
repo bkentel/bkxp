@@ -15,30 +15,30 @@ namespace bkrl {
 struct color_def;
 using color_dictionary = bklib::dictionary<color_def>;
 
-namespace detail { class text_renderer_impl; }
-
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
 class text_renderer {
 public:
     using size_type = int16_t;
-    using rect_t = bklib::rect_t<size_type>;
-    using point_t = bklib::point_t<2, size_type>;
+    using rect_t    = bklib::rect_t<size_type>;
+    using point_t   = bklib::point_t<2, size_type>;
 
-    text_renderer();
-    ~text_renderer();
+    virtual ~text_renderer();
 
-    rect_t load_glyph_info(bklib::utf8_string_view text);
-    size_type line_spacing() const noexcept;
+    virtual rect_t load_glyph_info(bklib::utf8_string_view text) = 0;
+    virtual size_type line_spacing() const noexcept = 0;
 
-    point_t bbox() const noexcept;
+    virtual point_t bbox() const noexcept = 0;
 
-    void set_colors(color_dictionary const* colors = nullptr);
-    color4 get_color(bklib::utf8_string_view code) noexcept;
-private:
-    std::unique_ptr<detail::text_renderer_impl> impl_;
+    virtual void set_colors(color_dictionary const* colors = nullptr) = 0;
+    virtual color4 get_color(bklib::utf8_string_view code) noexcept = 0;
 };
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+std::unique_ptr<text_renderer> make_text_renderer();
 
 //--------------------------------------------------------------------------------------------------
 //!
