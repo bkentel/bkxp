@@ -1,6 +1,8 @@
 #pragma once
 
 #include "bklib/math.hpp"
+#include "bklib/string.hpp"
+
 #include <type_traits>
 #include <cstdint>
 
@@ -62,6 +64,14 @@ constexpr bool operator!=(U const lhs, result_t<T> const rhs) noexcept {
 }
 
 void start_game();
+
+//--------------------------------------------------------------------------------------------------
+bklib::utf8_string inspect_tile(
+    context&        ctx
+  , creature const& subject
+  , map const&      current_map
+  , bklib::ipoint2  where
+);
 
 enum class get_item_result : int {
     ok           //!< success

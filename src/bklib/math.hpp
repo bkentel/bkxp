@@ -489,6 +489,41 @@ inline auto truncate(tuple_base_t<Tag, D0, T> const& value) noexcept {
     return result;
 }
 
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline constexpr rect_t<T> translate(rect_t<T> const r, T const dx, T const dy) noexcept {
+    return {
+        r.left  + dx, r.top    + dy
+      , r.right + dx, r.bottom + dy
+    };
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+inline constexpr rect_t<T> translate_to(rect_t<T> const r, T const x, T const y) noexcept {
+    return translate(r, x - r.left, y - r.top);
+}
+
+//--------------------------------------------------------------------------------------------------
+template <typename T>
+std::pair<rect_t<T>, bool> move_rect_inside(rect_t<T> const bounds, rect_t<T> const r) noexcept {
+    if (r.width()  > bounds.width()
+     || r.height() > bounds.height()
+    ) {
+        return {r, false};
+    }
+
+    auto const dx = (r.left  < bounds.left ) ? bounds.left  - r.left
+                  : (r.right > bounds.right) ? bounds.right - r.right
+                  : 0;
+
+    auto const dy = (r.top    < bounds.top   ) ? bounds.top    - r.top
+                  : (r.bottom > bounds.bottom) ? bounds.bottom - r.bottom
+                  : 0;
+
+    return {translate(r, dx, dy), true};
+}
+
 using irect = rect_t<int>;
 
 } // namespace bklib
