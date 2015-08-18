@@ -274,7 +274,7 @@ public:
 
     void move_item_to(item_pile& dst, iterator const where) {
         auto const last = end();
-        for (auto it = items_.begin(), prev = items_.before_begin(); it != last; ++it) {
+        for (auto it = items_.begin(), prev = items_.before_begin(); it != last; ++it, ++prev) {
             if (it == where) {
                 dst.items_.splice_after(dst.items_.before_begin(), items_, prev);
                 return;

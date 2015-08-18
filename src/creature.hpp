@@ -220,7 +220,7 @@ public:
 
     int modify(stat_type stat, int mod);
 
-    bklib::utf8_string friendly_name(definitions const& defs) const;
+    bklib::utf8_string friendly_name(context const& ctx) const;
 private:
     creature(instance_id_t<tag_creature> id, creature_def const& def, bklib::ipoint2 p);
 

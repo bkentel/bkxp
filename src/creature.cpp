@@ -202,10 +202,10 @@ int bkrl::creature::modify(stat_type const stat, int const mod)
 }
 
 //--------------------------------------------------------------------------------------------------
-bklib::utf8_string bkrl::creature::friendly_name(definitions const& defs) const
+bklib::utf8_string bkrl::creature::friendly_name(context const& ctx) const
 {
     auto const id  = def();
-    auto const def = defs.find(id);
+    auto const def = ctx.data.find(id);
 
     if (!def) {
         return to_string(id);
@@ -289,7 +289,7 @@ void bkrl::attack(context& ctx, map& m, creature& att, creature& def)
 
     auto const att_name = att_info ? att_info->name.c_str() : "player";
     auto const def_name = def_info ? def_info->name.c_str() : "player";
-    ctx.out.write("The %s attacks the %s.", att_name, def_name);
+    ctx.out.write("The {} attacks the {}.", att_name, def_name);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -337,11 +337,11 @@ void bkrl::kill(context& ctx, map& m, creature& c)
         BK_ASSERT(false); //TODO
     }
 
-    auto const& name = c.friendly_name(ctx.data);
-    ctx.out.write("The %s dies.", name);
+    auto const& name = c.friendly_name(ctx);
+    ctx.out.write("The {} dies.", name);
 
     if (!make_corpse(ctx, m, c)) {
-        ctx.out.write("The %s evaporates into nothingness.", name);
+        ctx.out.write("The {} evaporates into nothingness.", name);
     }
 
     if (!drop_all(ctx, m, c)) {

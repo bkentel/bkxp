@@ -27,20 +27,29 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    void pop_handler() override final {
+    void pop_handler(int const i = 0) override final {
         BK_PRECONDITION(!handlers_.empty());
-        handlers_.pop_back();
+
+        auto const n = static_cast<int>(handlers_.size());
+        BK_PRECONDITION(n > i);
+
+        handlers_.erase(handlers_.begin() + (n - (i + 1)));
+    }
+
+    //----------------------------------------------------------------------------------------------
+    int size() noexcept override final {
+        return static_cast<int>(handlers_.size());
     }
 
     //----------------------------------------------------------------------------------------------
 #if defined(BK_NO_SDL)
     void on_key_down(int, key_mod_state) override final {
     }
-#else // !defined(BK_NO_SDL
+#else // !defined(BK_NO_SDL)
     void on_key_down(int const key, key_mod_state const mods) override final {
         using ct = command_type;
 
-        if (!send_command_raw_(key, mods)) {
+        if (!send_command_(make_command(command_raw_t {mods, key}))) {
             return;
         }
 
@@ -85,7 +94,7 @@ public:
         case SDLK_KP_ENTER: cmd.type = ct::confirm;        break;
         }
 
-        send_command(cmd);
+        send_command_(cmd);
     }
 #endif // BK_NO_SDL
     //----------------------------------------------------------------------------------------------
@@ -111,17 +120,7 @@ public:
 
     //----------------------------------------------------------------------------------------------
     void send_command(command const cmd) override final {
-        do {
-            auto const result = handlers_.back()(cmd);
-            if (result == command_handler_result::detach) {
-                handlers_.pop_back();
-                break;
-            } else if (result == command_handler_result::detach_passthrough) {
-                handlers_.pop_back();
-            } else {
-                break;
-            }
-        } while (!handlers_.empty());
+        send_command_(cmd);
     }
 
     //----------------------------------------------------------------------------------------------
@@ -130,24 +129,22 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    void on_command_result(command_type const command, size_t const data) override final {
-        result_handler_(command, data);
+    void on_command_result(command_type const command, command_result const result) override final {
+        result_handler_(command, result);
     }
 private:
     //----------------------------------------------------------------------------------------------
-    bool send_command_raw_(int const key, key_mod_state const mods) {
-        auto const result = handlers_.back()(make_command(command_raw_t {mods, key}));
+    bool send_command_(command const cmd) {
+        auto const size_before = size();
+        auto const result = handlers_.back()(cmd);
 
-        switch (result) {
-        case command_handler_result::detach :
-            pop_handler();
-            BK_FALLTHROUGH
-        case command_handler_result::filter :
+        if (result == command_handler_result::detach) {
+            auto const n = size() - size_before;
+            BK_PRECONDITION(n >= 0);
+            pop_handler(n);
+        } else if (result == command_handler_result::filter) {
+            BK_PRECONDITION(cmd.type == command_type::raw);
             return false;
-        case command_handler_result::capture :
-            break;
-        default:
-            BK_ASSERT(false && "unexpected");
         }
 
         return true;

@@ -37,15 +37,16 @@ public:
     static constexpr int const selection_none = -1;
 
     virtual void insert(row_t&& r, int where = at_end) = 0;
-    virtual void remove(int where = at_end) = 0;
+    virtual void remove(int where = selection_current) = 0;
     virtual void clear() = 0;
 
     virtual void set_title(bklib::utf8_string_view title) = 0;
     virtual void draw(renderer& render) = 0;
-    virtual int count() const = 0;
+    virtual int count() const noexcept = 0;
+    virtual bool empty() const noexcept = 0;
 
     virtual void show(bool visible) = 0;
-    virtual bool is_visible() const = 0;
+    virtual bool is_visible() const noexcept = 0;
 
     virtual void resize(bklib::irect bounds) = 0;
 
@@ -58,12 +59,12 @@ public:
 
     virtual bklib::ipoint2 position() = 0;
 
-    virtual int selection() const = 0;
+    virtual int selection() const noexcept = 0;
 
     virtual data_t data(int index = selection_current) const = 0;
 
     enum class action {
-        cancel, select, confirm, equip
+        cancel, select, confirm, equip, get, drop
     };
 
     //----------------------------------------------------------------------------------------------
@@ -99,6 +100,17 @@ inline decltype(auto) default_item_list_handler(inventory& imenu) {
 
         return command_handler_result::capture;
     };
+}
+
+inline void dismiss_item_list(
+    inventory&           imenu
+  , command_translator&  commands
+  , command_type   const ct
+  , command_result const cr
+) {
+    imenu.show(false);
+    commands.pop_handler();
+    commands.on_command_result(ct, cr);
 }
 
 } //namespace bkrl

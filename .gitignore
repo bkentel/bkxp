@@ -4,6 +4,10 @@
 *.exe
 *.bmp
 
+# Generated documentation
+# =========================
+doxygen/
+
 # Build results
 # =========================
 build/

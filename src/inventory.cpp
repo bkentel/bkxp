@@ -40,8 +40,18 @@ public:
 
     void insert(row_t&& r, int where) final override;
 
-    void remove(int) final override {
-        BK_ASSERT(false && "TODO");
+    void remove(int const index) final override {
+        auto i = index;
+        if (index == selection_current) {
+            i = selection();
+            BK_PRECONDITION(i != selection_none);
+        }
+
+        BK_PRECONDITION(i >= 0);
+        BK_PRECONDITION(static_cast<size_t>(i) < rows_.size());
+
+        rows_.erase(rows_.begin() + i);
+        select(i, false);
     }
 
     void clear() final override {
@@ -64,6 +74,10 @@ public:
 
     int count() const noexcept final override {
         return static_cast<int>(rows_.size());
+    }
+
+    bool empty() const noexcept final override {
+        return rows_.empty();
     }
 
     void show(bool const visible) noexcept  final override;
@@ -155,6 +169,16 @@ public:
     void do_equip() {
         BK_ASSERT(selection_ < count());
         handler_(action::equip, selection_);
+    }
+
+    void do_get() {
+        BK_ASSERT(selection_ < count());
+        handler_(action::get, selection_);
+    }
+
+    void do_drop() {
+        BK_ASSERT(selection_ < count());
+        handler_(action::drop, selection_);
     }
 
     void do_confirm() {
@@ -629,8 +653,11 @@ bkrl::command_handler_result bkrl::inventory_impl::on_command(bkrl::command cons
 
     if (cmd.type == command_type::raw) {
         auto const raw = get_command_data<command_type::raw>(cmd);
-        if (raw.virtual_key == 'e' && raw.mods.test(key_mod::ctrl)) {
-            do_equip();
+        if (raw.mods.test(key_mod::ctrl)) {
+            if      (raw.virtual_key == 'e') { do_equip(); }
+            else if (raw.virtual_key == 'g') { do_get();   }
+            else if (raw.virtual_key == 'd') { do_drop();  }
+
             return command_handler_result::filter;
         }
     } else if (cmd.type == command_type::text) {

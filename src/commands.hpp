@@ -65,6 +65,20 @@ constexpr inline bool is_direction(command_type const cmd) noexcept {
       || (cmd == command_type::dir_down);
 }
 
+enum class command_result : uint32_t {
+    ok_no_advance   //!< Success; don't advance time
+  , ok_advance      //!< Success; advance time
+  , none_present
+  , out_of_range
+  , canceled
+  , failed
+};
+
+inline constexpr bool command_succeeded(command_result const cr) noexcept {
+    return (cr == command_result::ok_no_advance)
+        || (cr == command_result::ok_advance);
+}
+
 //----------------------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------------------
@@ -125,7 +139,6 @@ inline command make_command() noexcept {
 
 enum class command_handler_result {
     detach  //!< stop accepting input
-  , detach_passthrough //!< stop accepting input and pass the current input on to the next handler.
   , capture //!< continue processing input
   , filter  //!< for raw commands, whether to continue to translate the combo into a command.
 };
@@ -137,12 +150,13 @@ enum class command_handler_result {
 class command_translator {
 public:
     using handler_t        = std::function<command_handler_result (command const&)>;
-    using result_handler_t = std::function<void (command_type, size_t data)>;
+    using result_handler_t = std::function<void (command_type, command_result)>;
 
     virtual ~command_translator();
 
     virtual void push_handler(handler_t&& handler) = 0;
-    virtual void pop_handler() = 0;
+    virtual void pop_handler(int i = 0) = 0;
+    virtual int  size() = 0;
 
     virtual void on_key_down(int key, key_mod_state mods) = 0;
     virtual void on_key_up(int key, key_mod_state mods) = 0;
@@ -154,7 +168,7 @@ public:
     virtual void send_command(command cmd) = 0;
 
     virtual void set_command_result_handler(result_handler_t handler) = 0;
-    virtual void on_command_result(command_type command, size_t data) = 0;
+    virtual void on_command_result(command_type command, command_result result) = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
