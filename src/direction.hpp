@@ -59,14 +59,26 @@ inline constexpr bklib::ivec3 direction_vector(uint32_t const cmd) noexcept {
          : cmd == bklib::static_djb2_hash("dir_down")   ? vec_down
          : vec_here;
 }
+
+inline constexpr bklib::ivec3 direction_vector(std::integral_constant<size_t, 3>, command_type const cmd) noexcept {
+    return detail::direction_vector(static_cast<uint32_t>(cmd));
+}
+
+inline constexpr bklib::ivec2 direction_vector(std::integral_constant<size_t, 2>, command_type const cmd) noexcept {
+    return {
+        x(detail::direction_vector(static_cast<uint32_t>(cmd)))
+      , y(detail::direction_vector(static_cast<uint32_t>(cmd)))
+    };
+}
 } //namespace detail
 
 //--------------------------------------------------------------------------------------------------
-// @return a 3-vector corresponding to the direction @p cmd represents.
+// @return a n-vector corresponding to the direction @p cmd represents.
 // @pre @p cmd must specify a command type that represents a valid direction.
 //--------------------------------------------------------------------------------------------------
-inline constexpr bklib::ivec3 direction_vector(command_type const cmd) noexcept {
-    return detail::direction_vector(static_cast<uint32_t>(cmd));
+template <size_t N>
+inline constexpr auto direction_vector(command_type const cmd) noexcept {
+    return detail::direction_vector(std::integral_constant<size_t, N> {}, cmd);
 }
 
 } //namespace bkrl

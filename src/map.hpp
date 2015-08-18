@@ -200,6 +200,8 @@ public:
     //----------------------------------------------------------------------------------------------
     item remove_item_at(bklib::ipoint2 p, int index);
 
+    void move_item_at(bklib::ipoint2 p, item_pile::iterator it, item_pile& dst);
+
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
     //! @pre a creature must exist at @p p.

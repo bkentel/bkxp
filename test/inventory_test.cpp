@@ -20,7 +20,8 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
     bkrl::text_renderer& trender = *text_render;
 
     SECTION("sanity checks") {
-        bkrl::inventory i {trender};
+        auto il = bkrl::make_item_list(trender);
+        bkrl::inventory& i = *il;
         auto const b = i.bounds();
 
         REQUIRE(!!b);
@@ -31,7 +32,8 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
     }
 
     SECTION("size checks") {
-        bkrl::inventory i {trender};
+        auto il = bkrl::make_item_list(trender);
+        bkrl::inventory& i = *il;
         auto const b = i.bounds();
 
         i.move_to(bklib::ipoint2 {0, 0});
@@ -75,7 +77,8 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
     pile.insert(ifac.create(random, idefs, idef0));
     pile.insert(ifac.create(random, idefs, idef1));
 
-    bkrl::inventory i {trender};
+    auto il = bkrl::make_item_list(trender);
+    bkrl::inventory& i = *il;
 
     auto expected_action = bkrl::inventory::action::cancel;
     auto expected_index  = 0;
@@ -83,17 +86,16 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
 
     using action = bkrl::inventory::action;
 
-    i.on_action([&](action const type, int const index) {
+    i.set_on_action([&](action const type, int const index) {
         REQUIRE(type == expected_action);
         REQUIRE(index == expected_index);
 
-        auto const p = bkrl::from_inventory_data(i.data());
-
-        REQUIRE(&p.first == expected_item);
-        REQUIRE(p.second == expected_index);
+        auto const ptr = &*i.data();
+        REQUIRE(ptr == expected_item);
     });
 
-    auto f = bkrl::make_item_list(ctx, i, pile, "title");
+    auto f = default_item_list_handler(bkrl::populate_item_list(
+        ctx, i, pile, "title"));
 
     auto const set_expected = [&](auto const a, auto const index, auto const it) {
         expected_action = a;
@@ -139,16 +141,16 @@ TEST_CASE("inventory", "[inventory][bkrl]") {
     auto const c = i.client_area();
 
     set_expected(action::select, 0, 0);
-    i.mouse_move(bkrl::mouse_state {c.left, c.top, 0, 0, 0, 0, 0, 0});
+    i.on_mouse_move(bkrl::mouse_state {c.left, c.top, 0, 0, 0, 0, 0, 0});
 
     set_expected(action::select, 1, 1);
-    i.mouse_move(bkrl::mouse_state {c.left, c.top + + i.row_height(), 0, 0, 0, 0, 0, 0});
+    i.on_mouse_move(bkrl::mouse_state {c.left, c.top + + i.row_height(), 0, 0, 0, 0, 0, 0});
 
     set_expected(action::confirm, 0, 0);
-    i.mouse_button(bkrl::mouse_button_state {c.left, c.top, 0, 1, 1, 1});
+    i.on_mouse_button(bkrl::mouse_button_state {c.left, c.top, 0, 1, 1, 1});
 
     set_expected(action::confirm, 1, 1);
-    i.mouse_button(bkrl::mouse_button_state {c.left, c.top + i.row_height(), 0, 1, 1, 1});
+    i.on_mouse_button(bkrl::mouse_button_state {c.left, c.top + i.row_height(), 0, 1, 1, 1});
 }
 
 #endif // BK_NO_UNIT_TESTS

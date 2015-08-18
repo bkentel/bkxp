@@ -10,25 +10,26 @@
 #include "bklib/assert.hpp"
 #include "bklib/string.hpp"
 
-class bkrl::detail::inventory_impl {
-public:
-    using action = bkrl::inventory::action;
-    using action_handler_t = inventory::action_handler_t;
+namespace bkrl { class inventory_impl; }
 
+class bkrl::inventory_impl final : public inventory {
+public:
     bklib::irect default_bounds() const noexcept {
         return {200, 200, 600, 450};
     }
 
-    struct row_t {
+    struct row_data_t {
         bkrl::text_layout shortcut; // TODO wasteful
         bkrl::text_layout symbol; // TODO wasteful
         bkrl::text_layout name;
-        inventory::data_t data;
+        data_t            data;
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // inventory interface
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    virtual ~inventory_impl();
+
     explicit inventory_impl(text_renderer& trender)
       : layout_ {default_bounds()}
       , text_renderer_ {trender}
@@ -37,13 +38,13 @@ public:
         handler_ = [](action, int) noexcept {};
     }
 
-    void insert(inventory::row_t&& r, int const where);
+    void insert(row_t&& r, int where) final override;
 
-    void remove(int) {
+    void remove(int) final override {
         BK_ASSERT(false && "TODO");
     }
 
-    void clear() {
+    void clear() final override {
         rows_.clear();
         title_.clear();
         selection_ = selection_none;
@@ -52,49 +53,61 @@ public:
         is_scrolling_ = false;
     }
 
-    void set_title(bklib::utf8_string_view const title) {
+    void set_title(bklib::utf8_string_view const title) final override {
         title_.set_text(text_renderer_, title);
         title_.clip_to(
             bklib::clamp_to<text_layout::size_type>(layout_.title.w)
           , bklib::clamp_to<text_layout::size_type>(layout_.title.h));
     }
 
-    void draw(renderer& render);
+    void draw(renderer& render) final override;
 
-    int count() const noexcept {
+    int count() const noexcept final override {
         return static_cast<int>(rows_.size());
     }
 
-    void show(bool const visible) noexcept;
+    void show(bool const visible) noexcept  final override;
 
-    bool is_visible() const noexcept {
+    bool is_visible() const noexcept final override{
         return visible_;
     }
 
-    void resize(bklib::irect) {
+    void resize(bklib::irect) final override {
         BK_ASSERT(false && "TODO");
     }
 
-    bklib::irect bounds() const { return layout_.bounds(); }
-    bklib::irect client_area() const {
+    bklib::irect bounds() const final override {
+        return layout_.bounds();
+    }
+
+    bklib::irect client_area() const final override {
         auto const& c = layout_.client;
         return {c.x, c.y, c.x + c.w, c.y + c.h};
     }
 
-    int row_height() const {
+    int row_height() const final override {
         return text_renderer_.line_spacing() + layout_t::padding;
     }
 
-    void move_by(bklib::ivec2 const v) { layout_.move_by(v); }
-    void move_to(bklib::ipoint2 const p) { layout_.move_to(p); }
+    void move_by(bklib::ivec2 const v) final override {
+        layout_.move_by(v);
+    }
 
-    bklib::ipoint2 position() { return layout_.position(); }
+    void move_to(bklib::ipoint2 const p) final override {
+        layout_.move_to(p);
+    }
 
-    int selection() const noexcept { return selection_; }
+    bklib::ipoint2 position() final override {
+        return layout_.position();
+    }
 
-    inventory::data_t data(int const index) const {
+    int selection() const noexcept final override {
+        return selection_;
+    }
+
+    data_t data(int const index) const final override {
         auto i = index;
-        if (index == inventory::current_selection) {
+        if (index == selection_current) {
             i = selection();
             BK_PRECONDITION(i != selection_none);
         }
@@ -104,12 +117,12 @@ public:
         return rows_[static_cast<size_t>(i)].data;
     }
 
-    bool mouse_move(mouse_state const& m);
-    bool mouse_button(mouse_button_state const& m);
-    bool mouse_scroll(mouse_state const& m);
-    command_handler_result command(bkrl::command cmd);
+    bool on_mouse_move(mouse_state const& m) final override;
+    bool on_mouse_button(mouse_button_state const& m) final override;
+    bool on_mouse_scroll(mouse_state const& m) final override;
+    command_handler_result on_command(bkrl::command cmd) final override;
 
-    void on_action(action_handler_t&& handler) {
+    void set_on_action(action_handler_t handler) final override {
         handler_ = std::move(handler);
     }
 
@@ -233,7 +246,7 @@ private:
     action_handler_t   handler_;
     text_renderer&     text_renderer_;
     int                selection_ = selection_none;
-    std::vector<row_t> rows_;
+    std::vector<row_data_t> rows_;
     text_layout        title_;
     text_renderer::size_type scroll_offset_ = 0;
     bool               visible_ = false;
@@ -241,103 +254,10 @@ private:
     bool               is_scrolling_ = false;
 };
 
-//===----------------------------------------------------------------------------------------===
-//===                                  inventory                                             ===
-//===----------------------------------------------------------------------------------------===
-
-bkrl::inventory::inventory(text_renderer& trender)
-  : impl_ {std::make_unique<detail::inventory_impl>(trender)}
-{
+bkrl::inventory_impl::~inventory_impl() {
 }
 
-bkrl::inventory::~inventory() = default;
-
-void bkrl::inventory::insert(row_t&& r, int const where) {
-    impl_->insert(std::move(r), where);
-}
-
-void bkrl::inventory::remove(int const where) {
-    impl_->remove(where);
-}
-
-void bkrl::inventory::clear() {
-    impl_->clear();
-}
-
-void bkrl::inventory::set_title(bklib::utf8_string_view const title) {
-    impl_->set_title(title);
-}
-
-void bkrl::inventory::draw(renderer& render) {
-    impl_->draw(render);
-}
-
-int bkrl::inventory::count() const {
-    return impl_->count();
-}
-
-void bkrl::inventory::show(bool const visible) {
-    impl_->show(visible);
-}
-
-bool bkrl::inventory::is_visible() const {
-    return impl_->is_visible();
-}
-
-void bkrl::inventory::resize(bklib::irect const bounds) {
-    impl_->resize(bounds);
-}
-
-bklib::irect bkrl::inventory::bounds() const {
-    return impl_->bounds();
-}
-
-bklib::irect bkrl::inventory::client_area() const {
-    return impl_->client_area();
-}
-
-int bkrl::inventory::row_height() const {
-    return impl_->row_height();
-}
-
-void bkrl::inventory::move_by(bklib::ivec2 const v) {
-    impl_->move_by(v);
-}
-
-void bkrl::inventory::move_to(bklib::ipoint2 const p) {
-    impl_->move_to(p);
-}
-
-bklib::ipoint2 bkrl::inventory::position() {
-    return impl_->position();
-}
-
-int bkrl::inventory::selection() const {
-    return impl_->selection();
-}
-
-bkrl::inventory::data_t bkrl::inventory::data(int const index) const {
-    return impl_->data(index);
-}
-
-bool bkrl::inventory::mouse_move(mouse_state const& m) {
-    return impl_->mouse_move(m);
-}
-
-bool bkrl::inventory::mouse_button(mouse_button_state const& m) {
-    return impl_->mouse_button(m);
-}
-
-bool bkrl::inventory::mouse_scroll(mouse_state const& m) {
-    return impl_->mouse_scroll(m);
-}
-
-bkrl::command_handler_result bkrl::inventory::command(bkrl::command const cmd) {
-    return impl_->command(cmd);
-}
-
-void bkrl::inventory::on_action(action_handler_t handler) {
-    impl_->on_action(std::move(handler));
+bkrl::inventory::~inventory() {
 }
 
 //===----------------------------------------------------------------------------------------===
@@ -345,7 +265,7 @@ void bkrl::inventory::on_action(action_handler_t handler) {
 //===----------------------------------------------------------------------------------------===
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::inventory_impl::layout_t::resize(
+void bkrl::inventory_impl::layout_t::resize(
     bklib::irect const r
   , size_type const // client_w // required client width to show everything
   , size_type const client_h // required client height to show everything
@@ -407,7 +327,7 @@ void bkrl::detail::inventory_impl::layout_t::resize(
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::inventory_impl::layout_t::move_by(bklib::ivec2 const v) noexcept
+void bkrl::inventory_impl::layout_t::move_by(bklib::ivec2 const v) noexcept
 {
     auto const dx = x(v);
     auto const dy = y(v);
@@ -426,14 +346,14 @@ void bkrl::detail::inventory_impl::layout_t::move_by(bklib::ivec2 const v) noexc
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::inventory_impl::insert(inventory::row_t&& r, int const where)
+void bkrl::inventory_impl::insert(inventory::row_t&& r, int const where)
 {
     auto const n = count();
     auto const c = bklib::alphanum_id::to_char(n);
 
     char const shortcut[2] = {c > 0 ? static_cast<char>(c) : char {0}, 0};
 
-    row_t row {
+    row_data_t row {
         bkrl::text_layout {text_renderer_, shortcut}
       , bkrl::text_layout {text_renderer_, r.symbol}
       , bkrl::text_layout {text_renderer_, r.name}
@@ -450,7 +370,7 @@ void bkrl::detail::inventory_impl::insert(inventory::row_t&& r, int const where)
 
     row.name.clip_to(w, h);
 
-    if (where == inventory::insert_at_end) {
+    if (where == at_end) {
         rows_.push_back(std::move(row));
     } else {
         rows_.insert(next(begin(rows_), where), std::move(row));
@@ -458,7 +378,7 @@ void bkrl::detail::inventory_impl::insert(inventory::row_t&& r, int const where)
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::inventory_impl::draw(renderer& render)
+void bkrl::inventory_impl::draw(renderer& render)
 {
     struct color_t {
         bkrl::color4 fg;
@@ -549,7 +469,7 @@ void bkrl::detail::inventory_impl::draw(renderer& render)
 }
 
 //----------------------------------------------------------------------------------------------
-void bkrl::detail::inventory_impl::show(bool const visible) noexcept
+void bkrl::inventory_impl::show(bool const visible) noexcept
 {
     visible_ = visible;
     if (!visible_) {
@@ -600,7 +520,7 @@ inline bool intersects(bkrl::renderer::rect_t const lhs, T const rhs) noexcept {
 }
 
 //----------------------------------------------------------------------------------------------
-bool bkrl::detail::inventory_impl::mouse_move(mouse_state const& m)
+bool bkrl::inventory_impl::on_mouse_move(mouse_state const& m)
 {
     auto const p = bklib::ipoint2 {m.x, m.y};
     if (!should_handle_mouse_input(p)) {
@@ -637,7 +557,7 @@ bool bkrl::detail::inventory_impl::mouse_move(mouse_state const& m)
 }
 
 //----------------------------------------------------------------------------------------------
-bool bkrl::detail::inventory_impl::mouse_button(mouse_button_state const& m)
+bool bkrl::inventory_impl::on_mouse_button(mouse_button_state const& m)
 {
     auto const p = bklib::ipoint2 {m.x, m.y};
     if (!should_handle_mouse_input(p)) {
@@ -684,7 +604,7 @@ bool bkrl::detail::inventory_impl::mouse_button(mouse_button_state const& m)
 }
 
 //----------------------------------------------------------------------------------------------
-bool bkrl::detail::inventory_impl::mouse_scroll(mouse_state const& m) {
+bool bkrl::inventory_impl::on_mouse_scroll(mouse_state const& m) {
     auto const p = bklib::ipoint2 {m.x, m.y};
     if (!should_handle_mouse_input(p)) {
         return false;
@@ -703,7 +623,7 @@ bool bkrl::detail::inventory_impl::mouse_scroll(mouse_state const& m) {
 }
 
 //----------------------------------------------------------------------------------------------
-bkrl::command_handler_result bkrl::detail::inventory_impl::command(bkrl::command const cmd)
+bkrl::command_handler_result bkrl::inventory_impl::on_command(bkrl::command const cmd)
 {
     auto const default_result = command_handler_result::capture;
 
@@ -746,10 +666,10 @@ bkrl::command_handler_result bkrl::detail::inventory_impl::command(bkrl::command
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::detail::make_item_list(
+bkrl::inventory& bkrl::populate_item_list(
     context& ctx
   , inventory& i
-  , item_pile const& pile
+  , item_pile& pile
   , bklib::utf8_string_view const title
 ) {
     i.clear();
@@ -758,10 +678,11 @@ void bkrl::detail::make_item_list(
     item::format_flags flags;
     flags.use_color = true;
 
-    auto index = 0;
+    auto const last = std::end(pile);
+    for (auto it = std::begin(pile); it != last; ++it) {
+        item     const& itm  = *it;
+        item_def const* idef = ctx.data.find(itm.def());
 
-    for (auto& itm : pile) {
-        auto const idef = ctx.data.find(itm.def());
         flags.use_definition = idef;
 
         if (itm.flags().test(item_flag::is_equipped)) {
@@ -773,31 +694,15 @@ void bkrl::detail::make_item_list(
         i.insert(inventory::row_t {
             idef ? idef->symbol : " " //TODO find will be called twice
           , itm.friendly_name(ctx, flags)
-          , to_inventory_data(const_cast<item&>(itm), index++) //TODO
+          , it
         });
     }
 
     i.show(true);
+    return i;
 }
 
-bkrl::inventory::data_t bkrl::to_inventory_data(item& itm, int const index) noexcept
+std::unique_ptr<bkrl::inventory> bkrl::make_item_list(text_renderer& trender)
 {
-    using t0 = decltype(inventory::data_t::data0);
-    using t1 = decltype(inventory::data_t::data1);
-
-    static_assert(sizeof(t0) >= sizeof(bkrl::item*), "");
-    static_assert(sizeof(t1) >= sizeof(int),         "");
-
-    return {
-        reinterpret_cast<decltype(inventory::data_t::data0)>(&itm)
-      , static_cast<decltype(inventory::data_t::data1)>(index)
-    };
-}
-
-std::pair<bkrl::item&, int> bkrl::from_inventory_data(inventory::data_t const data) noexcept
-{
-    return {
-        *reinterpret_cast<item*>(data.data0)
-      , static_cast<int>(data.data1)
-    };
+    return std::make_unique<inventory_impl>(trender);
 }

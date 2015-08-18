@@ -177,15 +177,35 @@ find_neighboring_terrain(map const& m, bklib::ipoint2 const where, Predicate&& p
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
-void display_item_list(context& ctx, command_translator& commands, item& container) {
+void display_item_list(
+    context& ctx
+  , command_translator& commands
+  , item& container
+  , inventory& imenu
+) {
     BK_PRECONDITION(has_flag(container, item_flag::is_container));
-    ctx.out.write("TODO: display_item_list(item)");
+
+    auto const pile = get_item_data<item_data_type::container>(container);
+    BK_PRECONDITION(pile);
+
+    bkrl::populate_item_list(ctx, imenu, *pile, container.friendly_name(ctx));
+    imenu.set_on_action([&](auto const action, auto const ) {
+        if (action == inventory::action::confirm) {
+
+        } else if (action == inventory::action::cancel) {
+            imenu.show(false);
+            commands.pop_handler();
+        }
+    });
+
+    commands.push_handler(default_item_list_handler(imenu));
 }
 
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
-void open_nothing(context& ctx, command_translator& commands) {
+void open_nothing(context& ctx, command_translator& commands)
+{
     ctx.out.write("There is nothing to open here.");
     commands.on_command_result(command_type::open, 0);
 }
@@ -193,7 +213,8 @@ void open_nothing(context& ctx, command_translator& commands) {
 //--------------------------------------------------------------------------------------------------
 //!
 //--------------------------------------------------------------------------------------------------
-void open_cancel(context& ctx, command_translator& commands) {
+void open_cancel(context& ctx, command_translator& commands)
+{
     ctx.out.write("Nevermind.");
     commands.on_command_result(command_type::open, 0);
 }
@@ -228,14 +249,13 @@ void open_doors(
   , find_around_result_t<terrain_entry*> const& doors
 ) {
     ctx.out.write("Open in which direction?");
-    commands.push_handler([&, doors](command const& cmd) {
+    commands.push_handler(filter_text_and_raw([&, doors](command const& cmd) {
         if (is_direction(cmd.type)) {
-            auto const v = bklib::truncate<2>(direction_vector(cmd.type));
-            auto const door = doors.at(v);
-            if (!door) {
-                ctx.out.write("There is nothing there to open.");
-            } else {
+            auto const v = direction_vector<2>(cmd.type);
+            if (auto const door = doors.at(v)) {
                 open_door_at(ctx, commands, subject, current_map, subject.position() + v);
+            } else {
+                ctx.out.write("There is nothing there to open.");
             }
         } else if (cmd.type == command_type::cancel) {
             open_cancel(ctx, commands);
@@ -245,7 +265,7 @@ void open_doors(
         }
 
         return command_handler_result::detach;
-    });
+    }));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -256,6 +276,7 @@ void open_containers_at(
   , command_translator& commands
   , creature&           subject
   , std::pair<item_pile*, item_pile::iterator> const pair
+  , inventory&          imenu
 ) {
     auto       it   = pair.second;
     auto const last = pair.first->end();
@@ -266,7 +287,7 @@ void open_containers_at(
 
     auto next = get_next();
     if (next == last) {
-        display_item_list(ctx, commands, *pair.second);
+        display_item_list(ctx, commands, *pair.second, imenu);
         return;
     }
 
@@ -289,16 +310,16 @@ void open_containers(
   , creature&           subject
   , map&                current_map
   , find_around_result_t<std::pair<item_pile*, item_pile::iterator>> const& containers
+  , inventory&          imenu
 ) {
     ctx.out.write("Open in which direction?");
-    commands.push_handler([&, containers](command const& cmd) {
+    commands.push_handler(filter_text_and_raw([&, containers](command const& cmd) {
         if (is_direction(cmd.type)) {
-            auto const v = bklib::truncate<2>(direction_vector(cmd.type));
-            auto const pair = containers.at(v);
+            auto const pair = containers.at(direction_vector<2>(cmd.type));
             if (!pair.first) {
                 ctx.out.write("There is nothing there to open.");
             } else {
-                open_containers_at(ctx, commands, subject, pair);
+                open_containers_at(ctx, commands, subject, pair, imenu);
             }
         } else if (cmd.type == command_type::cancel) {
             open_cancel(ctx, commands);
@@ -308,7 +329,7 @@ void open_containers(
         }
 
         return command_handler_result::detach;
-    });
+    }));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -319,6 +340,7 @@ void open_around(
   , command_translator& commands
   , creature&           subject
   , map&                current_map
+  , inventory&          imenu
 ) {
     auto const p = subject.position();
     auto doors = find_neighboring_terrain(current_map, p, find_door(door::state::closed));
@@ -334,9 +356,9 @@ void open_around(
         commands.push_handler([&, p, doors, conts](command const& cmd) {
             if (cmd.type == command_type::yes) {
                 if (conts.count == 1) {
-                    open_containers_at(ctx, commands, subject, conts.last_found());
+                    open_containers_at(ctx, commands, subject, conts.last_found(), imenu);
                 } else {
-                    open_containers(ctx, commands, subject, current_map, conts);
+                    open_containers(ctx, commands, subject, current_map, conts, imenu);
                 }
             } else if (cmd.type == command_type::no) {
                 if (doors.count == 1) {
@@ -356,8 +378,8 @@ void open_around(
     };
 
     if      (doors.count == 0 && conts.count == 0) { open_nothing(ctx, commands); }
-    else if (doors.count == 0 && conts.count == 1) { open_containers_at(ctx, commands, subject, conts.last_found()); }
-    else if (doors.count == 0 && conts.count  > 1) { open_containers(ctx, commands, subject, current_map, conts); }
+    else if (doors.count == 0 && conts.count == 1) { open_containers_at(ctx, commands, subject, conts.last_found(), imenu); }
+    else if (doors.count == 0 && conts.count  > 1) { open_containers(ctx, commands, subject, current_map, conts, imenu); }
     else if (doors.count == 1 && conts.count == 0) { open_door_at(ctx, commands, subject, current_map, doors.position(p)); }
     else if (doors.count == 1 && conts.count == 1) { choose_type(); }
     else if (doors.count == 1 && conts.count  > 1) { choose_type(); }
@@ -369,9 +391,96 @@ void open_around(
     }
 }
 
-
 /////////////////////////
 
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+void close_nothing(context& ctx, command_translator& commands)
+{
+    ctx.out.write("There is nothing to close here.");
+    commands.on_command_result(command_type::close, 0);
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+void close_cancel(context& ctx, command_translator& commands)
+{
+    ctx.out.write("Nevermind.");
+    commands.on_command_result(command_type::close, 0);
+}
+
+//--------------------------------------------------------------------------------------------------
+//! Open the door at the location adjacent to subject specified by where.
+//--------------------------------------------------------------------------------------------------
+void close_door_at(
+    context&             ctx
+  , command_translator&  commands
+  , creature&            subject
+  , map&                 current_map
+  , bklib::ipoint2 const where
+) {
+    if (set_door_state(current_map, where, door::state::closed)) {
+        ctx.out.write("You close the door.");
+        commands.on_command_result(command_type::close, 0);
+    } else {
+        ctx.out.write("You fail to close the door.");
+        commands.on_command_result(command_type::close, 0);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+//! Open one of the doors adjacent to subject specified by doors.
+//--------------------------------------------------------------------------------------------------
+void close_doors(
+    context&            ctx
+  , command_translator& commands
+  , creature&           subject
+  , map&                current_map
+  , find_around_result_t<terrain_entry*> const& doors
+) {
+    ctx.out.write("Close in which direction?");
+    commands.push_handler(filter_text_and_raw([&, doors](command const& cmd) {
+        if (is_direction(cmd.type)) {
+            auto const v = direction_vector<2>(cmd.type);
+            if (auto const door = doors.at(v)) {
+                close_door_at(ctx, commands, subject, current_map, subject.position() + v);
+            } else {
+                ctx.out.write("There is nothing there to close.");
+            }
+        } else if (cmd.type == command_type::cancel) {
+            close_cancel(ctx, commands);
+        } else {
+            ctx.out.write("Invalid choice. Choose a direction, or cancel.");
+            return command_handler_result::capture;
+        }
+
+        return command_handler_result::detach;
+    }));
+}
+
+//--------------------------------------------------------------------------------------------------
+//! Close a door (TODO or other widget?) adjacent to the subject
+//--------------------------------------------------------------------------------------------------
+void close_around(
+    context&            ctx
+  , command_translator& commands
+  , creature&           subject
+  , map&                current_map
+) {
+    auto const p = subject.position();
+    auto doors = find_neighboring_terrain(current_map, p, find_door(door::state::open));
+
+    if      (doors.count == 0) { close_nothing(ctx, commands); }
+    else if (doors.count == 1) { close_door_at(ctx, commands, subject, current_map, doors.position(p)); }
+    else if (doors.count  > 1) { close_doors(ctx, commands, subject, current_map, doors); }
+    else {
+        BK_UNREACHABLE;
+    }
+}
+
+/////////////////////////
 
 //--------------------------------------------------------------------------------------------------
 // Game simulation state.
@@ -393,11 +502,6 @@ public:
     creature const& get_player() const;
 
     void display_message(bklib::utf8_string_view msg);
-
-    template <typename Arg0, typename... Args>
-    void display_message(bklib::utf8_string_view const format, Arg0 const& arg0, Args const&... args) {
-        output_.write(format, arg0, args...);
-    }
 
     void on_mouse_over(int x, int y);
     void do_mouse_over(int x, int y);
@@ -455,7 +559,7 @@ private:
     std::vector<std::unique_ptr<map>> maps_;
     map*                current_map_;
     output              output_;
-    inventory           inventory_;
+    std::unique_ptr<inventory> inventory_;
 
     std::chrono::high_resolution_clock::time_point last_frame_;
 
@@ -532,7 +636,7 @@ bkrl::game::game()
   , maps_ {}
   , current_map_ {nullptr}
   , output_ {}
-  , inventory_ {*text_renderer_}
+  , inventory_ {make_item_list(*text_renderer_)}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
   , message_log_ {*text_renderer_}
   , ctx_ (make_context())
@@ -597,7 +701,7 @@ bkrl::game::game()
     };
 
     system_->on_mouse_motion = [&](mouse_state const m) {
-        if (inventory_.mouse_move(m)) {
+        if (inventory_->on_mouse_move(m)) {
             return;
         }
 
@@ -609,7 +713,7 @@ bkrl::game::game()
     };
 
     system_->on_mouse_scroll = [&](mouse_state const m) {
-        if (inventory_.mouse_scroll(m)) {
+        if (inventory_->on_mouse_scroll(m)) {
             return;
         }
 
@@ -621,7 +725,7 @@ bkrl::game::game()
     };
 
     system_->on_mouse_button = [&](mouse_button_state const m) {
-        if (inventory_.mouse_button(m)) {
+        if (inventory_->on_mouse_button(m)) {
             return;
         }
     };
@@ -696,7 +800,7 @@ void bkrl::game::render(render_type const type)
     current_map().draw(*renderer_, view_);
 
     message_log_.draw(*renderer_);
-    inventory_.draw(*renderer_);
+    inventory_->draw(*renderer_);
 
     if (show_inspect_text_) {
         auto const r = make_renderer_rect(add_border(inspect_text_.extent(), 4));
@@ -831,310 +935,30 @@ void bkrl::game::on_quit()
 void bkrl::game::on_open()
 {
     //bkrl::open(ctx_, get_player(), current_map(), inventory_, *command_translator_);
-    bkrl::open_around(ctx_, *command_translator_, get_player(), current_map());
+    bkrl::open_around(ctx_, *command_translator_, get_player(), current_map(), *inventory_);
     advance(); // TODO not strictly correct
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_close()
 {
-    bkrl::close(ctx_, get_player(), current_map(), *command_translator_);
+    //bkrl::close(ctx_, get_player(), current_map(), *command_translator_);
+    bkrl::close_around(ctx_, *command_translator_, get_player(), current_map());
     advance(); // TODO not strictly correct
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::open_result_t bkrl::open_door_at(
-    context&             ctx
-  , creature&            subject
-  , map&                 current_map
-  , bklib::ipoint2 const where
-) {
-    if (!set_door_state(current_map, where, door::state::open)) {
-        ctx.out.write("Couldn't open the door.");
-        return open_result::failed;
-    }
-
-    ctx.out.write("You opened the door.");
-    return open_result::ok;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::open_result_t bkrl::open_cont_at(
-    context&             ctx
-  , creature&            subject
-  , map&                 current_map
-  , bklib::ipoint2 const where
-) {
-    item_pile* const pile = current_map.items_at(where);
-    BK_PRECONDITION(pile);
-
-    item* const itm = bklib::find_maybe(*pile, find_by_flag(item_flag::is_container));
-    BK_PRECONDITION(itm);
-
-    ctx.out.write("(TODO) You opened the %s.", itm->friendly_name(ctx));
-    return open_result::ok;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::command_future
-bkrl::open(
-    context&            ctx
-  , creature&           subject
-  , map&                current_map
-  , inventory&          imenu
-  , command_translator& commands
-) {
-    struct open_state_t {
-        context&            ctx_;
-        creature&           subject_;
-        map&                current_map_;
-        command_translator& commands_;
-        inventory&          imenu_;
-        bklib::ipoint2      where_;
-
-        find_around_result_t<terrain_entry*>      doors_;
-        find_around_result_t<item_pile::iterator> containers_;
-
-        command_future  sub_command_result;
-        command_promise result;
-
-        enum class state_t {
-            start, done, choose_dir_door, get_item
-        } state = state_t::start;
-
-        open_state_t(context& ctx, creature& subject, map& current_map, inventory& imenu, command_translator& commands)
-          : ctx_ {ctx}, subject_ {subject}, current_map_ {current_map}, imenu_ {imenu}, commands_ {commands}
-          , where_ {subject_.position()}
-          , doors_ {find_neighboring_terrain(current_map, where_, find_door(door::state::closed))}
-          , containers_ {
-            //find_neighboring_items(current_map, where_, find_by_flag(item_flag::is_container))
-            }
-        {
-        }
-
-        void start() {
-            if (doors_.count == 0 && containers_.count == 0) {
-                done_nothing();
-                return;
-            } else if (doors_.count == 1 && containers_.count == 0) {
-                done_open_door_at(doors_.position(where_));
-                return;
-            } else if (doors_.count  > 1 && containers_.count == 0) {
-                state = state_t::choose_dir_door;
-                return;
-            } else if (doors_.count == 0 && containers_.count == 1) {
-                state = state_t::get_item;
-                auto& pile = *reinterpret_cast<item_pile*>(containers_.last_found()->data().data);
-                sub_command_result = get_item(ctx_, subject_, pile, imenu_, commands_);
-                return;
-            } else if (doors_.count == 0 && containers_.count  > 1) {
-            } else if (doors_.count == 1 && containers_.count == 1) {
-            } else if (doors_.count  > 1 && containers_.count  > 1) {
-            } else {
-                BK_PRECONDITION_SAFE(false && "unreachable");
-                return;
-            }
-        }
-
-        command_handler_result input(command const& cmd) {
-            if (state == state_t::done) {
-                return command_handler_result::detach_passthrough;
-            }
-
-            if (cmd.type == command_type::raw || cmd.type == command_type::text) {
-                return command_handler_result::capture;
-            }
-
-            switch (state) {
-            case state_t::start:
-                start();
-                break;
-            case state_t::choose_dir_door:
-                choose_dir_door(cmd);
-                break;
-            case state_t::get_item:
-                result.set_value(sub_command_result.get());
-                state = state_t::done;
-                break;
-            default:
-                break;
-            }
-
-            return command_handler_result::capture;
-        }
-
-        void choose_dir_door(command const& cmd) {
-            if (cmd.type == command_type::cancel) {
-                done_cancel();
-                return;
-            }
-
-            if (!bkrl::is_direction(cmd.type)) {
-                ctx_.out.write("Choose a direction, or cancel.");
-                return;
-            }
-
-            auto const v = bklib::truncate<2>(direction_vector(cmd.type));
-            if (!doors_.at(v)) {
-                ctx_.out.write("There is no door to open there.");
-                return;
-            }
-
-            done_open_door_at(where_ + v);
-        }
-
-        void done_open_door_at(bklib::ipoint2 const p) {
-            state = state_t::done;
-
-            if (set_door_state(current_map_, p, door::state::open)) {
-                ctx_.out.write("You opened the door.");
-                result.set_value(command_result::ok);
-            } else {
-                ctx_.out.write("Couldn't open the door.");
-                result.set_value(command_result::failed);
-            }
-        }
-
-        void done_nothing() {
-            state = state_t::done;
-
-            ctx_.out.write("There is nothing here to open.");
-            result.set_value(command_result::none_present);
-        }
-
-        void done_cancel() {
-            state = state_t::done;
-
-            ctx_.out.write("Nevermind.");
-            result.set_value(command_result::canceled);
-        }
-    } open_handler {ctx, subject, current_map, imenu, commands};
-
-    auto result = open_handler.result.get_future();
-
-    commands.push_handler([handler = std::move(open_handler)](command const& cmd) mutable {
-        return handler.input(cmd);
-    });
-
-    commands.send_command(make_command<command_type::open>());
-
-    return result;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::close_result_t bkrl::close_door_at(
-    context&             ctx
-  , creature&            subject
-  , map&                 current_map
-  , bklib::ipoint2 const where
-) {
-    if (!set_door_state(current_map, where, door::state::closed)) {
-        ctx.out.write("Couldn't close the door.");
-        return close_result::failed;
-    }
-
-    ctx.out.write("You closed the door.");
-    return close_result::ok;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::close_result_t bkrl::close_cont_at(
-    context&             ctx
-  , creature&            subject
-  , map&                 current_map
-  , bklib::ipoint2 const where
-) {
-    item_pile* const pile = current_map.items_at(where);
-    BK_PRECONDITION(pile);
-
-    item* const itm = bklib::find_maybe(*pile, find_by_flag(item_flag::is_container));
-    BK_PRECONDITION(itm);
-
-    ctx.out.write("(TODO) You closed the %s.", itm->friendly_name(ctx));
-    return close_result::ok;
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::close_result_t bkrl::close(
-    context&            ctx
-  , creature&           subject
-  , map&                current_map
-  , command_translator& commands
-) {
-    auto const p = subject.position();
-    auto const door_candidates = find_around(current_map, p, find_door(door::state::open));
-    auto const item_candidates = find_items_around(current_map, p, find_container());
-
-    //
-    // Nothing to do.
-    //
-    if (!door_candidates && !item_candidates) {
-        ctx.out.write("There is nothing here to close.");
-        return close_result::nothing;
-    }
-
-    //
-    // Ok.
-    //
-    if (door_candidates.count + item_candidates.count == 1) {
-        return door_candidates
-          ? close_door_at(ctx, subject, current_map, door_candidates.p)
-          : close_cont_at(ctx, subject, current_map, item_candidates.p);
-    }
-
-    //
-    // Have to choose a target.
-    //
-    ctx.out.write("Which direction?");
-
-    query_dir(commands, [&, p, door_candidates, item_candidates](command_type const cmd) {
-        if (cmd == command_type::cancel) {
-            ctx.out.write("Nevermind.");
-            set_command_result(commands, close_result::canceled);
-            return command_handler_result::detach;
-        }
-
-        if (!is_direction(cmd)) {
-            ctx.out.write("Invalid choice.");
-            set_command_result(commands, close_result::select);
-            return command_handler_result::capture;
-        }
-
-        auto const v = bklib::truncate<2>(direction_vector(cmd));
-        bool const is_door = door_candidates.is_valid(v);
-        bool const is_cont = item_candidates.is_valid(v);
-
-        if (is_door && is_cont) {
-            BK_ASSERT(false && "TODO");
-        } else if (is_door) {
-            set_command_result(commands
-              , close_door_at(ctx, subject, current_map, p + v));
-        } else if (is_cont) {
-            set_command_result(commands
-              , close_cont_at(ctx, subject, current_map, p + v));
-        } else {
-            ctx.out.write("There is nothing there to close.");
-            set_command_result(commands, close_result::nothing);
-        }
-
-        return command_handler_result::detach;
-    });
-
-    return close_result::select;
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_get()
 {
     auto& subject = get_player();
-    get_item(ctx_, subject, current_map(), subject.position(), inventory_, *command_translator_);
+    get_item(ctx_, subject, current_map(), subject.position(), *inventory_, *command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_drop()
 {
     auto& subject = get_player();
-    drop_item(ctx_, subject, current_map(), subject.position(), inventory_, *command_translator_);
+    drop_item(ctx_, subject, current_map(), subject.position(), *inventory_, *command_translator_);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1158,7 +982,7 @@ bkrl::drop_item_result_t bkrl::drop_item(
         return drop_item_result::out_of_range;
     }
 
-    imenu.on_action([&, where](inventory::action const type, int const sel) {
+    imenu.set_on_action([&, where](inventory::action const type, int const sel) {
         BK_NAMED_SCOPE_EXIT(close) {
             imenu.show(false);
             commands.pop_handler(); //TODO
@@ -1175,8 +999,8 @@ bkrl::drop_item_result_t bkrl::drop_item(
         }
 
         auto const result = with_pile_at(ctx.data, current_map, where, [&](item_pile& pile) {
-            subject.drop_item(pile, from_inventory_data(imenu.data()).second);
-            ctx.out.write("You dropped the %s.", pile.begin()->friendly_name(ctx));
+            subject.drop_item(pile, imenu.data());
+            ctx.out.write("You dropped the {}.", pile.begin()->friendly_name(ctx));
         });
 
         if (!result) {
@@ -1188,7 +1012,8 @@ bkrl::drop_item_result_t bkrl::drop_item(
         set_command_result(commands, drop_item_result::ok);
     });
 
-    commands.push_handler(make_item_list(ctx, imenu, items, "Drop which item?"));
+    commands.push_handler(default_item_list_handler(populate_item_list(
+        ctx, imenu, items, "Drop which item?")));
     return drop_item_result::select;
 }
 
@@ -1203,7 +1028,7 @@ bkrl::command_future bkrl::get_item(
     bkrl::command_promise promise;
     auto result = promise.get_future();
 
-    imenu.on_action([&, result = std::move(promise)](inventory::action const type, int const i) mutable {
+    imenu.set_on_action([&, result = std::move(promise)](inventory::action const type, int const i) mutable {
         if (i < 0 || type == inventory::action::cancel) {
             result.set_value(command_result::canceled);
             imenu.show(false);
@@ -1214,24 +1039,23 @@ bkrl::command_future bkrl::get_item(
             return;
         }
 
-        auto const data  = from_inventory_data(imenu.data());
-        auto&      itm   = data.first;
-        auto const index = data.second;
+        item_pile::iterator it = imenu.data();
+        item& itm = *it;
 
         if (!subject.can_get_item(itm)) {
-            ctx.out.write("You can't get the %s.", itm.friendly_name(ctx));
+            ctx.out.write("You can't get the {}.", itm.friendly_name(ctx));
             result.set_value(command_result::failed);
             imenu.show(false);
             return;
         }
 
-        ctx.out.write("You got the %s.", itm.friendly_name(ctx));
-        move_item(source, subject.item_list(), index);
+        ctx.out.write("You got the {}.", itm.friendly_name(ctx));
+        move_item(source, subject.item_list(), it);
 
         result.set_value(command_result::ok);
     });
 
-    detail::make_item_list(ctx, imenu, source, "Get which item?");
+    populate_item_list(ctx, imenu, source, "Get which item?");
 
     commands.push_handler([&imenu, skip = true](command const& cmd) mutable {
         if (skip && cmd.type == command_type::text) {
@@ -1239,7 +1063,7 @@ bkrl::command_future bkrl::get_item(
             return command_handler_result::capture;
         }
 
-        imenu.command(cmd);
+        imenu.on_command(cmd);
         if (!imenu.is_visible()) {
             return command_handler_result::detach_passthrough;
         }
@@ -1270,7 +1094,7 @@ bkrl::get_item_result_t bkrl::get_item(
         return get_item_result::no_items;
     }
 
-    imenu.on_action([&, where](inventory::action const type, int const i) {
+    imenu.set_on_action([&, where](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
             imenu.show(false);
             commands.pop_handler(); //TODO
@@ -1286,22 +1110,22 @@ bkrl::get_item_result_t bkrl::get_item(
             return;
         }
 
-        auto const data = from_inventory_data(imenu.data());
-        auto&      itm   = data.first;
-        auto const index = data.second;
+        item_pile::iterator const it  = imenu.data();
+        item& itm = *it;
 
         if (!subject.can_get_item(itm)) {
-            ctx.out.write("You can't get the %s.", itm.friendly_name(ctx));
+            ctx.out.write("You can't get the {}.", itm.friendly_name(ctx));
             set_command_result(commands, get_item_result::failed);
             return;
         }
 
-        ctx.out.write("You got the %s.", itm.friendly_name(ctx));
-        subject.get_item(current_map.remove_item_at(where, index));
+        ctx.out.write("You got the {}.", itm.friendly_name(ctx));
+        current_map.move_item_at(where, it, subject.item_list());
         set_command_result(commands, get_item_result::ok);
     });
 
-    commands.push_handler(make_item_list(ctx, imenu, *pile, "Get which item?"));
+    commands.push_handler(default_item_list_handler(populate_item_list(
+        ctx, imenu, *pile, "Get which item?")));
     return get_item_result::select;
 }
 
@@ -1332,7 +1156,7 @@ void bkrl::game::do_move(bklib::ivec3 const v)
 
     if (auto const pile = current_map().items_at(q)) {
         for (auto const& i : *pile) {
-            display_message("You see here %s.", i.friendly_name(ctx_));
+            ctx_.out.write("You see here {}.", i.friendly_name(ctx_));
         }
     }
 }
@@ -1347,11 +1171,11 @@ void bkrl::game::on_move(bklib::ivec3 const v)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_show_inventory()
 {
-    auto const visible = !inventory_.is_visible();
-    inventory_.show(visible);
+    auto const visible = !inventory_->is_visible();
+    inventory_->show(visible);
 
     if (visible) {
-        show_inventory(ctx_, get_player(), inventory_, *command_translator_);
+        show_inventory(ctx_, get_player(), *inventory_, *command_translator_);
     }
 }
 
@@ -1369,7 +1193,7 @@ bkrl::show_inventory_result_t bkrl::show_inventory(
         return show_inventory_result::no_items;
     }
 
-    imenu.on_action([&](inventory::action const type, int const i) {
+    imenu.set_on_action([&](inventory::action const type, int const i) {
         BK_NAMED_SCOPE_EXIT(close) {
             imenu.show(false);
             commands.pop_handler(); //TODO
@@ -1382,10 +1206,10 @@ bkrl::show_inventory_result_t bkrl::show_inventory(
 
         close.dismiss();
 
-        auto& itm = from_inventory_data(imenu.data()).first;
+        auto& itm = *imenu.data();
 
         if (type == inventory::action::confirm) {
-            ctx.out.write("You chose the %d%s item -- %s"
+            ctx.out.write("You chose the {}{} item -- {}"
               , i + 1
               , bklib::oridinal_suffix(i + 1).data()
               , itm.friendly_name(ctx));
@@ -1398,7 +1222,8 @@ bkrl::show_inventory_result_t bkrl::show_inventory(
         set_command_result(commands, show_inventory_result::ok);
     });
 
-    commands.push_handler(make_item_list(ctx, imenu, items, "Items"));
+    commands.push_handler(default_item_list_handler(populate_item_list(
+        ctx, imenu, items, "Items")));
     return show_inventory_result::select;
 }
 
@@ -1483,7 +1308,7 @@ bkrl::equip_item_result_t bkrl::equip_item(
         print_slots(result.slots());
         break;
     case status_t::slot_not_present:
-        out.write("You can't seem to find an appropriate place to equip %s.", iname());
+        out.write("You can't seem to find an appropriate place to equip {}.", iname());
         break;
     case status_t::already_equipped: {
         out.write("You already have {} equipped.", iname());
@@ -1529,7 +1354,7 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
     case command_type::dir_s_east: BK_FALLTHROUGH
     case command_type::dir_up:     BK_FALLTHROUGH
     case command_type::dir_down:
-        on_move(direction_vector(cmd.type));
+        on_move(direction_vector<3>(cmd.type));
         break;
     case command_type::open:
         on_open();
@@ -1686,7 +1511,7 @@ bklib::utf8_string bkrl::inspect_tile(
             out.write("\n {}", i.friendly_name(ctx));
 
             if (i.flags().test(item_flag::is_container)) {
-                auto const inner = reinterpret_cast<item_pile const*>(i.data().data);
+                auto const inner = get_item_data<item_data_type::container>(i);
                 for (auto const& ii : *inner) {
                     out.write("\n +{}", ii.friendly_name(ctx));
                 }

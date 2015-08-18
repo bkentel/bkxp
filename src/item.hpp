@@ -272,6 +272,18 @@ public:
         dst.items_.splice_after(dst.items_.before_begin(), items_, std::next(items_.before_begin(), index));
     }
 
+    void move_item_to(item_pile& dst, iterator const where) {
+        auto const last = end();
+        for (auto it = items_.begin(), prev = items_.before_begin(); it != last; ++it) {
+            if (it == where) {
+                dst.items_.splice_after(dst.items_.before_begin(), items_, prev);
+                return;
+            }
+        }
+
+        BK_PRECONDITION_SAFE(false && "unreachable");
+    }
+
     template <typename Predicate>
     iterator find_if(Predicate&& pred) {
         return find_if_(items_.before_begin(), items_.end(), std::forward<Predicate>(pred));
@@ -319,6 +331,10 @@ inline void move_item(item_pile& src, item_pile& dst, int const index) {
     src.move_item_to(dst, index);
 }
 
+inline void move_item(item_pile& src, item_pile& dst, item_pile::iterator const it) {
+    src.move_item_to(dst, it);
+}
+
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
@@ -362,5 +378,24 @@ inline decltype(auto) find_container() noexcept {
         return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
     };
 }
+
+template <item_data_type Type>
+inline auto get_item_data(item& itm) noexcept
+  -> std::enable_if_t<Type == bkrl::item_data_type::container, item_pile*>
+{
+    BK_PRECONDITION(itm.data().type == item_data_type::container);
+    BK_PRECONDITION(has_flag(itm, item_flag::is_container));
+
+    auto& data = itm.data();
+    return reinterpret_cast<item_pile*>(data.data);
+}
+
+template <item_data_type Type>
+inline auto get_item_data(item const& itm) noexcept
+  -> std::enable_if_t<Type == bkrl::item_data_type::container, item_pile const*>
+{
+    return get_item_data<item_data_type::container>(const_cast<item&>(itm));
+}
+
 
 } //namespace bkrl

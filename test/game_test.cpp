@@ -60,7 +60,8 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
         random_state, defs, out, ifac, cfac
     };
 
-    bkrl::inventory imenu {trender};
+    auto il = bkrl::make_item_list(trender);
+    bkrl::inventory& imenu = *il;
 
     auto const p =  bklib::ipoint2 {0, 0};
     auto creature = cfac.create(random, cdef0, p);
@@ -87,13 +88,13 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
     // helper to select the first (and only) item
     auto const select_first_item = [&] {
-        imenu.command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
-        imenu.command(bkrl::command {bkrl::command_type::confirm, 0, 0});
+        imenu.on_command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
+        imenu.on_command(bkrl::command {bkrl::command_type::confirm, 0, 0});
     };
 
     auto const equip_first_item = [&] {
-        imenu.command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
-        imenu.command(bkrl::make_command(bkrl::command_raw_t {
+        imenu.on_command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
+        imenu.on_command(bkrl::make_command(bkrl::command_raw_t {
             bkrl::key_mod_state {bkrl::key_mod::ctrl}, 'e'
         }));
     };

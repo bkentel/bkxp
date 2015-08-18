@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/predef.h>
+#include <cstdlib>
 
 //--------------------------------------------------------------------------------------------------
 
@@ -27,3 +28,14 @@ void __inline__ BK_DO_DEBUG_BREAK() noexcept {
 #else
 #   define BK_FALLTHROUGH
 #endif
+
+namespace bkrl {
+namespace detail {
+    [[noreturn]] inline void unreachable() noexcept {
+        BK_DEBUG_BREAK;
+        std::abort();
+    }
+}
+}
+
+#define BK_UNREACHABLE ::bkrl::detail::unreachable()

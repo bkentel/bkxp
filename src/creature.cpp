@@ -117,6 +117,12 @@ void bkrl::creature::drop_item(item_pile& dst, int const i)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::creature::drop_item(item_pile& dst, item_pile::iterator const it)
+{
+    move_item(items_, dst, it);
+}
+
+//--------------------------------------------------------------------------------------------------
 void bkrl::creature::drop_items(item_pile& dst)
 {
     move_items(items_, dst);

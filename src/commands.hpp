@@ -195,6 +195,15 @@ void query_dir(command_translator& translator, Handler&& handler) {
     });
 }
 
+template <typename Functor>
+inline decltype(auto) filter_text_and_raw(Functor&& functor) {
+    return [f = std::forward<Functor>(functor)](command const& cmd) -> command_handler_result {
+        return (cmd.type == command_type::text || cmd.type == command_type::raw)
+          ? command_handler_result::capture
+          : f(cmd);
+    };
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
