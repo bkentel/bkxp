@@ -15,6 +15,10 @@ constexpr bklib::ivec2 index_to_offset(size_t const i) noexcept {
     return {x_off[i], y_off[i]};
 }
 
+constexpr bklib::ipoint2 index_to_offset(bklib::ipoint2 const p, size_t const i) noexcept {
+    return p + index_to_offset(i);
+}
+
 constexpr size_t offset_to_index(int const xi, int const yi) noexcept {
     return (xi == x_off[0]) && (yi == y_off[0]) ? 0
          : (xi == x_off[1]) && (yi == y_off[1]) ? 1

@@ -174,41 +174,6 @@ public:
 //--------------------------------------------------------------------------------------------------
 std::unique_ptr<command_translator> make_command_translator();
 
-//--------------------------------------------------------------------------------------------------
-//! Filter and transform commands to be one of: yes, no, cancel, or invalid.
-//--------------------------------------------------------------------------------------------------
-template <typename Handler>
-void query_yn(command_translator& translator, Handler&& handler) {
-    using ct = command_type;
-    translator.push_handler([h = std::move(handler)](command const& cmd) {
-        auto const type = cmd.type;
-        if (type == ct::raw || type == ct::text) {
-            return command_handler_result::capture;
-        } else if (type == ct::yes || type == ct::no || type == ct::cancel) {
-            return h(type);
-        }
-
-        return h(ct::invalid);
-    });
-}
-
-//--------------------------------------------------------------------------------------------------
-//! Filter and transform commands to be: is_direction(cmd) => cmd, cancel, or invalid.
-//--------------------------------------------------------------------------------------------------
-template <typename Handler>
-void query_dir(command_translator& translator, Handler&& handler) {
-    translator.push_handler([h = std::move(handler)](command const& cmd) {
-        auto const type = cmd.type;
-        if (type == command_type::raw || type == command_type::text) {
-            return command_handler_result::capture;
-        } else if (is_direction(type) || type == command_type::cancel) {
-            return h(type);
-        }
-
-        return h(command_type::invalid);
-    });
-}
-
 template <typename Functor>
 inline decltype(auto) filter_text_and_raw(Functor&& functor) {
     return [f = std::forward<Functor>(functor)](command const& cmd) -> command_handler_result {

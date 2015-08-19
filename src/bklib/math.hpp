@@ -372,6 +372,11 @@ inline point_t<D, T> operator+(point_t<D, T> const p, vector_t<D, T> const v) no
     return q += v;
 }
 
+template <typename T>
+inline constexpr point_t<2, T> operator+(point_t<2, T> const p, vector_t<2, T> const v) noexcept {
+    return {x(p) + x(v), y(p) + y(v)};
+}
+
 template <unsigned D, typename T>
 inline vector_t<D, T> operator-(point_t<D, T> const p, point_t<D, T> const q) noexcept {
     vector_t<D, T> result {p.data};

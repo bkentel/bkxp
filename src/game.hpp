@@ -19,51 +19,6 @@ class inventory;
 enum class equip_result_t : int;
 enum class command_type : uint32_t;
 
-//--------------------------------------------------------------------------------------------------
-template <typename T>
-struct result_t {
-    // Check that T is a scoped enum with a member named ok.
-    static_assert(std::is_enum<T>::value, "");
-    static_assert(!std::is_convertible<T, std::underlying_type_t<T>>::value, "");
-    static_assert(static_cast<std::underlying_type_t<T>>(T::ok) || true, "");
-
-    constexpr result_t(T const result) noexcept
-      : value {result}
-    {
-    }
-
-    constexpr explicit operator bool() const noexcept {
-        return value == T::ok;
-    }
-
-    T value;
-};
-
-template <typename T>
-constexpr bool operator==(result_t<T> const lhs, result_t<T> const rhs) noexcept {
-    return lhs.value == rhs.value;
-}
-
-template <typename T>
-constexpr bool operator==(result_t<T> const lhs, T const rhs) noexcept {
-    return lhs.value == rhs;
-}
-
-template <typename T>
-constexpr bool operator==(T const lhs, result_t<T> const rhs) noexcept {
-    return lhs == rhs.value;
-}
-
-template <typename T, typename U>
-constexpr bool operator!=(result_t<T> const lhs, U const rhs) noexcept {
-    return !(lhs == rhs);
-}
-
-template <typename T, typename U>
-constexpr bool operator!=(U const lhs, result_t<T> const rhs) noexcept {
-    return !(lhs == rhs);
-}
-
 void start_game();
 
 //--------------------------------------------------------------------------------------------------
@@ -108,6 +63,23 @@ void drop_item_at(
   , map&                current_map //!< The current map.
   , bklib::ipoint2      where       //!< The location to get from.
   , inventory&          imenu       //!< The menu used to display a list of choices.
+);
+
+command_result drop_item_at(
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , item_pile&          src_pile
+  , item_pile::iterator src_pos
+);
+
+command_result drop_item_at(
+    context&            ctx
+  , creature&           subject
+  , map&                current_map
+  , item_pile&          src_pile
+  , item_pile::iterator src_pos
+  , bklib::ipoint2      where
 );
 
 void drop_item(
@@ -156,15 +128,11 @@ void display_item_list(
 
 //--------------------------------------------------------------------------------------------------
 //! Display a message when there is nothing to open.
-//!
-//! @pre @p subject must be the player.
 //--------------------------------------------------------------------------------------------------
 void open_nothing(context& ctx, command_translator& commands, creature& subject);
 
 //--------------------------------------------------------------------------------------------------
 //! Display a message when opening is canceled.
-//!
-//! @pre @p subject must be the player.
 //--------------------------------------------------------------------------------------------------
 void open_cancel(context& ctx, command_translator& commands, creature& subject);
 
@@ -198,7 +166,7 @@ void open_containers_at(
   , command_translator& commands
   , creature&           subject
   , map&                current_map
-  , std::pair<item_pile*, item_pile::iterator> const pair
+  , std::pair<item_pile*, item_pile::iterator> pair
   , inventory&          imenu
 );
 
@@ -266,5 +234,10 @@ void close_around(
   , creature&           subject
   , map&                current_map
 );
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+void display_quit_prompt(context& ctx, command_translator& commands);
 
 } //namespace bkrl

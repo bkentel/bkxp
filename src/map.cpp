@@ -579,6 +579,12 @@ bkrl::placement_result_t
 bkrl::generate_item(context& ctx, map& m, item_def const& def, bklib::ipoint2 const p) {
     auto i = ctx.ifactory.create(ctx.random[random_stream::substantive], ctx.data.items(), def);
 
+    if (can_place_at(m, p, i)) {
+        m.place_item_at(std::move(i), def, p);
+        return {p, true};
+    }
+
+    //TODO replace this function with one of the neighbor types
     auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
         return can_place_at(m, q, i);
     });
