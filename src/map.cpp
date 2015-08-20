@@ -466,6 +466,20 @@ bkrl::item bkrl::map::remove_item_at(bklib::ipoint2 const p, int const index)
 }
 
 //--------------------------------------------------------------------------------------------------
+void bkrl::map::move_item_at(bklib::ipoint2 p, item_pile::iterator it, item_pile& dst)
+{
+    auto const pile = items_.at(p);
+    BK_PRECONDITION(pile);
+
+    move_item(*pile, dst, it);
+
+    if (pile->empty()) {
+        items_.remove(p);
+        render_data_->clear_item_at(p); // TODO should update symbol
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 bkrl::creature bkrl::map::remove_creature_at(bklib::ipoint2 const p)
 {
     render_data_->clear_creature_at(p);
@@ -544,7 +558,7 @@ bkrl::generate_creature(context& ctx, map& m, creature_def const& def, bklib::ip
     c.move_to(result);
 
     if (auto const idef = ctx.data.random_item(ctx.random, random_stream::creature)) {
-        auto itm = ctx.ifactory.create(random, *idef);
+        auto itm = ctx.ifactory.create(random, ctx.data.items(), *idef);
         c.get_item(std::move(itm));
     }
 
@@ -563,8 +577,14 @@ bkrl::generate_creature(context& ctx, map& m, creature_def const& def)
 //--------------------------------------------------------------------------------------------------
 bkrl::placement_result_t
 bkrl::generate_item(context& ctx, map& m, item_def const& def, bklib::ipoint2 const p) {
-    auto i = ctx.ifactory.create(ctx.random[random_stream::substantive], def);
+    auto i = ctx.ifactory.create(ctx.random[random_stream::substantive], ctx.data.items(), def);
 
+    if (can_place_at(m, p, i)) {
+        m.place_item_at(std::move(i), def, p);
+        return {p, true};
+    }
+
+    //TODO replace this function with one of the neighbor types
     auto const result = find_first_around(m, p, [&](bklib::ipoint2 const q) {
         return can_place_at(m, q, i);
     });

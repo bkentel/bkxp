@@ -1,6 +1,8 @@
 #pragma once
 
 #include "commands.hpp"
+#include "item.hpp"
+
 #include "bklib/math.hpp"
 #include "bklib/string.hpp"
 
@@ -17,17 +19,9 @@ struct color_def;
 struct mouse_state;
 struct mouse_button_state;
 
-class item;
-class item_pile;
-
-namespace detail { class inventory_impl; }
-
 class inventory {
 public:
-    struct data_t {
-        int64_t   data0; // at least big enough to store a pointer
-        ptrdiff_t data1; // arch dependent type (4 or 8 bytes)
-    };
+    using data_t = item_pile::iterator;
 
     struct row_t {
         bklib::utf8_string_view symbol;
@@ -35,90 +29,88 @@ public:
         data_t                  data;
     };
 
-    explicit inventory(text_renderer& trender);
-    ~inventory();
+    virtual ~inventory();
 
-    static constexpr int const insert_at_end = -1;
-    static constexpr int const insert_at_beg = 0;
-    static constexpr int const current_selection = -1;
+    static constexpr int const at_end = -1;
+    static constexpr int const at_beg = 0;
+    static constexpr int const selection_current = -1;
     static constexpr int const selection_none = -1;
 
-    void insert(row_t&& r, int where = insert_at_end);
-    void remove(int where = insert_at_end);
-    void clear();
+    virtual void insert(row_t&& r, int where = at_end) = 0;
+    virtual void remove(int where = selection_current) = 0;
+    virtual void clear() = 0;
 
-    void set_title(bklib::utf8_string_view title);
-    void draw(renderer& render);
-    int count() const;
+    virtual void set_title(bklib::utf8_string_view title) = 0;
+    virtual void draw(renderer& render) = 0;
+    virtual int count() const noexcept = 0;
+    virtual bool empty() const noexcept = 0;
 
-    void show(bool visible);
-    bool is_visible() const;
+    virtual void show(bool visible) = 0;
+    virtual bool is_visible() const noexcept = 0;
 
-    void resize(bklib::irect bounds);
+    virtual void resize(bklib::irect bounds) = 0;
 
-    bklib::irect bounds() const;
-    bklib::irect client_area() const;
-    int row_height() const;
+    virtual bklib::irect bounds() const = 0;
+    virtual bklib::irect client_area() const = 0;
+    virtual int row_height() const = 0;
 
-    void move_by(bklib::ivec2 v);
-    void move_to(bklib::ipoint2 p);
+    virtual void move_by(bklib::ivec2 v) = 0;
+    virtual void move_to(bklib::ipoint2 p) = 0;
 
-    bklib::ipoint2 position();
+    virtual bklib::ipoint2 position() = 0;
 
-    int selection() const;
-    data_t data(int index = current_selection) const;
+    virtual int selection() const noexcept = 0;
+
+    virtual data_t data(int index = selection_current) const = 0;
 
     enum class action {
-        cancel, select, confirm, equip
+        cancel, select, confirm, equip, get, drop
     };
 
     //----------------------------------------------------------------------------------------------
     //! @returns true if the inventory is visible and the position given by @p m also intersects
     //!          the inventory; false otherwise.
     //----------------------------------------------------------------------------------------------
-    bool mouse_move(mouse_state const& m);
-    bool mouse_button(mouse_button_state const& m);
-    bool mouse_scroll(mouse_state const& m);
-    command_handler_result command(bkrl::command cmd);
+    virtual bool on_mouse_move(mouse_state const& m) = 0;
+    virtual bool on_mouse_button(mouse_button_state const& m) = 0;
+    virtual bool on_mouse_scroll(mouse_state const& m) = 0;
+    virtual command_handler_result on_command(bkrl::command cmd) = 0;
 
-    using action_handler_t = std::function<
-        void (action type, int index)>;
+    using action_handler_t = std::function<void (action type, int index)>;
 
-    void on_action(action_handler_t handler);
-private:
-    std::unique_ptr<detail::inventory_impl> impl_;
+    virtual void set_on_action(action_handler_t handler) = 0;
 };
 
-namespace detail {
-void make_item_list(
+std::unique_ptr<inventory> make_item_list(text_renderer& trender);
+
+inventory& populate_item_list(
     context& ctx
   , inventory& i
-  , item_pile const& pile
+  , item_pile& pile
   , bklib::utf8_string_view title
 );
 
-} //namespace detail
-
-inline decltype(auto) make_item_list(
-    context& ctx
-  , inventory& i
-  , item_pile const& pile
-  , bklib::utf8_string_view title = ""
-) {
-    detail::make_item_list(ctx, i, pile, title);
-
-    return [&i, skip = true](command const& cmd) mutable {
+inline decltype(auto) default_item_list_handler(inventory& imenu) {
+    return [&imenu, skip = true](command const& cmd) mutable {
         if (skip && cmd.type == command_type::text) {
             skip = false; // skips the text message to follow
         } else {
-            return i.command(cmd);
+            return imenu.on_command(cmd);
         }
 
         return command_handler_result::capture;
     };
 }
 
-inventory::data_t to_inventory_data(item& itm, int index) noexcept;
-std::pair<item&, int> from_inventory_data(inventory::data_t data) noexcept;
+inline void dismiss_item_list(
+    inventory&           imenu
+  , command_translator&  commands
+  , command_type   const ct
+  , command_result const cr
+) {
+    imenu.show(false);
+    commands.pop_handler();
+    commands.on_command_result(ct, cr);
+}
 
 } //namespace bkrl

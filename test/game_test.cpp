@@ -34,7 +34,7 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
     auto commands_ptr = bkrl::make_command_translator();
     auto& commands = *commands_ptr;
 
-    bkrl::definitions const defs {nullptr, nullptr, nullptr};
+    bkrl::definitions const defs {&cdefs, &idefs, nullptr};
 
     bkrl::item_def const idef0 = [] {
         bkrl::item_def def {"item 0"};
@@ -43,7 +43,11 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
         return def;
     }();
 
-    bkrl::item_def const idef1 {"item 1"};
+    bkrl::item_def const idef1 = [] {
+        bkrl::item_def def {"item 1"};
+        def.flags.set(bkrl::item_flag::is_container);
+        return def;
+    }();
 
     bkrl::creature_def const cdef0 {"creature 0"};
     bkrl::creature_def const cdef1 {"creature 1"};
@@ -60,54 +64,49 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
         random_state, defs, out, ifac, cfac
     };
 
-    bkrl::inventory imenu {trender};
+    auto il = bkrl::make_item_list(trender);
+    bkrl::inventory& imenu = *il;
 
-    auto const p =  bklib::ipoint2 {0, 0};
+    auto const p =  bklib::ipoint2 {1, 1};
     auto creature = cfac.create(random, cdef0, p);
-
-    // helper for checking results
-    auto const expect_result = [](auto const result, auto const expected) {
-        using T = decltype(expected);
-
-        if (result == T::ok) {
-            REQUIRE(!!result);
-        } else {
-            REQUIRE(!result);
-        }
-
-        REQUIRE((result == expected));
-    };
-
-    auto const expect_command_result = [&](bool& result, auto const expected_cmd, auto const expected_result) {
-        commands.set_command_result_handler([=, &result](auto const cmd, auto const data) {
-            result |= (cmd == expected_cmd)
-                && static_cast<decltype(expected_result)>(data) == expected_result;
-        });
-    };
 
     // helper to select the first (and only) item
     auto const select_first_item = [&] {
-        imenu.command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
-        imenu.command(bkrl::command {bkrl::command_type::confirm, 0, 0});
+        imenu.on_command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
+        imenu.on_command(bkrl::command {bkrl::command_type::confirm, 0, 0});
     };
 
     auto const equip_first_item = [&] {
-        imenu.command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
-        imenu.command(bkrl::make_command(bkrl::command_raw_t {
+        imenu.on_command(bkrl::command {bkrl::command_type::dir_south, 0, 0});
+        imenu.on_command(bkrl::make_command(bkrl::command_raw_t {
             bkrl::key_mod_state {bkrl::key_mod::ctrl}, 'e'
         }));
     };
 
+    using ctype   = bkrl::command_type;
+    using cresult = bkrl::command_result;
+
+    std::vector<std::pair<ctype, cresult>> command_results;
+    commands.set_command_result_handler([&](ctype const ct, cresult const cr) {
+        command_results.push_back(std::make_pair(ct, cr));
+    });
+
+    auto const check_cmd_result = [&](size_t const i, ctype const ct, cresult const cr) {
+        return command_results[i] == std::make_pair(ct, cr);
+    };
+
     SECTION("get item") {
         SECTION("nothing present") {
-            expect_result(bkrl::get_item(ctx, creature, m, p, imenu, commands)
-              , bkrl::get_item_result::no_items);
+            bkrl::get_item_at(ctx, commands, creature, m, imenu);
+            REQUIRE(command_results.size() == 1);
+            REQUIRE(check_cmd_result(0, ctype::get, cresult::none_present));
         }
 
         SECTION("distant item") {
             auto const where = p + bklib::ivec2 {2, 2};
-            expect_result(bkrl::get_item(ctx, creature, m, where, imenu, commands)
-              , bkrl::get_item_result::out_of_range);
+            bkrl::get_item_at(ctx, commands, creature, m, where, imenu);
+            REQUIRE(command_results.size() == 1);
+            REQUIRE(check_cmd_result(0, ctype::get, cresult::out_of_range));
         }
 
         SECTION("good location") {
@@ -115,16 +114,16 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             m.at(p).type = bkrl::terrain_type::floor;
             bkrl::generate_item(ctx, m, idef0, p);
 
-            expect_result(bkrl::get_item(ctx, creature, m, p, imenu, commands)
-              , bkrl::get_item_result::select);
+            bkrl::get_item_at(ctx, commands, creature, m, imenu);
 
             // should not yet have any items
+            REQUIRE(command_results.size() == 0);
             REQUIRE(creature.item_list().empty());
-
-            bool got_ok = false;
-            expect_command_result(got_ok, bkrl::command_type::get, bkrl::get_item_result::ok);
             select_first_item();
-            REQUIRE(got_ok);
+
+            REQUIRE(command_results.size() == 2);
+            REQUIRE(check_cmd_result(0, ctype::get, cresult::ok_advance));
+            REQUIRE(check_cmd_result(1, ctype::get, cresult::none_present));
 
             auto const& items = creature.item_list();
             REQUIRE(!items.empty());
@@ -136,41 +135,46 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
     SECTION("drop item") {
         SECTION("no items") {
-            expect_result(bkrl::drop_item(ctx, creature, m, p, imenu, commands)
-              , bkrl::drop_item_result::no_items);
+            bkrl::drop_item(ctx, commands, creature, m, imenu);
+            REQUIRE(command_results.size() == 1);
+            REQUIRE(check_cmd_result(0, ctype::drop, cresult::none_present));
         }
 
         SECTION("with one item") {
-            creature.get_item(ifac.create(random, idef0));
+            creature.get_item(ifac.create(random, idefs, idef0));
 
             SECTION("distant location") {
                 auto const where = p + bklib::ivec2 {2, 2};
-                expect_result(bkrl::drop_item(ctx, creature, m, where, imenu, commands)
-                  , bkrl::drop_item_result::out_of_range);
+                bkrl::drop_item_at(ctx, commands, creature, m, where, imenu);
 
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::drop, cresult::out_of_range));
                 REQUIRE(!creature.item_list().empty());
             }
 
             SECTION("bad location") {
-                expect_result(bkrl::drop_item(ctx, creature, m, p, imenu, commands)
-                  , bkrl::drop_item_result::select);
+                bkrl::drop_item(ctx, commands, creature, m, imenu);
+                REQUIRE(command_results.size() == 0);
+                REQUIRE(!creature.item_list().empty());
 
-                bool got_ok = false;
-                expect_command_result(got_ok, bkrl::command_type::drop, bkrl::drop_item_result::failed);
                 select_first_item();
-                REQUIRE(got_ok);
 
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::drop, cresult::failed));
                 REQUIRE(!creature.item_list().empty());
             }
 
             SECTION("good location") {
                 m.at(p).type = bkrl::terrain_type::floor;
 
-                expect_result(bkrl::drop_item(ctx, creature, m, p, imenu, commands)
-                  , bkrl::drop_item_result::select);
+                bkrl::drop_item(ctx, commands, creature, m, imenu);
+                REQUIRE(command_results.size() == 0);
+                REQUIRE(!creature.item_list().empty());
 
                 select_first_item();
 
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::drop, cresult::ok_advance));
                 REQUIRE(creature.item_list().empty());
 
                 auto const pile = m.items_at(p);
@@ -183,56 +187,49 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
     SECTION("show inventory") {
         SECTION("no items") {
-            expect_result(bkrl::show_inventory(ctx, creature, imenu, commands)
-              , bkrl::show_inventory_result::no_items);
+            bkrl::display_item_list(ctx, commands, creature, m, creature.item_list(), imenu, "");
+            commands.send_command(bkrl::make_command<ctype::cancel>());
+
+            REQUIRE(command_results.size() == 2);
+            REQUIRE(check_cmd_result(0, ctype::show_inventory, cresult::ok_no_advance));
+            REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::canceled));
         }
 
         SECTION("with one item") {
-            creature.get_item(ifac.create(random, idef0));
+            creature.get_item(ifac.create(random, idefs, idef0));
 
-            expect_result(bkrl::show_inventory(ctx, creature, imenu, commands)
-              , bkrl::show_inventory_result::select);
+            bkrl::display_item_list(ctx, commands, creature, m, creature.item_list(), imenu, "");
+            commands.send_command(bkrl::make_command<ctype::cancel>());
 
-            // equip via the inventory
-            REQUIRE(!creature.item_list().begin()->flags().test(bkrl::item_flag::is_equipped));
-            REQUIRE(!creature.equip_list().is_equipped(bkrl::equip_slot::torso));
-
-            bool got_ok = false;
-            expect_command_result(got_ok, bkrl::command_type::show_equipment, bkrl::equip_result_t::ok);
-            equip_first_item();
-            REQUIRE(got_ok);
-
-            REQUIRE(creature.item_list().begin()->flags().test(bkrl::item_flag::is_equipped));
-            REQUIRE(creature.equip_list().is_equipped(bkrl::equip_slot::torso));
+            REQUIRE(command_results.size() == 2);
+            REQUIRE(check_cmd_result(0, ctype::show_inventory, cresult::ok_no_advance));
+            REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::canceled));
         }
     }
 
     SECTION("equip item") {
+        auto const equip_and_expect = [&](int const index, auto const expected) {
+            auto const result = bkrl::equip_item(ctx, creature, creature.item_list().advance(index));
+            REQUIRE(result == expected);
+        };
+
         SECTION("not equippable") {
-            creature.get_item(ifac.create(random, idef1));
-            expect_result(bkrl::equip_item(ctx, creature, creature.item_list().advance(0))
-              , bkrl::equip_result_t::not_equippable);
+            creature.get_item(ifac.create(random, idefs, idef1));
+            equip_and_expect(0, bkrl::equip_result_t::not_equippable);
         }
 
         SECTION("already equipped") {
-            creature.get_item(ifac.create(random, idef0));
-
-            expect_result(bkrl::equip_item(ctx, creature, creature.item_list().advance(0))
-              , bkrl::equip_result_t::ok);
-
-            expect_result(bkrl::equip_item(ctx, creature, creature.item_list().advance(0))
-              , bkrl::equip_result_t::already_equipped);
+            creature.get_item(ifac.create(random, idefs, idef0));
+            equip_and_expect(0, bkrl::equip_result_t::ok);
+            equip_and_expect(0, bkrl::equip_result_t::already_equipped);
         }
 
         SECTION("occupied") {
-            creature.get_item(ifac.create(random, idef0));
-            creature.get_item(ifac.create(random, idef0));
+            creature.get_item(ifac.create(random, idefs, idef0));
+            creature.get_item(ifac.create(random, idefs, idef0));
 
-            expect_result(bkrl::equip_item(ctx, creature, creature.item_list().advance(0))
-              , bkrl::equip_result_t::ok);
-
-            expect_result(bkrl::equip_item(ctx, creature, creature.item_list().advance(1))
-              , bkrl::equip_result_t::slot_occupied);
+            equip_and_expect(0, bkrl::equip_result_t::ok);
+            equip_and_expect(1, bkrl::equip_result_t::slot_occupied);
         }
     }
 
@@ -247,31 +244,49 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
         };
 
         SECTION("no door") {
-            expect_result(bkrl::open(ctx, creature, m, commands)
-              , bkrl::open_result::nothing);
+            SECTION("open") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::none_present));
+            }
 
-            expect_result(bkrl::close(ctx, creature, m, commands)
-              , bkrl::close_result::nothing);
+            SECTION("close") {
+                bkrl::close_around(ctx, commands, creature, m);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::close, cresult::none_present));
+            }
         }
 
         SECTION("closed door") {
             make_door_at(p + bklib::ivec2 {1, 1}, bkrl::door::state::closed);
 
-            expect_result(bkrl::close(ctx, creature, m, commands)
-              , bkrl::close_result::nothing);
+            SECTION("open") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+            }
 
-            expect_result(bkrl::open(ctx, creature, m, commands)
-              , bkrl::open_result::ok);
+            SECTION("close") {
+                bkrl::close_around(ctx, commands, creature, m);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::close, cresult::none_present));
+            }
         }
 
         SECTION("open door") {
             make_door_at(p + bklib::ivec2 {1, 1}, bkrl::door::state::open);
 
-            expect_result(bkrl::open(ctx, creature, m, commands)
-              , bkrl::open_result::nothing);
+            SECTION("open") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::none_present));
+            }
 
-            expect_result(bkrl::close(ctx, creature, m, commands)
-              , bkrl::close_result::ok);
+            SECTION("close") {
+                bkrl::close_around(ctx, commands, creature, m);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::close, cresult::ok_advance));
+            }
         }
 
         SECTION("multiple closed doors") {
@@ -279,16 +294,19 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             make_door_at(p + bklib::ivec2 {1, 0}, bkrl::door::state::closed);
             make_door_at(p + bklib::ivec2 {0, 1}, bkrl::door::state::closed);
 
-            expect_result(bkrl::close(ctx, creature, m, commands)
-              , bkrl::close_result::nothing);
+            SECTION("open") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::dir_east>());
 
-            expect_result(bkrl::open(ctx, creature, m, commands)
-              , bkrl::open_result::select);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+            }
 
-            bool got_ok = false;
-            expect_command_result(got_ok, bkrl::command_type::open, bkrl::open_result::ok);
-            commands.send_command(bkrl::command {bkrl::command_type::dir_east, 0, 0});
-            REQUIRE(got_ok);
+            SECTION("close") {
+                bkrl::close_around(ctx, commands, creature, m);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::close, cresult::none_present));
+            }
         }
 
         SECTION("multiple open doors") {
@@ -296,16 +314,140 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             make_door_at(p + bklib::ivec2 {1, 0}, bkrl::door::state::open);
             make_door_at(p + bklib::ivec2 {0, 1}, bkrl::door::state::open);
 
-            expect_result(bkrl::open(ctx, creature, m, commands)
-              , bkrl::open_result::nothing);
+            SECTION("open") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
 
-            expect_result(bkrl::close(ctx, creature, m, commands)
-              , bkrl::close_result::select);
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::none_present));
+            }
 
-            bool got_ok = false;
-            expect_command_result(got_ok, bkrl::command_type::close, bkrl::close_result::ok);
-            commands.send_command(bkrl::command {bkrl::command_type::dir_east, 0, 0});
-            REQUIRE(got_ok);
+            SECTION("close") {
+                bkrl::close_around(ctx, commands, creature, m);
+                commands.send_command(bkrl::make_command<ctype::dir_east>());
+
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::close, cresult::ok_advance));
+            }
+        }
+
+        auto const make_container_at = [&](bklib::ipoint2 const where) {
+            m.at(where).type = bkrl::terrain_type::floor;
+            bkrl::generate_item(ctx, m, idef1, where);
+        };
+
+        SECTION("open adjacent container and cancel") {
+            auto const check_adjacent_container = [&](size_t const i) {
+                make_container_at(bkrl::index_to_offset(creature.position(), i));
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::cancel>());
+
+                REQUIRE(command_results.size() == 3);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+                REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::ok_no_advance));
+                REQUIRE(check_cmd_result(2, ctype::show_inventory, cresult::canceled));
+            };
+
+            SECTION("case 0") { check_adjacent_container(0); }
+            SECTION("case 1") { check_adjacent_container(1); }
+            SECTION("case 2") { check_adjacent_container(2); }
+            SECTION("case 3") { check_adjacent_container(3); }
+            SECTION("case 4") { check_adjacent_container(4); }
+            SECTION("case 5") { check_adjacent_container(5); }
+            SECTION("case 6") { check_adjacent_container(6); }
+            SECTION("case 7") { check_adjacent_container(7); }
+            SECTION("case 8") { check_adjacent_container(8); }
+        }
+
+        SECTION("open adjacent container") {
+            make_container_at(p);
+            bkrl::open_around(ctx, commands, creature, m, imenu);
+            bkrl::item_pile const& container =
+                *bkrl::get_item_data<bkrl::item_data_type::container>(*m.items_at(p)->begin());
+
+            SECTION("... and get") {
+                auto const size_before = std::distance(container.begin(), container.end());
+
+                commands.send_command(bkrl::make_command<ctype::dir_south>());
+                commands.send_command(make_command(bkrl::command_raw_t {bkrl::key_mod::ctrl, 'g'}));
+                commands.send_command(bkrl::make_command<ctype::cancel>());
+
+                REQUIRE(command_results.size() == 4);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+                REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::ok_no_advance));
+                REQUIRE(check_cmd_result(2, ctype::get, cresult::ok_advance));
+                REQUIRE(check_cmd_result(3, ctype::show_inventory, cresult::canceled));
+
+                auto const size_after = std::distance(container.begin(), container.end());
+                REQUIRE(size_after == (size_before - 1));
+                REQUIRE(!creature.item_list().empty());
+            }
+        }
+
+        SECTION("open door or container") {
+            make_container_at(p);
+            make_door_at(bkrl::index_to_offset(p, 0), bkrl::door::state::closed);
+
+            SECTION("container") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::yes>());
+                commands.send_command(bkrl::make_command<ctype::cancel>());
+
+                REQUIRE(command_results.size() == 3);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+                REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::ok_no_advance));
+                REQUIRE(check_cmd_result(2, ctype::show_inventory, cresult::canceled));
+            }
+
+            SECTION("multiple containers; different position") {
+                make_container_at(bkrl::index_to_offset(p, 1));
+
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::yes>());
+                REQUIRE(command_results.size() == 0);
+
+                commands.send_command(bkrl::make_command<ctype::dir_north>());
+                commands.send_command(bkrl::make_command<ctype::cancel>());
+
+                REQUIRE(command_results.size() == 3);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+                REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::ok_no_advance));
+                REQUIRE(check_cmd_result(2, ctype::show_inventory, cresult::canceled));
+            }
+
+            SECTION("multiple containers; same position") {
+                make_container_at(p);
+
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::yes>());
+                REQUIRE(command_results.size() == 0);
+
+                select_first_item();
+                commands.send_command(bkrl::make_command<ctype::cancel>());
+
+                REQUIRE(command_results.size() == 3);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+                REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::ok_no_advance));
+                REQUIRE(check_cmd_result(2, ctype::show_inventory, cresult::canceled));
+            }
+
+            SECTION("door") {
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::no>());
+
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+            }
+
+            SECTION("multiple doors") {
+                make_door_at(bkrl::index_to_offset(p, 1), bkrl::door::state::closed);
+
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::no>());
+                commands.send_command(bkrl::make_command<ctype::dir_north>());
+
+                REQUIRE(command_results.size() == 1);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+            }
         }
     }
 
@@ -361,6 +503,28 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
             auto const str = bkrl::inspect_tile(ctx, creature, m, where);
             REQUIRE(count_lines(str) == 6);
+        }
+    }
+
+    SECTION("quit") {
+        bkrl::display_quit_prompt(ctx, commands);
+
+        SECTION("yes") {
+            commands.send_command(bkrl::make_command<ctype::yes>());
+            REQUIRE(command_results.size() == 1);
+            REQUIRE(command_results[0] == std::make_pair(ctype::quit, cresult::ok_advance));
+        }
+
+        SECTION("no") {
+            commands.send_command(bkrl::make_command<ctype::no>());
+            REQUIRE(command_results.size() == 1);
+            REQUIRE(command_results[0] == std::make_pair(ctype::quit, cresult::canceled));
+        }
+
+        SECTION("cancel") {
+            commands.send_command(bkrl::make_command<ctype::cancel>());
+            REQUIRE(command_results.size() == 1);
+            REQUIRE(command_results[0] == std::make_pair(ctype::quit, cresult::canceled));
         }
     }
 }

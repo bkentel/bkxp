@@ -6,6 +6,40 @@
 		<DisplayString Condition="len_ &lt; strlen(ptr_)">{ptr_,[len_]s8} [less]</DisplayString>
 	</Type>
 
+	<Type Name="bkrl::find_around_result_t&lt;*&gt;">
+		<DisplayString Condition="count">[count={count}]</DisplayString>
+		<DisplayString Condition="!count">[none]</DisplayString>
+		<Expand>
+			<Synthetic Name="north west">
+				<DisplayString>{values[0]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="north">
+				<DisplayString>{values[1]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="north east">
+				<DisplayString>{values[2]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="west">
+				<DisplayString>{values[3]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="east">
+				<DisplayString>{values[4]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="south west">
+				<DisplayString>{values[5]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="south">
+				<DisplayString>{values[6]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="south east">
+				<DisplayString>{values[7]}</DisplayString>
+			</Synthetic>
+			<Synthetic Name="here">
+				<DisplayString>{values[8]}</DisplayString>
+			</Synthetic>
+		</Expand>
+	</Type>
+
 	<Type Name="bkrl::text_layout::render_info">
 		<DisplayString>{(char)(src_x / 18 + (src_y / 18)*16)} [{dst_x} {dst_y}]</DisplayString>
 	</Type>

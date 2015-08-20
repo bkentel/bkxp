@@ -19,17 +19,19 @@ TEST_CASE("item sanity tests", "[bkrl][item]") {
     auto const def = [] {
         bkrl::item_def result {"test item"};
         result.tags.push_back(bkrl::make_tag("CORPSE"));
+        bkrl::process_tags(result);
 
         return result;
     }();
 
     idic.insert_or_discard(def);
 
-    auto const i = ifac.create(random, def);
+    auto const i = ifac.create(random, idic, def);
 
     REQUIRE(static_cast<uint32_t>(i.id()) == 1);
     REQUIRE(i.def() == def);
-    REQUIRE(i.data() == 0);
+    REQUIRE(i.data().type == bkrl::item_data_type::corpse);
+    REQUIRE(i.data().data == 0);
 
     REQUIRE(bkrl::has_tag(def, bkrl::make_tag("CORPSE"_hash)));
     REQUIRE(bkrl::has_tag(i, idic, bkrl::make_tag("CORPSE"_hash)));
@@ -56,14 +58,14 @@ TEST_CASE("item list (pile)", "[bkrl][item]") {
     bkrl::item_pile pile;
 
     SECTION("insert remove") {
-        pile.insert(ifac.create(random, item0));
+        pile.insert(ifac.create(random, idic, item0));
         REQUIRE_FALSE(pile.empty());
         REQUIRE(pile.begin()->def() == item0);
 
-        pile.insert(ifac.create(random, item1));
+        pile.insert(ifac.create(random, idic, item1));
         REQUIRE(pile.begin()->def() == item1);
 
-        pile.insert(ifac.create(random, item2));
+        pile.insert(ifac.create(random, idic, item2));
         REQUIRE(pile.begin()->def() == item2);
 
         REQUIRE(std::distance(std::begin(pile), std::end(pile)) == 3);

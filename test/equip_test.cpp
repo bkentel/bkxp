@@ -8,6 +8,7 @@
 #include "equip.hpp"
 #include "item.hpp"
 #include "random.hpp"
+#include "bklib/dictionary.hpp"
 
 TEST_CASE("equipment", "[bkrl][equip]") {
     bkrl::random_t random;
@@ -16,10 +17,13 @@ TEST_CASE("equipment", "[bkrl][equip]") {
     bkrl::equipment eq;
 
     bkrl::item_factory ifac;
+    bkrl::item_dictionary idic;
+
     bkrl::item_def idef0 {"item0"};
+    idic.insert_or_discard(idef0);
 
     SECTION("not equippable") {
-        auto itm = ifac.create(random, idef0);
+        auto itm = ifac.create(random, idic, idef0);
         auto const result = eq.can_equip(itm);
         REQUIRE(!result);
         REQUIRE(result.status == status_t::not_equippable);
@@ -28,7 +32,7 @@ TEST_CASE("equipment", "[bkrl][equip]") {
     idef0.tags.push_back(bkrl::make_tag("EQS_HEAD"));
     idef0.tags.push_back(bkrl::make_tag("CAT_ARMOR"));
     bkrl::process_tags(idef0);
-    auto itm = ifac.create(random, idef0);
+    auto itm = ifac.create(random, idic, idef0);
 
     SECTION("equippable") {
         auto const result = eq.can_equip(itm);

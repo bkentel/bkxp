@@ -5,6 +5,7 @@
 #include "item.hpp"
 #include "identifier.hpp"
 #include "random.hpp"
+#include "direction.hpp"
 
 #include "bklib/math.hpp"
 #include "bklib/spatial_map.hpp"
@@ -199,6 +200,8 @@ public:
     //----------------------------------------------------------------------------------------------
     item remove_item_at(bklib::ipoint2 p, int index);
 
+    void move_item_at(bklib::ipoint2 p, item_pile::iterator it, item_pile& dst);
+
     //----------------------------------------------------------------------------------------------
     //! @pre @p p must be a valid map position.
     //! @pre a creature must exist at @p p.
@@ -253,9 +256,6 @@ using base_type_of_t = std::remove_const_t<
         std::remove_all_extents_t<T>
     >
 >;
-
-static constexpr int const x_off[] = {-1,  0,  1, -1,  1, -1,  0,  1, 0};
-static constexpr int const y_off[] = {-1, -1, -1,  0,  0,  1,  1,  1, 0};
 
 struct find_around_result {
     explicit operator bool() const noexcept { return count > 0; }
@@ -407,6 +407,154 @@ placement_result_t generate_item(context& ctx, map& m, item_def const& def, bkli
 placement_result_t generate_item(context& ctx, map& m, item_def const& def);
 
 void advance(context& ctx, map& m);
+
+////
+
+template <typename T>
+struct find_around_result_t {
+    std::array<T, 9> values;
+    size_t           count;
+    size_t           index;
+
+    template <typename U>
+    find_around_result_t<T>& operator=(find_around_result_t<U> const& rhs) {
+        values[0] = rhs.values[0];
+        values[1] = rhs.values[1];
+        values[2] = rhs.values[2];
+        values[3] = rhs.values[3];
+        values[4] = rhs.values[4];
+        values[5] = rhs.values[5];
+        values[6] = rhs.values[6];
+        values[7] = rhs.values[7];
+        values[8] = rhs.values[8];
+
+        count = rhs.count;
+        index = rhs.index;
+
+        return *this;
+    }
+
+    explicit operator bool() const noexcept { return !!count; }
+
+    //! The position relative to p corresponding the last matched value.
+    bklib::ipoint2 position(bklib::ipoint2 const p) const noexcept {
+        return p + bklib::ivec2 {x_off[index], y_off[index]};
+    }
+
+    T const& at(bklib::ivec2 const v) const noexcept { return values[offset_to_index(v)]; }
+    T&       at(bklib::ivec2 const v) noexcept       { return values[offset_to_index(v)]; }
+
+    T const& last_found() const noexcept { return values[index]; }
+    T&       last_found() noexcept       { return values[index]; }
+};
+
+template <typename Predicate>
+find_around_result_t<std::pair<item_pile*, item_pile::iterator>>
+find_neighboring_items(map& m, bklib::ipoint2 const where, Predicate&& pred) {
+    std::array<item_pile*, 9> const piles {
+        m.items_at(where + bklib::ivec2 {x_off[0], y_off[0]})
+      , m.items_at(where + bklib::ivec2 {x_off[1], y_off[1]})
+      , m.items_at(where + bklib::ivec2 {x_off[2], y_off[2]})
+      , m.items_at(where + bklib::ivec2 {x_off[3], y_off[3]})
+      , m.items_at(where + bklib::ivec2 {x_off[4], y_off[4]})
+      , m.items_at(where + bklib::ivec2 {x_off[5], y_off[5]})
+      , m.items_at(where + bklib::ivec2 {x_off[6], y_off[6]})
+      , m.items_at(where + bklib::ivec2 {x_off[7], y_off[7]})
+      , m.items_at(where + bklib::ivec2 {x_off[8], y_off[8]})
+    };
+
+    auto const last = item_pile::iterator {};
+
+    using pair_t = std::pair<item_pile*, item_pile::iterator>;
+    std::array<pair_t, 9> result {
+        pair_t {piles[0], piles[0] ? piles[0]->find_if(pred) : last}
+      , pair_t {piles[1], piles[1] ? piles[1]->find_if(pred) : last}
+      , pair_t {piles[2], piles[2] ? piles[2]->find_if(pred) : last}
+      , pair_t {piles[3], piles[3] ? piles[3]->find_if(pred) : last}
+      , pair_t {piles[4], piles[4] ? piles[4]->find_if(pred) : last}
+      , pair_t {piles[5], piles[5] ? piles[5]->find_if(pred) : last}
+      , pair_t {piles[6], piles[6] ? piles[6]->find_if(pred) : last}
+      , pair_t {piles[7], piles[7] ? piles[7]->find_if(pred) : last}
+      , pair_t {piles[8], piles[8] ? piles[8]->find_if(pred) : last}
+    };
+
+    size_t count = 0;
+    size_t index = 0;
+
+    for (auto i = 0u; i < 9u; ++i) {
+        if (piles[i] && piles[i]->end() != result[i].second) {
+            ++count;
+            index = i;
+        }
+    }
+
+    return {std::move(result), count, index};
+}
+
+template <typename Predicate>
+find_around_result_t<std::pair<item_pile const*, item_pile::const_iterator>>
+find_neighboring_items(map const& m, bklib::ipoint2 const where, Predicate&& pred) {
+    return find_neighboring_items(const_cast<map&>(m), where, std::forward<Predicate>(pred));
+}
+
+template <typename Predicate>
+find_around_result_t<terrain_entry*>
+find_neighboring_terrain(map& m, bklib::ipoint2 const where, Predicate&& pred) {
+    std::array<bklib::ipoint2, 9> const points {
+        where + index_to_offset(0)
+      , where + index_to_offset(1)
+      , where + index_to_offset(2)
+      , where + index_to_offset(3)
+      , where + index_to_offset(4)
+      , where + index_to_offset(5)
+      , where + index_to_offset(6)
+      , where + index_to_offset(7)
+      , where + index_to_offset(8)
+    };
+
+    auto const bounds = m.bounds();
+    std::array<bool, 9> const matches {
+        bklib::intersects(bounds, points[0]) && pred(m.at(points[0]))
+      , bklib::intersects(bounds, points[1]) && pred(m.at(points[1]))
+      , bklib::intersects(bounds, points[2]) && pred(m.at(points[2]))
+      , bklib::intersects(bounds, points[3]) && pred(m.at(points[3]))
+      , bklib::intersects(bounds, points[4]) && pred(m.at(points[4]))
+      , bklib::intersects(bounds, points[5]) && pred(m.at(points[5]))
+      , bklib::intersects(bounds, points[6]) && pred(m.at(points[6]))
+      , bklib::intersects(bounds, points[7]) && pred(m.at(points[7]))
+      , bklib::intersects(bounds, points[8]) && pred(m.at(points[8]))
+    };
+
+    std::array<terrain_entry*, 9> const pointers {
+        matches[0] ? &m.at(points[0]) : nullptr
+      , matches[1] ? &m.at(points[1]) : nullptr
+      , matches[2] ? &m.at(points[2]) : nullptr
+      , matches[3] ? &m.at(points[3]) : nullptr
+      , matches[4] ? &m.at(points[4]) : nullptr
+      , matches[5] ? &m.at(points[5]) : nullptr
+      , matches[6] ? &m.at(points[6]) : nullptr
+      , matches[7] ? &m.at(points[7]) : nullptr
+      , matches[8] ? &m.at(points[8]) : nullptr
+    };
+
+    size_t count = 0;
+    size_t index = 0;
+
+    for (auto i = 0u; i < 9u; ++i) {
+        if (pointers[i]) {
+            ++count;
+            index = i;
+        }
+    }
+
+    return {pointers, count, index};
+}
+
+template <typename Predicate>
+find_around_result_t<terrain_entry const*>
+find_neighboring_terrain(map const& m, bklib::ipoint2 const where, Predicate&& pred) {
+    return find_neighboring_terrain(const_cast<map&>(m), where, std::forward<Predicate>(pred));
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 } //namespace bkrl

@@ -65,6 +65,20 @@ constexpr inline bool is_direction(command_type const cmd) noexcept {
       || (cmd == command_type::dir_down);
 }
 
+enum class command_result : uint32_t {
+    ok_no_advance   //!< Success; don't advance time
+  , ok_advance      //!< Success; advance time
+  , none_present
+  , out_of_range
+  , canceled
+  , failed
+};
+
+inline constexpr bool command_succeeded(command_result const cr) noexcept {
+    return (cr == command_result::ok_no_advance)
+        || (cr == command_result::ok_advance);
+}
+
 //----------------------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------------------
@@ -118,6 +132,11 @@ inline command make_command(bklib::utf8_string_view const text) noexcept {
     };
 }
 
+template <command_type Type>
+inline command make_command() noexcept {
+    return {Type, 0, 0};
+}
+
 enum class command_handler_result {
     detach  //!< stop accepting input
   , capture //!< continue processing input
@@ -131,12 +150,13 @@ enum class command_handler_result {
 class command_translator {
 public:
     using handler_t        = std::function<command_handler_result (command const&)>;
-    using result_handler_t = std::function<void (command_type, size_t data)>;
+    using result_handler_t = std::function<void (command_type, command_result)>;
 
     virtual ~command_translator();
 
     virtual void push_handler(handler_t&& handler) = 0;
-    virtual void pop_handler() = 0;
+    virtual void pop_handler(int i = 0) = 0;
+    virtual int  size() = 0;
 
     virtual void on_key_down(int key, key_mod_state mods) = 0;
     virtual void on_key_up(int key, key_mod_state mods) = 0;
@@ -148,45 +168,19 @@ public:
     virtual void send_command(command cmd) = 0;
 
     virtual void set_command_result_handler(result_handler_t handler) = 0;
-    virtual void on_command_result(command_type command, size_t data) = 0;
+    virtual void on_command_result(command_type command, command_result result) = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
 std::unique_ptr<command_translator> make_command_translator();
 
-//--------------------------------------------------------------------------------------------------
-//! Filter and transform commands to be one of: yes, no, cancel, or invalid.
-//--------------------------------------------------------------------------------------------------
-template <typename Handler>
-void query_yn(command_translator& translator, Handler&& handler) {
-    using ct = command_type;
-    translator.push_handler([h = std::move(handler)](command const& cmd) {
-        auto const type = cmd.type;
-        if (type == ct::raw || type == ct::text) {
-            return command_handler_result::capture;
-        } else if (type == ct::yes || type == ct::no || type == ct::cancel) {
-            return h(type);
-        }
-
-        return h(ct::invalid);
-    });
-}
-
-//--------------------------------------------------------------------------------------------------
-//! Filter and transform commands to be: is_direction(cmd) => cmd, cancel, or invalid.
-//--------------------------------------------------------------------------------------------------
-template <typename Handler>
-void query_dir(command_translator& translator, Handler&& handler) {
-    translator.push_handler([h = std::move(handler)](command const& cmd) {
-        auto const type = cmd.type;
-        if (type == command_type::raw || type == command_type::text) {
-            return command_handler_result::capture;
-        } else if (is_direction(type) || type == command_type::cancel) {
-            return h(type);
-        }
-
-        return h(command_type::invalid);
-    });
+template <typename Functor>
+inline decltype(auto) filter_text_and_raw(Functor&& functor) {
+    return [f = std::forward<Functor>(functor)](command const& cmd) -> command_handler_result {
+        return (cmd.type == command_type::text || cmd.type == command_type::raw)
+          ? command_handler_result::capture
+          : f(cmd);
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -195,6 +195,7 @@ public:
     void get_items(item_pile&& ip);
 
     void drop_item(item_pile& dst, int i = 0);
+    void drop_item(item_pile& dst, item_pile::iterator it);
     void drop_items(item_pile& dst);
 
     //! @pre the item @p i must be already held by this creature
@@ -219,7 +220,7 @@ public:
 
     int modify(stat_type stat, int mod);
 
-    bklib::utf8_string friendly_name(definitions const& defs) const;
+    bklib::utf8_string friendly_name(context const& ctx) const;
 private:
     creature(instance_id_t<tag_creature> id, creature_def const& def, bklib::ipoint2 p);
 

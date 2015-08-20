@@ -92,6 +92,46 @@ inline auto const& get_id(item_def const& def) noexcept {
     return def.id;
 }
 
+template <typename T>
+inline void no_throw_swap(T& a, T& b) noexcept {
+    using std::swap;
+    static_assert(noexcept(swap(a, b)), "throwing swap");
+    swap(a, b);
+}
+
+enum class item_data_type : uint32_t {
+    none
+  , container
+  , corpse
+};
+
+struct item_data_t {
+    item_data_t()                              = default;
+    item_data_t(item_data_t const&)            = delete;
+    item_data_t& operator=(item_data_t const&) = delete;
+
+    item_data_t(item_data_type const data_type, uint64_t const value) noexcept
+      : type {data_type}
+      , data {value}
+    {
+    }
+
+    void swap(item_data_t& other) noexcept {
+        no_throw_swap(type, other.type);
+        no_throw_swap(data, other.data);
+    }
+
+    item_data_t(item_data_t&& other) noexcept;
+    item_data_t& operator=(item_data_t&& other) noexcept;
+
+    ~item_data_t();
+
+    item_data_type type {item_data_type::none};
+    uint64_t       data {};
+};
+
+inline void swap(item_data_t& a, item_data_t& b) noexcept { a.swap(b); }
+
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
@@ -116,8 +156,8 @@ public:
     item_slots& slots()       noexcept { return slots_; }
     item_slots  slots() const noexcept { return slots_; }
 
-    uint64_t& data()       noexcept { return data_; }
-    uint64_t  data() const noexcept { return data_; }
+    item_data_t&       data()       noexcept { return data_; }
+    item_data_t const& data() const noexcept { return data_; }
 
     struct format_flags {
         constexpr format_flags() noexcept {}
@@ -140,18 +180,26 @@ public:
 private:
     item(instance_id_t<tag_item> id, item_def const& def);
 
-    uint64_t                data_;
+    def_id_t<tag_item>      def_;
+    instance_id_t<tag_item> id_;
     item_flags              flags_;
     item_slots              slots_;
-    instance_id_t<tag_item> id_;
-    def_id_t<tag_item>      def_;
+    item_data_t             data_;
 };
+
+inline bool has_flag(item const& itm, item_flag const flag) noexcept {
+    return itm.flags().test(flag);
+}
 
 //--------------------------------------------------------------------------------------------------
 //! @todo use a better data structure (segmented array).
 //--------------------------------------------------------------------------------------------------
 class item_pile {
 public:
+    using container_t = std::forward_list<item>;
+    using iterator = container_t::iterator;
+    using const_iterator = container_t::const_iterator;
+
     item_pile(item_pile const&) = delete;
     item_pile& operator=(item_pile const&) = delete;
     item_pile(item_pile&&) = default;
@@ -223,7 +271,55 @@ public:
         BK_PRECONDITION(index >= 0);
         dst.items_.splice_after(dst.items_.before_begin(), items_, std::next(items_.before_begin(), index));
     }
+
+    void move_item_to(item_pile& dst, iterator const where) {
+        auto const last = end();
+        for (auto it = items_.begin(), prev = items_.before_begin(); it != last; ++it, ++prev) {
+            if (it == where) {
+                dst.items_.splice_after(dst.items_.before_begin(), items_, prev);
+                return;
+            }
+        }
+
+        BK_PRECONDITION_SAFE(false && "unreachable");
+    }
+
+    template <typename Predicate>
+    iterator find_if(Predicate&& pred) {
+        return find_if_(items_.before_begin(), items_.end(), std::forward<Predicate>(pred));
+    }
+
+    template <typename Predicate>
+    const_iterator find_if(Predicate&& pred) const {
+        return find_if_(items_.before_begin(), items_.end(), std::forward<Predicate>(pred));
+    }
+
+    template <typename Predicate>
+    iterator find_if(iterator const before, iterator const last, Predicate&& pred) {
+        return find_if_(before, last, std::forward<Predicate>(pred));
+    }
+
+    template <typename Predicate>
+    const_iterator find_if(const_iterator const before, const_iterator const last, Predicate&& pred) const {
+        return find_if_(before, last, std::forward<Predicate>(pred));
+    }
 private:
+    template <typename Predicate>
+    iterator find_if_(iterator before, iterator const last, Predicate&& pred) {
+        for (auto it = ++before; it != last; before = it++) {
+            if (pred(*it)) {
+                return it;
+            }
+        }
+
+        return last;
+    }
+
+    template <typename Predicate>
+    const_iterator find_if_(const_iterator const before, const_iterator const last, Predicate&& pred) const {
+        return const_cast<item_pile*>(this)->find_if(before, last, std::forward<Predicate>(pred));
+    }
+
     std::forward_list<item> items_;
 };
 
@@ -235,6 +331,10 @@ inline void move_item(item_pile& src, item_pile& dst, int const index) {
     src.move_item_to(dst, index);
 }
 
+inline void move_item(item_pile& src, item_pile& dst, item_pile::iterator const it) {
+    src.move_item_to(dst, it);
+}
+
 //--------------------------------------------------------------------------------------------------
 //
 //--------------------------------------------------------------------------------------------------
@@ -242,7 +342,7 @@ class item_factory {
 public:
     item_factory() = default;
 
-    item create(random_t& random, item_def const& def);
+    item create(random_t& random, item_dictionary const& idic, item_def const& def);
 private:
     instance_id_t<tag_item>::type next_id_ = 0;
 };
@@ -278,5 +378,24 @@ inline decltype(auto) find_container() noexcept {
         return !!bklib::find_maybe(pile, find_by_flag(item_flag::is_container));
     };
 }
+
+template <item_data_type Type>
+inline auto get_item_data(item& itm) noexcept
+  -> std::enable_if_t<Type == bkrl::item_data_type::container, item_pile*>
+{
+    BK_PRECONDITION(itm.data().type == item_data_type::container);
+    BK_PRECONDITION(has_flag(itm, item_flag::is_container));
+
+    auto& data = itm.data();
+    return reinterpret_cast<item_pile*>(data.data);
+}
+
+template <item_data_type Type>
+inline auto get_item_data(item const& itm) noexcept
+  -> std::enable_if_t<Type == bkrl::item_data_type::container, item_pile const*>
+{
+    return get_item_data<item_data_type::container>(const_cast<item&>(itm));
+}
+
 
 } //namespace bkrl

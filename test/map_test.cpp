@@ -123,16 +123,19 @@ TEST_CASE("map creatures", "[map][creature][bkrl]") {
 }
 
 TEST_CASE("map items", "[map][item][bkrl]") {
-    bkrl::random_state        random;
-    bkrl::definitions         defs {nullptr, nullptr, nullptr};
-    bkrl::creature_factory    cfactory;
-    bkrl::item_factory        ifactory;
-    bkrl::output              out;
+    bkrl::random_state     random;
+    bkrl::creature_factory cfactory;
+    bkrl::item_factory     ifactory;
+    bkrl::item_dictionary  idefs;
+    bkrl::output           out;
+    bkrl::definitions      defs {nullptr, &idefs, nullptr};
+    bkrl::context ctx {random, defs, out, ifactory, cfactory};
 
     bkrl::item_def const idef0 {"test0"};
     bkrl::item_def const idef1 {"test1"};
 
-    bkrl::context ctx {random, defs, out, ifactory, cfactory};
+    idefs.insert_or_discard(idef0);
+    idefs.insert_or_discard(idef1);
 
     bkrl::map map;
 

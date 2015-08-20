@@ -11,12 +11,12 @@ namespace bkrl {
 
 enum class equip_result_t : int {
     ok
-   , not_equippable
-   , slot_occupied
-   , slot_not_present
-   , slot_empty
-   , already_equipped
-   , not_held //!< The item isn't held by the subject trying to equip the item
+  , not_equippable
+  , slot_occupied
+  , slot_not_present
+  , slot_empty
+  , already_equipped
+  , not_held //!< The item isn't held by the subject trying to equip the item
 };
 
 //--------------------------------------------------------------------------------------------------

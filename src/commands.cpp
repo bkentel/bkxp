@@ -27,20 +27,29 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    void pop_handler() override final {
+    void pop_handler(int const i = 0) override final {
         BK_PRECONDITION(!handlers_.empty());
-        handlers_.pop_back();
+
+        auto const n = static_cast<int>(handlers_.size());
+        BK_PRECONDITION(n > i);
+
+        handlers_.erase(handlers_.begin() + (n - (i + 1)));
+    }
+
+    //----------------------------------------------------------------------------------------------
+    int size() noexcept override final {
+        return static_cast<int>(handlers_.size());
     }
 
     //----------------------------------------------------------------------------------------------
 #if defined(BK_NO_SDL)
     void on_key_down(int, key_mod_state) override final {
     }
-#else // !defined(BK_NO_SDL
+#else // !defined(BK_NO_SDL)
     void on_key_down(int const key, key_mod_state const mods) override final {
         using ct = command_type;
 
-        if (!send_command_raw_(key, mods)) {
+        if (!send_command_(make_command(command_raw_t {mods, key}))) {
             return;
         }
 
@@ -58,16 +67,16 @@ public:
             cmd.data0 = -1;
             break;
         case SDLK_KP_1:     cmd.type = ct::dir_s_west;     break;
-        case SDLK_DOWN:                                    BK_FALLTHROUGH
+        case SDLK_DOWN:     BK_FALLTHROUGH
         case SDLK_KP_2:     cmd.type = ct::dir_south;      break;
         case SDLK_KP_3:     cmd.type = ct::dir_s_east;     break;
-        case SDLK_LEFT:                                    BK_FALLTHROUGH
+        case SDLK_LEFT:     BK_FALLTHROUGH
         case SDLK_KP_4:     cmd.type = ct::dir_west;       break;
         case SDLK_KP_5:     cmd.type = ct::dir_here;       break;
-        case SDLK_RIGHT:                                   BK_FALLTHROUGH
+        case SDLK_RIGHT:    BK_FALLTHROUGH
         case SDLK_KP_6:     cmd.type = ct::dir_east;       break;
         case SDLK_KP_7:     cmd.type = ct::dir_n_west;     break;
-        case SDLK_UP:                                      BK_FALLTHROUGH
+        case SDLK_UP:       BK_FALLTHROUGH
         case SDLK_KP_8:     cmd.type = ct::dir_north;      break;
         case SDLK_KP_9:     cmd.type = ct::dir_n_east;     break;
         case SDLK_c:        cmd.type = ct::close;          break;
@@ -80,12 +89,12 @@ public:
         case SDLK_q:        cmd.type = ct::quit;           break;
         case SDLK_i:        cmd.type = ct::show_inventory; break;
         case SDLK_ESCAPE:   cmd.type = ct::cancel;         break;
-        case SDLK_RETURN:                                  BK_FALLTHROUGH
-        case SDLK_RETURN2:                                 BK_FALLTHROUGH
+        case SDLK_RETURN:   BK_FALLTHROUGH
+        case SDLK_RETURN2:  BK_FALLTHROUGH
         case SDLK_KP_ENTER: cmd.type = ct::confirm;        break;
         }
 
-        send_command(cmd);
+        send_command_(cmd);
     }
 #endif // BK_NO_SDL
     //----------------------------------------------------------------------------------------------
@@ -111,9 +120,7 @@ public:
 
     //----------------------------------------------------------------------------------------------
     void send_command(command const cmd) override final {
-        if (handlers_.back()(cmd) == command_handler_result::detach) {
-            handlers_.pop_back();
-        }
+        send_command_(cmd);
     }
 
     //----------------------------------------------------------------------------------------------
@@ -122,24 +129,22 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    void on_command_result(command_type const command, size_t const data) override final {
-        result_handler_(command, data);
+    void on_command_result(command_type const command, command_result const result) override final {
+        result_handler_(command, result);
     }
 private:
     //----------------------------------------------------------------------------------------------
-    bool send_command_raw_(int const key, key_mod_state const mods) {
-        auto const result = handlers_.back()(make_command(command_raw_t {mods, key}));
+    bool send_command_(command const cmd) {
+        auto const size_before = size();
+        auto const result = handlers_.back()(cmd);
 
-        switch (result) {
-        case command_handler_result::detach :
-            pop_handler();
-            BK_FALLTHROUGH
-        case command_handler_result::filter :
+        if (result == command_handler_result::detach) {
+            auto const n = size() - size_before;
+            BK_PRECONDITION(n >= 0);
+            pop_handler(n);
+        } else if (result == command_handler_result::filter) {
+            BK_PRECONDITION(cmd.type == command_type::raw);
             return false;
-        case command_handler_result::capture :
-            break;
-        default:
-            BK_ASSERT(false && "unexpected");
         }
 
         return true;
