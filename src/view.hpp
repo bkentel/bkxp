@@ -29,9 +29,10 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    void center_on_world(int const x, int const y) noexcept {
-        scroll_x_ = window_w_ / 2.0 + (x - 0.5) * tile_w_ * zoom_x_;
-        scroll_y_ = window_h_ / 2.0 + (y - 0.5) * tile_h_ * zoom_y_;
+    template <typename T>
+    void center_on_world(T const x, T const y) noexcept {
+        scroll_x_ = window_w_ / 2.0 - x * tile_w_ * zoom_x_;
+        scroll_y_ = window_h_ / 2.0 - y * tile_h_ * zoom_y_;
     }
 
     //----------------------------------------------------------------------------------------------
