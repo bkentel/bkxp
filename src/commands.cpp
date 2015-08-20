@@ -66,32 +66,33 @@ public:
             cmd.type  = ct::zoom;
             cmd.data0 = -1;
             break;
-        case SDLK_KP_1:     cmd.type = ct::dir_s_west;     break;
+        case SDLK_KP_1:     cmd.type = ct::dir_s_west;       break;
         case SDLK_DOWN:     BK_FALLTHROUGH
-        case SDLK_KP_2:     cmd.type = ct::dir_south;      break;
-        case SDLK_KP_3:     cmd.type = ct::dir_s_east;     break;
+        case SDLK_KP_2:     cmd.type = ct::dir_south;        break;
+        case SDLK_KP_3:     cmd.type = ct::dir_s_east;       break;
         case SDLK_LEFT:     BK_FALLTHROUGH
-        case SDLK_KP_4:     cmd.type = ct::dir_west;       break;
-        case SDLK_KP_5:     cmd.type = ct::dir_here;       break;
+        case SDLK_KP_4:     cmd.type = ct::dir_west;         break;
+        case SDLK_KP_5:     cmd.type = ct::dir_here;         break;
         case SDLK_RIGHT:    BK_FALLTHROUGH
-        case SDLK_KP_6:     cmd.type = ct::dir_east;       break;
-        case SDLK_KP_7:     cmd.type = ct::dir_n_west;     break;
+        case SDLK_KP_6:     cmd.type = ct::dir_east;         break;
+        case SDLK_KP_7:     cmd.type = ct::dir_n_west;       break;
         case SDLK_UP:       BK_FALLTHROUGH
-        case SDLK_KP_8:     cmd.type = ct::dir_north;      break;
-        case SDLK_KP_9:     cmd.type = ct::dir_n_east;     break;
-        case SDLK_c:        cmd.type = ct::close;          break;
-        case SDLK_d:        cmd.type = ct::drop;           break;
-        case SDLK_e:        cmd.type = ct::show_equipment; break;
-        case SDLK_g:        cmd.type = ct::get;            break;
-        case SDLK_o:        cmd.type = ct::open;           break;
-        case SDLK_n:        cmd.type = ct::no;             break;
-        case SDLK_y:        cmd.type = ct::yes;            break;
-        case SDLK_q:        cmd.type = ct::quit;           break;
-        case SDLK_i:        cmd.type = ct::show_inventory; break;
-        case SDLK_ESCAPE:   cmd.type = ct::cancel;         break;
+        case SDLK_KP_8:     cmd.type = ct::dir_north;        break;
+        case SDLK_KP_9:     cmd.type = ct::dir_n_east;       break;
+        case SDLK_c:        cmd.type = ct::close;            break;
+        case SDLK_d:        cmd.type = ct::drop;             break;
+        case SDLK_e:        cmd.type = ct::show_equipment;   break;
+        case SDLK_g:        cmd.type = ct::get;              break;
+        case SDLK_o:        cmd.type = ct::open;             break;
+        case SDLK_n:        cmd.type = ct::no;               break;
+        case SDLK_y:        cmd.type = ct::yes;              break;
+        case SDLK_q:        cmd.type = ct::quit;             break;
+        case SDLK_i:        cmd.type = ct::show_inventory;   break;
+        case SDLK_ESCAPE:   cmd.type = ct::cancel;           break;
+        case SDLK_HOME:     cmd.type = ct::center_on_player; break;
         case SDLK_RETURN:   BK_FALLTHROUGH
         case SDLK_RETURN2:  BK_FALLTHROUGH
-        case SDLK_KP_ENTER: cmd.type = ct::confirm;        break;
+        case SDLK_KP_ENTER: cmd.type = ct::confirm;          break;
         }
 
         send_command_(cmd);

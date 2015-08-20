@@ -69,6 +69,12 @@ public:
     void do_scroll(double dx, double dy);
 
     //----------------------------------------------------------------------------------------------
+    void on_center_on_player() {
+        auto const p = get_player().position();
+        view_.center_on_world(x(p) + 0.5, y(p) + 0.5);
+    }
+
+    //----------------------------------------------------------------------------------------------
     void do_quit() {
         system_->quit();
     }
@@ -358,6 +364,8 @@ void bkrl::game::generate_map()
           , *ctx_.data.random_item(random_, random_stream::substantive)
         ));
     }
+
+    on_center_on_player();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -448,6 +456,11 @@ void bkrl::game::on_zoom(double const zx, double const zy)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_zoom(double const zx, double const zy)
 {
+    auto const w = system_->client_width();
+    auto const h = system_->client_height();
+    auto const p = view_.screen_to_world_as(w / 2.0, h / 2.0);
+    auto const z = view_.get_zoom();
+
     if (zx > 0) {
         view_.zoom_in();
     } else if (zx < 0) {
@@ -458,6 +471,10 @@ void bkrl::game::do_zoom(double const zx, double const zy)
         view_.zoom_in();
     } else if (zy < 0) {
         view_.zoom_out();
+    }
+
+    if (bklib::distance2(view_.get_zoom(), z) > 0) {
+        view_.center_on_world(x(p), y(p));
     }
 }
 
@@ -675,6 +692,9 @@ bkrl::command_handler_result bkrl::game::on_command(command const& cmd)
     case command_type::show_inventory:
         on_show_inventory();
         break;
+    case command_type::center_on_player:
+        on_center_on_player();
+        break;
     default:
         break;
     }
@@ -697,6 +717,7 @@ void bkrl::game::on_command_result(command_type const cmd, command_result const 
     case command_type::no:      break;
     case command_type::use:     break;
     case command_type::zoom:    break;
+    case command_type::center_on_player: break;
     case command_type::dir_here:   BK_FALLTHROUGH
     case command_type::dir_north:  BK_FALLTHROUGH
     case command_type::dir_south:  BK_FALLTHROUGH

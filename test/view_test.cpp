@@ -21,20 +21,20 @@ TEST_CASE("view <=> world transforms", "[math]") {
 
         auto const o = v.origin();
 
-        REQUIRE(x(o) == (window_w / 2 - tile_w / 2));
-        REQUIRE(y(o) == (window_h / 2 - tile_h / 2));
+        REQUIRE(x(o) == (window_w / 2));
+        REQUIRE(y(o) == (window_h / 2));
     }
 
-    SECTION("no zoom, center on 0,0") {
-        auto const zoom = 2.0;
+    SECTION("zoom, center on 0,0") {
+        auto const zoom = 3.0;
 
         v.zoom_to(zoom);
         v.center_on_world(0, 0);
 
         auto const o = v.origin();
 
-        REQUIRE(x(o) == bklib::trunc_to<int>(window_w / 2 - tile_w * zoom / 2));
-        REQUIRE(y(o) == bklib::trunc_to<int>(window_h / 2 - tile_h * zoom / 2));
+        REQUIRE(x(o) == bklib::trunc_to<int>(window_w / 2));
+        REQUIRE(y(o) == bklib::trunc_to<int>(window_h / 2));
     }
 
     SECTION("no zoom, no scroll") {
@@ -75,7 +75,7 @@ TEST_CASE("view <=> world transforms", "[math]") {
     }
 
     SECTION("window rect") {
-        v.center_on_world(0, 0);
+        v.center_on_world(0.5, 0.5);
         auto const r = v.screen_to_world();
 
         REQUIRE(r.left   == bklib::floor_to<int>((-window_w / 2.0 + tile_w / 2.0) / tile_w));

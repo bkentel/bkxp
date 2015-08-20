@@ -25,6 +25,7 @@ enum class command_type : uint32_t {
   , BK_DECLARE_COMMAND(invalid)
   , BK_DECLARE_COMMAND(scroll)
   , BK_DECLARE_COMMAND(zoom)
+  , BK_DECLARE_COMMAND(center_on_player)
   , BK_DECLARE_COMMAND(cancel)
   , BK_DECLARE_COMMAND(confirm)
   , BK_DECLARE_COMMAND(yes)
