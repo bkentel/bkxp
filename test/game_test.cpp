@@ -414,6 +414,22 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
                 REQUIRE(check_cmd_result(2, ctype::show_inventory, cresult::canceled));
             }
 
+            SECTION("multiple containers; same position") {
+                make_container_at(p);
+
+                bkrl::open_around(ctx, commands, creature, m, imenu);
+                commands.send_command(bkrl::make_command<ctype::yes>());
+                REQUIRE(command_results.size() == 0);
+
+                select_first_item();
+                commands.send_command(bkrl::make_command<ctype::cancel>());
+
+                REQUIRE(command_results.size() == 3);
+                REQUIRE(check_cmd_result(0, ctype::open, cresult::ok_advance));
+                REQUIRE(check_cmd_result(1, ctype::show_inventory, cresult::ok_no_advance));
+                REQUIRE(check_cmd_result(2, ctype::show_inventory, cresult::canceled));
+            }
+
             SECTION("door") {
                 bkrl::open_around(ctx, commands, creature, m, imenu);
                 commands.send_command(bkrl::make_command<ctype::no>());
