@@ -135,6 +135,7 @@ public:
     bool on_mouse_button(mouse_button_state const& m) final override;
     bool on_mouse_scroll(mouse_state const& m) final override;
     command_handler_result on_command(bkrl::command cmd) final override;
+    void on_action(action a) final override;
 
     void set_on_action(action_handler_t handler) final override {
         handler_ = std::move(handler);
@@ -151,7 +152,8 @@ public:
             return;
         }
 
-        selection_ = (i % n) + (i < 0 ? n : 0);
+        auto const mod = (i % n);
+        selection_ = mod + (mod < 0 ? n : 0);
 
         if (send_event) {
             handler_(action::select, selection_);
@@ -690,6 +692,21 @@ bkrl::command_handler_result bkrl::inventory_impl::on_command(bkrl::command cons
     }
 
     return default_result;
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::inventory_impl::on_action(action const a)
+{
+    switch (a) {
+    case action::cancel:  do_cancel();         break;
+    case action::select:  select(selection()); break;
+    case action::confirm: do_confirm();        break;
+    case action::equip:   do_equip();          break;
+    case action::get:     do_get();            break;
+    case action::drop:    do_drop();           break;
+    default:
+        BK_UNREACHABLE;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
