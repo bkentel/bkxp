@@ -85,7 +85,14 @@ std::unique_ptr<inventory> make_item_list(text_renderer& trender);
 
 inventory& populate_item_list(
     context& ctx
-  , inventory& i
+  , inventory& imenu
+  , item_pile& pile
+  , bklib::utf8_string_view title
+);
+
+inventory& populate_equipment_list(
+    context& ctx
+  , inventory& imenu
   , item_pile& pile
   , bklib::utf8_string_view title
 );

@@ -729,6 +729,30 @@ bkrl::inventory& bkrl::populate_item_list(
     return i;
 }
 
+//--------------------------------------------------------------------------------------------------
+bkrl::inventory& bkrl::populate_equipment_list(
+    context& ctx
+  , inventory& imenu
+  , item_pile& pile
+  , bklib::utf8_string_view const title
+) {
+    imenu.clear();
+    imenu.set_title(title);
+
+    auto const last = pile.end();
+    for (auto it = pile.begin(); it != last; ++it) {
+        if (!has_flag(*it, item_flag::is_equipped)) {
+            continue;
+        }
+
+        imenu.insert(inventory::row_t {"?", it->friendly_name(ctx), it});
+    }
+
+    imenu.show(true);
+    return imenu;
+}
+
+//--------------------------------------------------------------------------------------------------
 std::unique_ptr<bkrl::inventory> bkrl::make_item_list(text_renderer& trender)
 {
     return std::make_unique<inventory_impl>(trender);

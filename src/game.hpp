@@ -240,4 +240,14 @@ void close_around(
 //--------------------------------------------------------------------------------------------------
 void display_quit_prompt(context& ctx, command_translator& commands);
 
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+void display_equip_list(
+    context&            ctx
+  , command_translator& commands
+  , creature&           subject
+  , inventory&          imenu
+);
+
 } //namespace bkrl
