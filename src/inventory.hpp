@@ -75,6 +75,7 @@ public:
     virtual bool on_mouse_button(mouse_button_state const& m) = 0;
     virtual bool on_mouse_scroll(mouse_state const& m) = 0;
     virtual command_handler_result on_command(bkrl::command cmd) = 0;
+    virtual void on_action(action a) = 0;
 
     using action_handler_t = std::function<void (action type, int index)>;
 
@@ -85,7 +86,14 @@ std::unique_ptr<inventory> make_item_list(text_renderer& trender);
 
 inventory& populate_item_list(
     context& ctx
-  , inventory& i
+  , inventory& imenu
+  , item_pile& pile
+  , bklib::utf8_string_view title
+);
+
+inventory& populate_equipment_list(
+    context& ctx
+  , inventory& imenu
   , item_pile& pile
   , bklib::utf8_string_view title
 );
