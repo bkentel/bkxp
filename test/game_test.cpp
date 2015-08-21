@@ -207,6 +207,40 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
         }
     }
 
+    SECTION("show equipment") {
+        SECTION("no items") {
+            bkrl::display_equip_list(ctx, commands, creature, imenu);
+            REQUIRE(imenu.is_visible());
+            REQUIRE(imenu.count() == 0);
+
+            commands.send_command(bkrl::make_command<ctype::cancel>());
+            REQUIRE(command_results.size() == 2);
+            REQUIRE(check_cmd_result(0, ctype::show_equipment, cresult::ok_no_advance));
+            REQUIRE(check_cmd_result(1, ctype::show_equipment, cresult::canceled));
+        }
+
+        SECTION("with one item equipped") {
+            creature.get_item(ifac.create(random, idefs, idef1));
+            creature.get_item(ifac.create(random, idefs, idef0));
+            bkrl::equip_item(ctx, creature, *creature.item_list().begin());
+
+            bkrl::display_equip_list(ctx, commands, creature, imenu);
+            REQUIRE(imenu.is_visible());
+            REQUIRE(imenu.count() == 1);
+
+            imenu.on_action(bkrl::inventory::action::select);
+            imenu.on_action(bkrl::inventory::action::confirm);
+            imenu.on_action(bkrl::inventory::action::equip);
+            imenu.on_action(bkrl::inventory::action::get);
+            imenu.on_action(bkrl::inventory::action::drop);
+            imenu.on_action(bkrl::inventory::action::cancel);
+
+            REQUIRE(command_results.size() == 2);
+            REQUIRE(check_cmd_result(0, ctype::show_equipment, cresult::ok_no_advance));
+            REQUIRE(check_cmd_result(1, ctype::show_equipment, cresult::canceled));
+        }
+    }
+
     SECTION("equip item") {
         auto const equip_and_expect = [&](int const index, auto const expected) {
             auto const result = bkrl::equip_item(ctx, creature, creature.item_list().advance(index));

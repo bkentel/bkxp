@@ -532,14 +532,14 @@ void bkrl::game::on_move(bklib::ivec3 const v)
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::on_show_inventory()
 {
-    auto const visible = !inventory_->is_visible();
-    inventory_->show(visible);
-
-    if (visible) {
-        auto& player = get_player();
-        display_item_list(ctx_, *command_translator_, player, current_map()
-                        , player.item_list(), *inventory_, "Inventory");
+    if (inventory_->is_visible()) {
+        inventory_->show(false);
+        return;
     }
+
+    auto& player = get_player();
+    display_item_list(ctx_, *command_translator_, player, current_map()
+                    , player.item_list(), *inventory_, "Inventory");
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -551,6 +551,12 @@ void bkrl::game::on_show_equipment()
 //--------------------------------------------------------------------------------------------------
 void bkrl::game::do_show_equipment()
 {
+    if (inventory_->is_visible()) {
+        inventory_->show(false);
+        return;
+    }
+
+    display_equip_list(ctx_, *command_translator_, get_player(), *inventory_);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1455,4 +1461,30 @@ void bkrl::display_quit_prompt(context& ctx, command_translator& commands)
 
         return command_handler_result::detach;
     }));
+}
+
+//--------------------------------------------------------------------------------------------------
+void bkrl::display_equip_list(
+    context&            ctx
+  , command_translator& commands
+  , creature&           subject
+  , inventory&          imenu
+) {
+    populate_equipment_list(ctx, imenu, subject.item_list(), "Equipment");
+    imenu.set_on_action([&](inventory::action const action, int const index) {
+        switch (action) {
+        case inventory::action::cancel:
+            dismiss_item_list(imenu, commands, command_type::show_equipment, command_result::canceled);
+            break;
+        case inventory::action::drop:   break;
+        case inventory::action::equip:   break;
+        case inventory::action::get:     break;
+        case inventory::action::select:  BK_FALLTHROUGH
+        case inventory::action::confirm: break;
+        default:                         BK_UNREACHABLE;
+        }
+    });
+
+    commands.on_command_result(command_type::show_equipment, command_result::ok_no_advance);
+    commands.push_handler(default_item_list_handler(imenu));
 }
