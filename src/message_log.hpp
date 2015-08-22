@@ -9,29 +9,26 @@ namespace bkrl {
 class renderer;
 class text_renderer;
 
-namespace detail { class message_log_impl; }
-
 class message_log {
 public:
-    explicit message_log(text_renderer& text_render);
-    ~message_log();
+    virtual ~message_log();
 
-    void println(bklib::utf8_string msg);
-    void println(bklib::utf8_string_view msg);
+    virtual void println(bklib::utf8_string msg) = 0;
+    virtual void println(bklib::utf8_string_view msg) = 0;
 
-    void draw(renderer& render);
+    virtual void draw(renderer& render) = 0;
 
-    void set_bounds(bklib::irect bounds);
+    virtual void set_bounds(bklib::irect bounds) = 0;
 
     enum class show_type {
         none, less, more, all
     };
 
-    void show(show_type type, int n = 1);
+    virtual void show(show_type type, int n = 1) = 0;
 
-    void set_minimum_lines(int n);
-private:
-    std::unique_ptr<detail::message_log_impl> impl_;
+    virtual void set_minimum_lines(int n) = 0;
 };
+
+std::unique_ptr<message_log> make_message_log(text_renderer& text_render);
 
 } //namespace bkrl
