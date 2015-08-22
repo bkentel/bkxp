@@ -42,7 +42,7 @@ public:
         wait, force_update
     };
 
-    void render(render_type type = render_type::wait);
+    void render();
     void advance();
 
     //----------------------------------------------------------------------------------------------
@@ -132,6 +132,9 @@ public:
     }
 private:
     void set_inspect_message_position_();
+    void force_render_() {
+        render_flag_ = render_type::force_update;
+    }
 private:
     bklib::timer        timer_;
     random_state        random_;
@@ -157,12 +160,14 @@ private:
     bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
     bklib::ipoint2 mouse_last_pos_screen_ = bklib::ipoint2 {0, 0};
 
-    message_log message_log_;
+    std::unique_ptr<message_log> message_log_;
 
     bklib::timer::id_t timer_message_log_ {0};
 
     text_layout inspect_text_ {*text_renderer_, ""};
     bool show_inspect_text_ = false;
+
+    render_type render_flag_ = render_type::wait;
 
     context ctx_;
 };
@@ -228,7 +233,7 @@ bkrl::game::game()
   , output_ {}
   , inventory_ {make_item_list(*text_renderer_)}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
-  , message_log_ {*text_renderer_}
+  , message_log_ {make_message_log(*text_renderer_)}
   , ctx_ (make_context())
 {
     //
@@ -329,7 +334,7 @@ bkrl::game::game()
 
     using namespace std::chrono_literals;
     timer_message_log_ = timer_.add(1s, [&](auto&) {
-        message_log_.show(message_log::show_type::less);
+        message_log_->show(message_log::show_type::less);
     });
 
     while (system_->is_running()) {
@@ -369,19 +374,21 @@ void bkrl::game::generate_map()
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::game::render(render_type const type)
+void bkrl::game::render()
 {
     using namespace std::chrono_literals;
     constexpr auto const frame_time = std::chrono::duration_cast<std::chrono::nanoseconds>(1s) / 60;
 
     auto const now = std::chrono::high_resolution_clock::now();
-    if (type == render_type::wait && now < last_frame_ + frame_time) {
+    if (render_flag_ == render_type::wait && now < last_frame_ + frame_time) {
         return;
     }
 
     last_frame_ = now;
+    render_flag_ = render_type::wait;
 
     renderer_->clear();
+    renderer_->clear_clip_region();
 
     auto const scale = view_.get_zoom();
     auto const trans = view_.get_scroll();
@@ -391,7 +398,7 @@ void bkrl::game::render(render_type const type)
 
     current_map().draw(*renderer_, view_);
 
-    message_log_.draw(*renderer_);
+    message_log_->draw(*renderer_);
     inventory_->draw(*renderer_);
 
     if (show_inspect_text_) {
@@ -407,7 +414,7 @@ void bkrl::game::render(render_type const type)
 void bkrl::game::advance()
 {
     bkrl::advance(ctx_, current_map());
-    render(render_type::force_update);
+    force_render_();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -415,7 +422,8 @@ void bkrl::game::display_message(bklib::utf8_string_view const msg) {
     printf("%.*s\n", static_cast<int>(msg.size()), msg.data());
 
     timer_.reset(timer_message_log_);
-    message_log_.println(msg);
+    message_log_->println(msg);
+    force_render_();
 }
 
 //--------------------------------------------------------------------------------------------------

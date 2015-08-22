@@ -3,28 +3,49 @@
 #include "renderer.hpp"
 #include "text.hpp"
 #include "bklib/assert.hpp"
+#include "bklib/scope_guard.hpp"
 
 #include <deque>
 
 // TODO dump lines to a file as well
 
+namespace bkrl { class message_log_impl; }
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // bkrl::detail::message_log_impl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class bkrl::detail::message_log_impl {
+class bkrl::message_log_impl final : public message_log {
 public:
-    explicit message_log_impl(text_renderer& text_render);
+    virtual ~message_log_impl();
 
-    void println(bklib::utf8_string&& msg);
-    void draw(renderer& render);
+    explicit message_log_impl(text_renderer& text_render)
+      : text_renderer_ {text_render}
+    {
+    }
 
-    void set_bounds(bklib::irect bounds);
+    void println(bklib::utf8_string msg) final override;
 
-    void show(message_log::show_type type, int n);
+    void println(bklib::utf8_string_view const msg) final override {
+        println(msg.to_string());
+    }
 
-    void set_minimum_lines(int n);
+    void draw(renderer& render) final override;
+
+    void set_bounds(bklib::irect bounds) final override {
+        bounds_ = bounds;
+    }
+
+    void show(message_log::show_type type, int n) final override;
+
+    void set_minimum_lines(int const n) final override {
+        min_lines_ = bklib::clamp(n, 0, bounds_.height() / text_renderer_.line_spacing());
+    }
 private:
-    int get_visible_lines_() const noexcept;
+    int get_visible_lines_() const noexcept {
+        return (visible_lines_ == show_all_lines)
+          ? static_cast<int>(records_.size())
+          : visible_lines_;
+    }
 
     struct record_t {
         text_layout        text;
@@ -41,13 +62,11 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
-bkrl::detail::message_log_impl::message_log_impl(text_renderer& text_render)
-  : text_renderer_ {text_render}
-{
+bkrl::message_log_impl::~message_log_impl() {
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::detail::message_log_impl::println(bklib::utf8_string&& msg)
+void bkrl::message_log_impl::println(bklib::utf8_string msg)
 {
     using type = text_layout::size_type;
 
@@ -65,8 +84,15 @@ void bkrl::detail::message_log_impl::println(bklib::utf8_string&& msg)
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::detail::message_log_impl::draw(renderer& render)
+void bkrl::message_log_impl::draw(renderer& render)
 {
+    auto const old_clip = render.get_clip_region();
+    BK_SCOPE_EXIT {
+        render.set_clip_region(old_clip);
+    };
+
+    render.set_clip_region(make_renderer_rect(bounds_));
+
     int x = bounds_.left;
     int y = bounds_.top;
 
@@ -90,13 +116,7 @@ void bkrl::detail::message_log_impl::draw(renderer& render)
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::detail::message_log_impl::set_bounds(bklib::irect const bounds)
-{
-    bounds_ = bounds;
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::detail::message_log_impl::show(message_log::show_type const type, int const n)
+void bkrl::message_log_impl::show(message_log::show_type const type, int const n)
 {
     BK_PRECONDITION(n >= 0);
 
@@ -127,60 +147,11 @@ void bkrl::detail::message_log_impl::show(message_log::show_type const type, int
 }
 
 //--------------------------------------------------------------------------------------------------
-void bkrl::detail::message_log_impl::set_minimum_lines(int const n)
+bkrl::message_log::~message_log() {
+}
+
+//--------------------------------------------------------------------------------------------------
+std::unique_ptr<bkrl::message_log> bkrl::make_message_log(text_renderer& text_render)
 {
-    min_lines_ = bklib::clamp(n, 0, bounds_.height() / text_renderer_.line_spacing());
-}
-
-//--------------------------------------------------------------------------------------------------
-int bkrl::detail::message_log_impl::get_visible_lines_() const noexcept {
-    return (visible_lines_ == show_all_lines)
-      ? static_cast<int>(records_.size())
-      : visible_lines_;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// bkrl::message_log
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------------
-bkrl::message_log::message_log(text_renderer& text_render)
-  : impl_ {std::make_unique<detail::message_log_impl>(text_render)}
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-bkrl::message_log::~message_log() = default;
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::message_log::println(bklib::utf8_string msg) {
-    impl_->println(std::move(msg));
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::message_log::println(bklib::utf8_string_view const msg)
-{
-    println(msg.to_string());
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::message_log::draw(renderer& render) {
-    impl_->draw(render);
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::message_log::set_bounds(bklib::irect const bounds) {
-    impl_->set_bounds(bounds);
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::message_log::show(show_type const type, int const n)
-{
-    impl_->show(type, n);
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::message_log::set_minimum_lines(int const n)
-{
-    impl_->set_minimum_lines(n);
+    return std::make_unique<message_log_impl>(text_render);
 }
