@@ -29,6 +29,71 @@ namespace bkrl {
 
 /////////////////////////
 
+class map_inspect_message {
+public:
+    static constexpr int const border_size = 4;
+
+    map_inspect_message(text_renderer& trender, bklib::irect const bounds)
+      : text_ {trender, ""}
+      , bounds_ {bounds}
+    {
+    }
+
+    void draw(renderer& render) {
+        if (!is_visible()) {
+            return;
+        }
+
+        auto const r = make_renderer_rect(add_border(text_.extent(), border_size));
+        render.draw_filled_rect(r, make_color(200, 200, 200, 200));
+        text_.draw(render);
+    }
+
+    void set_text(text_renderer& trender, bklib::utf8_string_view const msg) {
+        text_.set_text(trender, msg);
+    }
+
+    void move_to(bklib::ipoint2 const p) {
+        auto const extent = text_.extent();
+        auto const h      = extent.height();
+        auto const dx     = x(p);
+        auto const dy     = y(p) - h;
+
+        auto const result = move_rect_inside(bounds_
+          , add_border(translate_to(extent, dx, dy), border_size));
+
+        if (!result.second) {
+            BK_ASSERT(false && "TODO");
+        }
+
+        text_.set_position(result.first.left - border_size, result.first.top + border_size);
+
+        p_ = p;
+    }
+
+    bool is_visible() const noexcept {
+        return visible_;
+    }
+
+    bool show(bool const visible) noexcept {
+        return (visible_ = visible);
+    }
+
+    bklib::ipoint2 last_tile() const noexcept {
+        return last_tile_;
+    }
+
+    void set_last_tile(bklib::ipoint2 const p) noexcept {
+        last_tile_ = p;
+    }
+private:
+    text_layout    text_;
+    bklib::irect   bounds_;
+    bklib::ipoint2 p_         = bklib::ipoint2 {0, 0};
+    bklib::ipoint2 last_tile_ = bklib::ipoint2 {0, 0};
+    bool           visible_   = false;
+};
+
 //--------------------------------------------------------------------------------------------------
 // Game simulation state.
 //--------------------------------------------------------------------------------------------------
@@ -119,8 +184,6 @@ public:
 
     context make_context();
 
-    void debug_print(int x, int y);
-
     //----------------------------------------------------------------------------------------------
     map& current_map() noexcept {
         BK_PRECONDITION(current_map_);
@@ -131,7 +194,6 @@ public:
         return const_cast<game*>(this)->current_map();
     }
 private:
-    void set_inspect_message_position_();
     void force_render_() {
         render_flag_ = render_type::force_update;
     }
@@ -157,17 +219,17 @@ private:
     std::chrono::high_resolution_clock::time_point last_frame_;
 
     key_mod_state  prev_key_mods_ = system_->current_key_mods();
-    bklib::ipoint2 mouse_last_pos_ = bklib::ipoint2 {0, 0};
+
+    //! The last screen position of the mouse
     bklib::ipoint2 mouse_last_pos_screen_ = bklib::ipoint2 {0, 0};
 
     std::unique_ptr<message_log> message_log_;
 
     bklib::timer::id_t timer_message_log_ {0};
 
-    text_layout inspect_text_ {*text_renderer_, ""};
-    bool show_inspect_text_ = false;
-
     render_type render_flag_ = render_type::wait;
+
+    map_inspect_message inspect_message_;
 
     context ctx_;
 };
@@ -234,6 +296,7 @@ bkrl::game::game()
   , inventory_ {make_item_list(*text_renderer_)}
   , last_frame_ {std::chrono::high_resolution_clock::now()}
   , message_log_ {make_message_log(*text_renderer_)}
+  , inspect_message_ {*text_renderer_, bklib::irect {0, 0, system_->client_width(), system_->client_height()}}
   , ctx_ (make_context())
 {
     //
@@ -279,10 +342,8 @@ bkrl::game::game()
 
         BK_SCOPE_EXIT { prev_key_mods_ = cur; };
 
-        show_inspect_text_ = cur.test(key_mod::shift);
-        if (show_inspect_text_) {
-            set_inspect_message_position_();
-        }
+        inspect_message_.show(cur.test(key_mod::shift));
+        do_mouse_over(x(mouse_last_pos_screen_), y(mouse_last_pos_screen_));
     };
 
     system_->on_key_up = [&](int const key) {
@@ -400,12 +461,7 @@ void bkrl::game::render()
 
     message_log_->draw(*renderer_);
     inventory_->draw(*renderer_);
-
-    if (show_inspect_text_) {
-        auto const r = make_renderer_rect(add_border(inspect_text_.extent(), 4));
-        renderer_->draw_filled_rect(r, make_color(200, 200, 200, 200));
-        inspect_text_.draw(*renderer_);
-    }
+    inspect_message_.draw(*renderer_);
 
     renderer_->present();
 }
@@ -437,22 +493,18 @@ void bkrl::game::do_mouse_over(int const mx, int const my)
 {
     mouse_last_pos_screen_ = bklib::ipoint2 {mx, my};
 
-    auto const p = view_.screen_to_world(mx, my);
+    if (inspect_message_.is_visible()) {
+        inspect_message_.move_to(mouse_last_pos_screen_);
 
-    if (p == mouse_last_pos_) {
-        if (show_inspect_text_) {
-            set_inspect_message_position_();
+        auto const p = view_.screen_to_world(mx, my);
+        if (p != inspect_message_.last_tile()
+         && intersects(p, current_map().bounds())
+        ) {
+            inspect_message_.set_last_tile(p);
+            inspect_message_.set_text(*text_renderer_
+              , inspect_tile(ctx_, get_player(), current_map(), p));
         }
-        return;
     }
-
-    if (!intersects(p, current_map().bounds())) {
-        return;
-    }
-
-    debug_print(x(p), y(p));
-
-    mouse_last_pos_ = p;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -782,35 +834,6 @@ void bkrl::game::on_command_result(command_type const cmd, command_result const 
 bkrl::context bkrl::game::make_context()
 {
     return {random_, definitions_, output_, item_factory_, creature_factory_};
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::game::set_inspect_message_position_()
-{
-    auto const result = move_rect_inside(
-        bklib::irect {0, 0, system_->client_width(), system_->client_height()}
-      , translate_to(add_border(inspect_text_.extent(), 4)
-                   , x(mouse_last_pos_screen_), y(mouse_last_pos_screen_)));
-
-    if (!result.second) {
-        BK_ASSERT(false && "TODO");
-    }
-
-    inspect_text_.set_position(result.first.left, result.first.top);
-}
-
-//--------------------------------------------------------------------------------------------------
-void bkrl::game::debug_print(int const mx, int const my)
-{
-    if (!system_->current_key_mods().test(key_mod::shift)) {
-        return;
-    }
-
-    inspect_text_.set_text(*text_renderer_
-      , inspect_tile(ctx_, get_player(), current_map(), bklib::ipoint2 {mx, my}));
-
-    set_inspect_message_position_();
-    show_inspect_text_ = true;
 }
 
 //--------------------------------------------------------------------------------------------------
