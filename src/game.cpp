@@ -31,6 +31,8 @@ namespace bkrl {
 
 class map_inspect_message {
 public:
+    static constexpr int const border_size = 4;
+
     map_inspect_message(text_renderer& trender, bklib::irect const bounds)
       : text_ {trender, ""}
       , bounds_ {bounds}
@@ -42,7 +44,7 @@ public:
             return;
         }
 
-        auto const r = make_renderer_rect(add_border(text_.extent(), 4));
+        auto const r = make_renderer_rect(add_border(text_.extent(), border_size));
         render.draw_filled_rect(r, make_color(200, 200, 200, 200));
         text_.draw(render);
     }
@@ -52,14 +54,19 @@ public:
     }
 
     void move_to(bklib::ipoint2 const p) {
-        auto const result = move_rect_inside(bounds_, translate_to(
-            add_border(text_.extent(), 4), x(p), y(p)));
+        auto const extent = text_.extent();
+        auto const h      = extent.height();
+        auto const dx     = x(p);
+        auto const dy     = y(p) - h;
+
+        auto const result = move_rect_inside(bounds_
+          , add_border(translate_to(extent, dx, dy), border_size));
 
         if (!result.second) {
             BK_ASSERT(false && "TODO");
         }
 
-        text_.set_position(result.first.left, result.first.top);
+        text_.set_position(result.first.left - border_size, result.first.top + border_size);
 
         p_ = p;
     }
@@ -82,9 +89,9 @@ public:
 private:
     text_layout    text_;
     bklib::irect   bounds_;
-    bklib::ipoint2 p_         {0, 0};
-    bklib::ipoint2 last_tile_ {0, 0};
-    bool           visible_   {false};
+    bklib::ipoint2 p_         = bklib::ipoint2 {0, 0};
+    bklib::ipoint2 last_tile_ = bklib::ipoint2 {0, 0};
+    bool           visible_   = false;
 };
 
 //--------------------------------------------------------------------------------------------------
