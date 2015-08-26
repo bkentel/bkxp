@@ -11,14 +11,15 @@ auto get_integer(bklib::utf8_string_view const str, size_t const offset) {
 
     BK_PRECONDITION(str.size() > offset);
 
+    auto const first = str.data() + offset;
     char* last_digit = nullptr;
-    auto const result = std::strtoll(str.data() + offset, &last_digit, 10);
+    auto const result = std::strtoll(first, &last_digit, 10);
 
     if (result < std::numeric_limits<int>::min()) {
         BOOST_THROW_EXCEPTION(std::underflow_error {"value below minimum for int"});
     } else if (result > std::numeric_limits<int>::max()) {
         BOOST_THROW_EXCEPTION(std::overflow_error {"value above maximum for int"});
-    } else if (!result && *(last_digit - 1) != '0') {
+    } else if (!result && ((first == last_digit && *first != '0') || (*(last_digit - 1) != '0'))) {
         BOOST_THROW_EXCEPTION(std::invalid_argument {"unable to convert the string to an integer"});
     }
 
