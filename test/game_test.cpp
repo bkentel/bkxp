@@ -513,7 +513,7 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
 
             bkrl::generate_creature(ctx, m, cdef0, where);
             auto const str = bkrl::inspect_tile(ctx, creature, m, where);
-            REQUIRE(count_lines(str) == 3);
+            REQUIRE(count_lines(str) == 4);
         }
 
         SECTION("one item, one creature") {
@@ -524,7 +524,7 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             bkrl::generate_item(ctx, m, idef0, where);
 
             auto const str = bkrl::inspect_tile(ctx, creature, m, where);
-            REQUIRE(count_lines(str) == 5);
+            REQUIRE(count_lines(str) == 6);
         }
 
         SECTION("two items, one creature") {
@@ -536,7 +536,7 @@ TEST_CASE("get and drop items", "[bkrl][game]") {
             bkrl::generate_item(ctx, m, idef0, where);
 
             auto const str = bkrl::inspect_tile(ctx, creature, m, where);
-            REQUIRE(count_lines(str) == 6);
+            REQUIRE(count_lines(str) == 7);
         }
     }
 

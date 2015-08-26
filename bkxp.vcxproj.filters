@@ -284,6 +284,12 @@
     <ClCompile Include="test\game_test.cpp">
       <Filter>test\bkrl</Filter>
     </ClCompile>
+    <ClCompile Include="test\random_integer_test.cpp">
+      <Filter>test\bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\random.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bklib.natvis" />

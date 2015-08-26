@@ -2,6 +2,7 @@
 
 #include "bklib/assert.hpp"
 #include "bklib/math.hpp"
+#include "bklib/string.hpp"
 
 #include <boost/predef.h>
 
@@ -201,6 +202,87 @@ inline bool x_in_y_chance(random_t& random, int const x, int const y) noexcept {
     BK_PRECONDITION(x >= 0);
     return random_range(random, 0, y - 1) < x;
 }
+
+template <typename T>
+inline T random_gaussian(random_t& random, T const mean, T const variance) noexcept {
+    static_assert(std::is_arithmetic<T>::value, "");
+
+    return bklib::clamp_to<T>(std::round(normal_distribution_t<double>{
+        static_cast<double>(mean), static_cast<double>(variance)
+    }(random)));
+}
+
+//--------------------------------------------------------------------------------------------------
+//!
+//--------------------------------------------------------------------------------------------------
+struct random_integer {
+    enum class distribution_type {
+        dice, uniform, gaussian
+    };
+
+    struct dice_t {
+        int number;
+        int sides;
+        int modifier;
+    };
+
+    struct uniform_range_t {
+        int lo;
+        int hi;
+    };
+
+    struct gaussian_t {
+        int variance;
+        int mean;
+    };
+
+    random_integer() noexcept = default;
+
+    random_integer(dice_t const d) noexcept
+      : data(d), type {distribution_type::dice}
+    {
+    }
+
+    random_integer(uniform_range_t const u) noexcept
+      : data(u), type {distribution_type::uniform}
+    {
+    }
+
+    random_integer(gaussian_t const g) noexcept
+      : data(g), type {distribution_type::gaussian}
+    {
+    }
+
+    int generate(random_t& random) const noexcept {
+        switch (type) {
+        case distribution_type::uniform:
+            return random_range(random, data.u.lo, data.u.hi);
+        case distribution_type::dice:
+            return roll_dice(random, data.d.number, data.d.sides, data.d.modifier);
+        case distribution_type::gaussian:
+            return random_gaussian(random, data.g.mean, data.g.variance);
+        default:
+            BK_UNREACHABLE;
+        }
+
+        BK_UNREACHABLE;
+    }
+
+    union data_t {
+        data_t()                             noexcept : u {0, 0}  {}
+        data_t(dice_t          const params) noexcept : d(params) {}
+        data_t(uniform_range_t const params) noexcept : u(params) {}
+        data_t(gaussian_t      const params) noexcept : g(params) {}
+
+        dice_t          d;
+        uniform_range_t u;
+        gaussian_t      g;
+    } data;
+
+    distribution_type type = distribution_type::uniform;
+};
+
+random_integer make_random_integer(bklib::utf8_string_view str);
 
 } // namespace bkrl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
