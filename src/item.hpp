@@ -64,10 +64,10 @@ struct item_def : definition_base {
     {
     }
 
-    id_type id;
+    id_type    id;
     item_flags flags;
     item_slots slots;
-    int32_t weight = 1;
+    int32_t    weight = 1;
 };
 
 void process_tags(item_def& def);

@@ -83,6 +83,7 @@
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\system.cpp" />
     <ClCompile Include="src\system_sdl.cpp" />
@@ -109,6 +110,7 @@
     <ClCompile Include="test\item_test.cpp" />
     <ClCompile Include="test\json_test.cpp" />
     <ClCompile Include="test\map_test.cpp" />
+    <ClCompile Include="test\random_integer_test.cpp" />
     <ClCompile Include="test\random_test.cpp" />
     <ClCompile Include="test\text_test.cpp" />
     <ClCompile Include="test\view_test.cpp" />

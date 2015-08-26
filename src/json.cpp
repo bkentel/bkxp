@@ -666,18 +666,33 @@ public:
         BK_PRECONDITION(field_ == field::none);
 
         switch (field_ = static_cast<field>(hash)) {
+        case field::stat_hp : break;
         case field::none : BK_FALLTHROUGH
         default:
-            break;
+            return default_result();
         }
 
-        return default_result();
+        return true;
     }
 
     //----------------------------------------------------------------------------------------------
     bool on_key(const char* const str, size_type const len, bool const) override final {
         string_view const s {str, len};
         return on_key(s, bklib::djb2_hash(s));
+    }
+
+    //----------------------------------------------------------------------------------------------
+    bool on_string(char const* const str, size_type const len, bool const) override final {
+        if (field_ == field::stat_hp) {
+            def_.stat_hp = bkrl::make_random_integer(string_view {str, len});
+
+            field_ = field::none;
+            push(base_parser_);
+
+            return true;
+        }
+
+        return default_result();
     }
 
     //----------------------------------------------------------------------------------------------
@@ -705,6 +720,7 @@ private:
 
     enum class field : uint32_t {
         none
+      , BK_HASHED_ENUM(stat_hp)
     } field_ = field::none;
 };
 

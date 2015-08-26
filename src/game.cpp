@@ -29,6 +29,8 @@ namespace bkrl {
 
 /////////////////////////
 
+
+
 class map_inspect_message {
 public:
     static constexpr int const border_size = 4;
@@ -836,6 +838,30 @@ bkrl::context bkrl::game::make_context()
     return {random_, definitions_, output_, item_factory_, creature_factory_};
 }
 
+namespace {
+
+std::ostream& operator<<(std::ostream& out, bkrl::random_integer const& ri) {
+    switch (ri.type) {
+    case bkrl::random_integer::distribution_type::dice:
+        out << ri.data.d.number << "d" << ri.data.d.sides;
+        if (ri.data.d.modifier > 0) {
+            out << "+" << ri.data.d.modifier;
+        } else if (ri.data.d.modifier < 0) {
+            out << "-" << ri.data.d.modifier;
+        }
+        break;
+    case bkrl::random_integer::distribution_type::uniform:
+        out << ri.data.u.lo << " to " << ri.data.u.hi;
+        break;
+    case bkrl::random_integer::distribution_type::gaussian:
+        out << "mean " << ri.data.g.mean << " sigma " << ri.data.g.variance;
+    }
+
+    return out;
+}
+
+}
+
 //--------------------------------------------------------------------------------------------------
 bklib::utf8_string bkrl::inspect_tile(
     context&              ctx
@@ -854,13 +880,17 @@ bklib::utf8_string bkrl::inspect_tile(
         x(where), y(where), static_cast<uint16_t>(ter.type), ter.variant);
 
     if (auto const& c = current_map.creature_at(where)) {
+        auto const cdef = ctx.data.find(c->def());
+
         out.write("\n"
             "Creature ({})\n"
             " Def : {} ({:0x})\n"
-            " Name: {}"
+            " Name: {}\n"
+            " HP:   {} [{}]"
           , static_cast<uint32_t>(c->id())
           , c->def().c_str(), static_cast<uint32_t>(c->def())
           , c->friendly_name(ctx)
+          , c->current(stat_type::health), (cdef ? cdef->stat_hp : random_integer {})
         );
     }
 

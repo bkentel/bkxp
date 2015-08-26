@@ -55,6 +55,7 @@ struct creature_def : definition_base {
 
     id_type        id;
     creature_flags flags;
+    random_integer stat_hp;
 };
 
 void process_tags(creature_def& def);
@@ -219,6 +220,7 @@ public:
     equipment const& equip_list() const { return equip_; }
 
     int modify(stat_type stat, int mod);
+    int current(stat_type stat) const noexcept;
 
     bklib::utf8_string friendly_name(context const& ctx) const;
 private:
