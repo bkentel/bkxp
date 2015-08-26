@@ -160,7 +160,6 @@ bkrl::creature::creature(
   , items_ {}
   , flags_ (def.flags)
 {
-    stats_.hp_val.base = 5;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -195,10 +194,31 @@ int bkrl::creature::modify(stat_type const stat, int const mod)
     case st::luck:
         return set_new_mod(stats_.luc_val);
     default:
-        break;
+        BK_UNREACHABLE;
     }
 
-    return 0;
+    BK_UNREACHABLE;
+}
+//--------------------------------------------------------------------------------------------------
+int bkrl::creature::current(stat_type stat) const noexcept
+{
+    using st = bkrl::stat_type;
+
+    switch (stat) {
+    case st::health:       return stats_.hp_val.value();
+    case st::stamina:      return stats_.sp_val.value();
+    case st::mana:         return stats_.mp_val.value();
+    case st::strength:     return stats_.str_val.value();
+    case st::constitution: return stats_.con_val.value();
+    case st::dexterity:    return stats_.dex_val.value();
+    case st::intelligence: return stats_.int_val.value();
+    case st::wisdom:       return stats_.wis_val.value();
+    case st::charisma:     return stats_.cha_val.value();
+    case st::luck:         return stats_.luc_val.value();
+    default:               BK_UNREACHABLE;
+    }
+
+    BK_UNREACHABLE;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -238,7 +258,12 @@ bkrl::creature bkrl::creature_factory::create(
   , bklib::ipoint2 const  p
 ) {
     creature result {instance_id_t<tag_creature> {++next_id_}, def, p};
-    result.stats_.hp_val.base = static_cast<int16_t>(bkrl::random_range(random, 1, 5));
+
+    result.stats_.hp_val.base = bklib::clamp_to<int16_t>(def.stat_hp.generate(random));
+    if (result.stats_.hp_val.base <= 0) {
+        result.stats_.hp_val.base = 1;
+    }
+
     return result;
 }
 
