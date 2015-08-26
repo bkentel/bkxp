@@ -160,7 +160,6 @@ bkrl::creature::creature(
   , items_ {}
   , flags_ (def.flags)
 {
-    stats_.hp_val.base = 5;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -260,7 +259,7 @@ bkrl::creature bkrl::creature_factory::create(
 ) {
     creature result {instance_id_t<tag_creature> {++next_id_}, def, p};
 
-    result.stats_.hp_val.base = bklib::clamp_to<uint16_t>(def.stat_hp.generate(random));
+    result.stats_.hp_val.base = bklib::clamp_to<int16_t>(def.stat_hp.generate(random));
     if (result.stats_.hp_val.base <= 0) {
         result.stats_.hp_val.base = 1;
     }

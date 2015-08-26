@@ -840,21 +840,18 @@ bkrl::context bkrl::game::make_context()
 
 namespace {
 
-std::ostream& operator<<(std::ostream& out, bkrl::random_integer const& ri) {
+
+fmt::MemoryWriter to_string(bkrl::random_integer const& ri) {
+    fmt::MemoryWriter out;
+
     switch (ri.type) {
     case bkrl::random_integer::distribution_type::dice:
-        out << ri.data.d.number << "d" << ri.data.d.sides;
-        if (ri.data.d.modifier > 0) {
-            out << "+" << ri.data.d.modifier;
-        } else if (ri.data.d.modifier < 0) {
-            out << "-" << ri.data.d.modifier;
-        }
-        break;
+        out.write("{}d{}{:+}", ri.data.d.number, ri.data.d.sides, ri.data.d.modifier); break;
     case bkrl::random_integer::distribution_type::uniform:
-        out << ri.data.u.lo << " to " << ri.data.u.hi;
-        break;
+        out.write("{} to {}", ri.data.u.lo, ri.data.u.hi); break;
     case bkrl::random_integer::distribution_type::gaussian:
-        out << "mean " << ri.data.g.mean << " sigma " << ri.data.g.variance;
+        out.write("mean {} sigma {", ri.data.g.mean, ri.data.g.variance); break;
+    default: BK_UNREACHABLE;
     }
 
     return out;
@@ -890,7 +887,7 @@ bklib::utf8_string bkrl::inspect_tile(
           , static_cast<uint32_t>(c->id())
           , c->def().c_str(), static_cast<uint32_t>(c->def())
           , c->friendly_name(ctx)
-          , c->current(stat_type::health), (cdef ? cdef->stat_hp : random_integer {})
+          , c->current(stat_type::health), (cdef ? ::to_string(cdef->stat_hp).c_str() : "?")
         );
     }
 
