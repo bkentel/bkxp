@@ -15,6 +15,198 @@
 #include "system.hpp"
 #include "random.hpp"
 
+namespace bkrl {
+
+template <typename C>
+auto index_to_iterator(int const where, C&& c)
+{
+    auto const size = static_cast<int>(c.size());
+    BK_PRECONDITION((where == -1 || where >= 0) && where <= size);
+
+    using std::end;
+    using std::begin;
+
+    return (where == -1) || (where == size)
+        ? end(c)
+        : std::next(begin(c), where);
+}
+
+struct listbox_data {
+    struct col_t {
+        bklib::utf8_string label;
+        int width_min;
+        int width_max;
+    };
+
+    struct cell_t {
+        bklib::utf8_string label;
+    };
+
+    using cells_t = std::vector<cell_t>;
+
+    std::vector<col_t>   cols;
+    std::vector<cells_t> cells;
+};
+
+struct listbox_render_data {
+    using cells_t = std::vector<text_layout>;
+    std::vector<cells_t> cells;
+};
+
+struct listbox_base {
+    static constexpr int const col_shortcut = -2;
+    static constexpr int const col_icon     = -1;
+    static constexpr int const col_default  =  0;
+
+    enum class unit  : int {
+        px
+      , em
+      , pct
+    };
+
+    enum class event : int {
+        on_hover, on_mouse_down, on_mouse_up, on_select, on_confirm, on_cancel
+    };
+
+    void insert_col(int where, bklib::utf8_string_view label);
+    void append_col(bklib::utf8_string_view label);
+
+    int cols() const noexcept {
+        return static_cast<int>(data_.cols.size());
+    }
+
+    int cols_total() const noexcept {
+        return cols() + (use_shortcuts_ ? 1 : 0) + (use_icons_ ? 1 : 0);
+    }
+protected:
+    auto insert_row_(int const where) {
+        auto const size = cols_total();
+
+        auto const it0 = data_.cells.insert(
+            index_to_iterator(where, data_.cells), listbox_data::cells_t {});
+
+        auto const it1 = render_data_.cells.insert(
+            index_to_iterator(where, render_data_.cells), listbox_render_data::cells_t {});
+
+        it0->reserve(size);
+        it1->reserve(size);
+
+        return std::make_pair(it0, it1);
+    }
+
+    template <typename T, typename F>
+    void insert_row_(int const where, F&& query, T const& value) {
+        auto& cells = *insert_row_(where).first;
+
+        auto const append = [&](int const i) {
+            cells.emplace_back(listbox_data::cell_t {query(i, value)});
+        };
+
+        if (use_shortcuts_) { append(col_shortcut); }
+        if (use_icons_)     { append(col_icon); }
+
+        append(col_default);
+    }
+
+    listbox_data        data_;
+    listbox_render_data render_data_;
+
+    bool use_shortcuts_ = true;
+    bool use_icons_     = true;
+};
+
+template <typename T>
+class listbox : listbox_base {
+public:
+    using query_t = std::function<bklib::utf8_string (int, T const&)>;
+
+    explicit listbox(query_t query)
+      : listbox_base {}
+      , query_ {std::move(query)}
+    {
+    }
+
+    int rows() const noexcept {
+        return static_cast<int>(rows_.size());
+    }
+
+    T const& row_data(int const where) const noexcept {
+        return *index_to_iterator(where, rows_);
+    }
+
+    T const& row_data(int const where) noexcept {
+        return *index_to_iterator(where, rows_);
+    }
+
+    template <typename U>
+    void insert_row(int const where, U&& value) {
+        insert_row_(where, std::forward<U>(value));
+    }
+
+    template <typename U>
+    void append_row(U&& value) {
+        using std::end;
+        insert_row_(rows(), std::forward<U>(value));
+    }
+
+    void remove_col(int where);
+    void remove_row(int where);
+
+    void set_col_width(int col, double value, unit);
+    void set_col_width(int col, double min, double max, unit);
+
+    void set_width(double value, unit);
+    void set_height(double value, unit);
+private:
+    template <typename U>
+    void insert_row_(int const where, U&& value) {
+        static_assert(std::is_convertible<std::decay_t<U>, T>::value, "");
+
+        listbox_base::insert_row_(where, query_, value);
+        rows_.insert(index_to_iterator(where, rows_), std::forward<U>(value));
+    }
+
+    std::vector<T> rows_;
+    query_t        query_;
+};
+
+}
+
+TEST_CASE("listbox") {
+    static constexpr bklib::utf8_string_view const row_data[] = {
+        bklib::make_string_view("row 0")
+      , bklib::make_string_view("row 1")
+      , bklib::make_string_view("row 2")
+    };
+
+    bkrl::listbox<bklib::utf8_string> list {[&](int const i, bklib::utf8_string const& s) {
+        switch (i) {
+        case bkrl::listbox_base::col_shortcut :
+            return s + " shortcut";
+        case bkrl::listbox_base::col_icon :
+            return s + " icon";
+        case bkrl::listbox_base::col_default :
+            return s;
+        default:
+            break;
+        }
+
+        return s + " " + std::to_string(i);
+    }};
+
+    REQUIRE(list.rows() == 0);
+
+    for (auto const& row : row_data) {
+        list.append_row(row.to_string());
+    }
+
+    REQUIRE(list.rows() == 3);
+
+    REQUIRE(list.row_data(0) == row_data[0]);
+    REQUIRE(list.row_data(1) == row_data[1]);
+    REQUIRE(list.row_data(2) == row_data[2]);
+}
+
 TEST_CASE("inventory", "[inventory][bkrl]") {
     auto text_render = bkrl::make_text_renderer();
     bkrl::text_renderer& trender = *text_render;
