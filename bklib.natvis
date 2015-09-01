@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="bkrl::listbox&lt;*&gt;">
+		<DisplayString>[rows: {rows_._Mypair._Myval2._Mylast - rows_._Mypair._Myval2._Myfirst}, cols: {1 + data_.cols._Mypair._Myval2._Mylast - data_.cols._Mypair._Myval2._Myfirst}]</DisplayString>
+		<Expand>
+			<Synthetic Name="[row data]">
+				<DisplayString>{rows_._Mypair._Myval2._Mylast - rows_._Mypair._Myval2._Myfirst}</DisplayString>
+				<Expand><ExpandedItem>rows_</ExpandedItem></Expand>
+			</Synthetic>
+			<Synthetic Name="[col data]">
+				<DisplayString>{data_.cols._Mypair._Myval2._Mylast - data_.cols._Mypair._Myval2._Myfirst}</DisplayString>
+				<Expand><ExpandedItem>data_.cols</ExpandedItem></Expand>
+			</Synthetic>
+			<Synthetic Name="[cell data]">
+				<DisplayString>{data_.cells._Mypair._Myval2._Mylast - data_.cells._Mypair._Myval2._Myfirst}</DisplayString>
+				<Expand>
+					<ExpandedItem>data_.cells</ExpandedItem>
+				</Expand>
+			</Synthetic>
+		</Expand>
+	</Type>
+
 	<Type Name="boost::basic_string_ref&lt;*,*&gt;">
 		<DisplayString Condition="len_ ==   strlen(ptr_)">{ptr_,[len_]s8} [equal]</DisplayString>
 		<DisplayString Condition="len_ &gt; strlen(ptr_)">{ptr_,[len_]s8} [more]</DisplayString>

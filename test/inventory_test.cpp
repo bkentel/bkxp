@@ -34,8 +34,8 @@ auto index_to_iterator(int const where, C&& c)
 struct listbox_data {
     struct col_t {
         bklib::utf8_string label;
-        int width_min;
-        int width_max;
+        int width_min = 0;
+        int width_max = 0;
     };
 
     struct cell_t {
@@ -44,12 +44,22 @@ struct listbox_data {
 
     using cells_t = std::vector<cell_t>;
 
+    void clear() {
+        cols.clear();
+        cells.clear();
+    }
+
     std::vector<col_t>   cols;
     std::vector<cells_t> cells;
 };
 
 struct listbox_render_data {
     using cells_t = std::vector<text_layout>;
+
+    void clear() {
+        cells.clear();
+    }
+
     std::vector<cells_t> cells;
 };
 
@@ -70,6 +80,10 @@ struct listbox_base {
 
     void insert_col(int where, bklib::utf8_string_view label);
     void append_col(bklib::utf8_string_view label);
+    void remove_col(int where);
+
+    void set_col_width(int col, double value, unit);
+    void set_col_width(int col, double min, double max, unit);
 
     int cols() const noexcept {
         return static_cast<int>(data_.cols.size());
@@ -78,7 +92,38 @@ struct listbox_base {
     int cols_total() const noexcept {
         return cols() + (use_shortcuts_ ? 1 : 0) + (use_icons_ ? 1 : 0);
     }
+
+    void set_width(int const value) noexcept {
+        BK_PRECONDITION(value > 0);
+        width_ = value;
+    }
+
+    void set_height(int const value) noexcept {
+        BK_PRECONDITION(value > 0);
+        height_ = value;
+    }
+
+    void update_layout() {
+    }
+
+    void clear() {
+        data_.clear();
+        render_data_.clear();
+    }
+
+    void reserve(int const rows) {
+        data_.cells.reserve(rows);
+        render_data_.cells.reserve(rows);
+    }
 protected:
+    listbox_base(int const width, int const height)
+      : width_  {width}
+      , height_ {height}
+    {
+        BK_PRECONDITION(width  >= 0);
+        BK_PRECONDITION(height >= 0);
+    }
+
     auto insert_row_(int const where) {
         auto const size = cols_total();
 
@@ -108,8 +153,16 @@ protected:
         append(col_default);
     }
 
+    void remove_row_(int const where) {
+        data_.cells.erase(index_to_iterator(where, data_.cells));
+        render_data_.cells.erase(index_to_iterator(where, render_data_.cells));
+    }
+
     listbox_data        data_;
     listbox_render_data render_data_;
+
+    int width_;
+    int height_;
 
     bool use_shortcuts_ = true;
     bool use_icons_     = true;
@@ -120,8 +173,8 @@ class listbox : listbox_base {
 public:
     using query_t = std::function<bklib::utf8_string (int, T const&)>;
 
-    explicit listbox(query_t query)
-      : listbox_base {}
+    explicit listbox(int const width, int const height, query_t query)
+      : listbox_base {width, height}
       , query_ {std::move(query)}
     {
     }
@@ -140,32 +193,34 @@ public:
 
     template <typename U>
     void insert_row(int const where, U&& value) {
-        insert_row_(where, std::forward<U>(value));
-    }
-
-    template <typename U>
-    void append_row(U&& value) {
-        using std::end;
-        insert_row_(rows(), std::forward<U>(value));
-    }
-
-    void remove_col(int where);
-    void remove_row(int where);
-
-    void set_col_width(int col, double value, unit);
-    void set_col_width(int col, double min, double max, unit);
-
-    void set_width(double value, unit);
-    void set_height(double value, unit);
-private:
-    template <typename U>
-    void insert_row_(int const where, U&& value) {
         static_assert(std::is_convertible<std::decay_t<U>, T>::value, "");
 
         listbox_base::insert_row_(where, query_, value);
         rows_.insert(index_to_iterator(where, rows_), std::forward<U>(value));
     }
 
+    template <typename U>
+    void append_row(U&& value) {
+        insert_row(rows(), std::forward<U>(value));
+    }
+
+    void remove_row(int const where) {
+        BK_PRECONDITION(!rows_.empty());
+        listbox_base::remove_row_(where);
+        rows_.erase(index_to_iterator(where, rows_));
+    }
+
+    void reserve(int const rows) {
+        BK_PRECONDITION(rows >= 0);
+        listbox_base::reserve(rows);
+        rows_.reserve(rows);
+    }
+
+    void clear() {
+        listbox_base::clear();
+        rows_.clear();
+    }
+private:
     std::vector<T> rows_;
     query_t        query_;
 };
@@ -179,7 +234,10 @@ TEST_CASE("listbox") {
       , bklib::make_string_view("row 2")
     };
 
-    bkrl::listbox<bklib::utf8_string> list {[&](int const i, bklib::utf8_string const& s) {
+    static constexpr int const list_w = 400;
+    static constexpr int const list_h = 200;
+
+    bkrl::listbox<bklib::utf8_string> list {list_w, list_h, [&](int const i, bklib::utf8_string const& s) {
         switch (i) {
         case bkrl::listbox_base::col_shortcut :
             return s + " shortcut";
@@ -194,17 +252,46 @@ TEST_CASE("listbox") {
         return s + " " + std::to_string(i);
     }};
 
-    REQUIRE(list.rows() == 0);
+    auto const make_list = [&] {
+        for (auto const& row : row_data) {
+            list.append_row(row.to_string());
+        }
+    };
 
-    for (auto const& row : row_data) {
-        list.append_row(row.to_string());
+    SECTION("append") {
+        REQUIRE(list.rows() == 0);
+
+        make_list();
+
+        REQUIRE(list.rows() == 3);
+
+        REQUIRE(list.row_data(0) == row_data[0]);
+        REQUIRE(list.row_data(1) == row_data[1]);
+        REQUIRE(list.row_data(2) == row_data[2]);
     }
 
-    REQUIRE(list.rows() == 3);
+    SECTION("insert") {
+        REQUIRE(list.rows() == 0);
 
-    REQUIRE(list.row_data(0) == row_data[0]);
-    REQUIRE(list.row_data(1) == row_data[1]);
-    REQUIRE(list.row_data(2) == row_data[2]);
+        list.append_row(row_data[1].to_string());
+        list.insert_row(0, row_data[0].to_string());
+        list.insert_row(-1, row_data[2].to_string());
+
+        REQUIRE(list.rows() == 3);
+
+        REQUIRE(list.row_data(0) == row_data[0]);
+        REQUIRE(list.row_data(1) == row_data[1]);
+        REQUIRE(list.row_data(2) == row_data[2]);
+    }
+
+    SECTION("remove") {
+        make_list();
+        list.remove_row(0);
+        list.remove_row(-1);
+
+        REQUIRE(list.rows() == 1);
+        REQUIRE(list.row_data(0) == row_data[1]);
+    }
 }
 
 TEST_CASE("inventory", "[inventory][bkrl]") {
