@@ -31,11 +31,39 @@ auto index_to_iterator(int const where, C&& c)
         : std::next(begin(c), where);
 }
 
+enum class layout_unit_t : int {
+    px
+  , em
+  , pct
+};
+
 struct listbox_data {
     struct col_t {
+        col_t(bklib::utf8_string col_label
+            , double const min
+            , double const max
+            , layout_unit_t const units
+        ) : label {std::move(col_label)}
+          , width_min_value {min}
+          , width_max_value {max}
+          , unit {units}
+        {
+        }
+
+        explicit col_t(bklib::utf8_string col_label = "")
+          : label {std::move(col_label)}
+        {
+        }
+
         bklib::utf8_string label;
-        int width_min = 0;
-        int width_max = 0;
+
+        int width     = 0; //!< actual width
+        int width_min = 0; //!< minimum width in pixels
+        int width_max = 0; //!< maximum width in pixels
+
+        double width_min_value = 0.0; //! minimum width in units given by unit
+        double width_max_value = 0.0; //! maximum width in units given by unit
+        layout_unit_t unit     = layout_unit_t::pct; //! unit type
     };
 
     struct cell_t {
@@ -63,34 +91,58 @@ struct listbox_render_data {
     std::vector<cells_t> cells;
 };
 
-struct listbox_base {
+class listbox_base {
+public:
     static constexpr int const col_shortcut = -2;
     static constexpr int const col_icon     = -1;
     static constexpr int const col_default  =  0;
-
-    enum class unit  : int {
-        px
-      , em
-      , pct
-    };
 
     enum class event : int {
         on_hover, on_mouse_down, on_mouse_up, on_select, on_confirm, on_cancel
     };
 
-    void insert_col(int where, bklib::utf8_string_view label);
-    void append_col(bklib::utf8_string_view label);
-    void remove_col(int where);
+    void insert_col(int const where, bklib::utf8_string label) {
+        data_.cols.insert(index_to_iterator(where, data_.cols)
+            , listbox_data::col_t {std::move(label)});
+    }
 
-    void set_col_width(int col, double value, unit);
-    void set_col_width(int col, double min, double max, unit);
+    void append_col(bklib::utf8_string label) {
+        insert_col(cols(), std::move(label));
+    }
+
+    void remove_col(int const where) {
+        data_.cols.erase(index_to_iterator(where, data_.cols));
+    }
+
+    void set_col_width(int const col, double const min, double const max, layout_unit_t const u) {
+        auto& c = *index_to_iterator(col, data_.cols);
+        c.unit = u;
+        c.width_min_value = min;
+        c.width_max_value = max;
+    }
+
+    void set_col_width(int const col, double const value, layout_unit_t const u) {
+        set_col_width(col, value, value, u);
+    }
 
     int cols() const noexcept {
         return static_cast<int>(data_.cols.size());
     }
 
+    int rows() const noexcept {
+        return static_cast<int>(data_.cells.size());
+    }
+
     int cols_total() const noexcept {
         return cols() + (use_shortcuts_ ? 1 : 0) + (use_icons_ ? 1 : 0);
+    }
+
+    int width() const noexcept {
+        return width_;
+    }
+
+    int height() const noexcept {
+        return height_;
     }
 
     void set_width(int const value) noexcept {
@@ -103,17 +155,121 @@ struct listbox_base {
         height_ = value;
     }
 
-    void update_layout() {
+    void update_layout(text_renderer& trender) {
+        if (data_.cells.empty()) {
+            return;
+        }
+
+        auto const n_rows = static_cast<size_t>(rows());
+        auto const n_cols = static_cast<size_t>(cols_total());
+        auto const em     = x(trender.bbox());
+        auto const w      = width();
+        auto const h      = height();
+
+        //
+        // update text & actual widths
+        //
+        for (auto r = 0u; r < n_rows; ++r) {
+            for (auto c = 0u; c < n_cols; ++c) {
+                auto&       cell = render_data_.cells[r][c];
+                auto&       col  = data_.cols[c];
+                auto const& data = data_.cells[r][c];
+
+                cell.set_text(trender, data.label);
+                col.width = std::max(col.width, cell.extent().width());
+            }
+        }
+
+        //
+        // update column width min / max
+        //
+        for (auto& col : data_.cols) {
+            switch (col.unit) {
+            case layout_unit_t::em:
+                col.width_min = bklib::round_to<int>(col.width_min_value * em);
+                col.width_max = bklib::round_to<int>(col.width_max_value * em);
+                break;
+            case layout_unit_t::px:
+                col.width_min = bklib::round_to<int>(col.width_min_value);
+                col.width_max = bklib::round_to<int>(col.width_max_value);
+                break;
+            case layout_unit_t::pct:
+                col.width_min = bklib::round_to<int>(col.width_min_value * w);
+                col.width_max = bklib::round_to<int>(col.width_max_value * h);
+                break;
+            }
+
+            col.width = bklib::clamp(col.width, col.width_min, col.width_max);
+        }
+
+        //
+        // update clip
+        //
+        for (auto r = 0u; r < n_rows; ++r) {
+            for (auto c = 0u; c < n_cols; ++c) {
+                auto&       cell = render_data_.cells[r][c];
+                auto const& col  = data_.cols[c];
+
+                cell.clip_to(bklib::clamp_to<text_layout::size_type>(col.width_max)
+                    , text_layout::unlimited);
+            }
+        }
     }
 
     void clear() {
         data_.clear();
         render_data_.clear();
+        selection_ = 0;
     }
 
     void reserve(int const rows) {
         data_.cells.reserve(rows);
         render_data_.cells.reserve(rows);
+    }
+
+    void select_next(int const offset) noexcept {
+        select(selection_ + offset);
+    }
+
+    void select(int const index) noexcept {
+        auto const n = rows();
+        if (n == 0) {
+            selection_ = 0;
+        } else {
+            auto const mod = (index % n);
+            selection_ = mod + (mod < 0 ? n : 0);
+        }
+    }
+
+    int current_selection() const noexcept {
+        return selection_;
+    }
+
+    bool is_visible() const noexcept {
+        return is_visible_;
+    }
+
+    void show(bool const visible) noexcept {
+        is_visible_ = visible;
+    }
+
+    struct hit_test_t {
+        int  row;
+        int  col;
+        bool ok;
+    };
+
+    hit_test_t hit_test(int const x, int const y) const noexcept {
+        auto const left   = x_ + scroll_x_;
+        auto const top    = y_ + scroll_y_;
+        auto const right  = left + width_;
+        auto const bottom = top + height_;
+
+        if (x < left || x > right || y < top || y > bottom) {
+            return {0, 0, false};
+        }
+
+
     }
 protected:
     listbox_base(int const width, int const height)
@@ -161,15 +317,21 @@ protected:
     listbox_data        data_;
     listbox_render_data render_data_;
 
+    int x_ = 0;
+    int y_ = 0;
+    int scroll_x_ = 0;
+    int scroll_y_ = 0;
     int width_;
     int height_;
+    int selection_ = 0;
 
+    bool is_visible_    = false;
     bool use_shortcuts_ = true;
     bool use_icons_     = true;
 };
 
 template <typename T>
-class listbox : listbox_base {
+class listbox final : public listbox_base {
 public:
     using query_t = std::function<bklib::utf8_string (int, T const&)>;
 
@@ -177,10 +339,6 @@ public:
       : listbox_base {width, height}
       , query_ {std::move(query)}
     {
-    }
-
-    int rows() const noexcept {
-        return static_cast<int>(rows_.size());
     }
 
     T const& row_data(int const where) const noexcept {
@@ -257,6 +415,29 @@ TEST_CASE("listbox") {
             list.append_row(row.to_string());
         }
     };
+
+    SECTION("sanity") {
+        REQUIRE(list.width()  == list_w);
+        REQUIRE(list.height() == list_h);
+        REQUIRE(list.current_selection() == 0);
+    }
+
+    SECTION("select") {
+        make_list();
+        REQUIRE(list.current_selection() == 0);
+
+        list.select_next(3);
+        REQUIRE(list.current_selection() == 0);
+
+        list.select_next(-3);
+        REQUIRE(list.current_selection() == 0);
+
+        list.select_next(1);
+        REQUIRE(list.current_selection() == 1);
+
+        list.select_next(-2);
+        REQUIRE(list.current_selection() == 2);
+    }
 
     SECTION("append") {
         REQUIRE(list.rows() == 0);
