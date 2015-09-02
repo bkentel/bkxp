@@ -136,6 +136,9 @@
     <ClInclude Include="src\bklib\simple_future.hpp">
       <Filter>bklib</Filter>
     </ClInclude>
+    <ClInclude Include="src\listbox.hpp">
+      <Filter>bkrl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -289,6 +292,12 @@
     </ClCompile>
     <ClCompile Include="src\random.cpp">
       <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\listbox.cpp">
+      <Filter>bkrl</Filter>
+    </ClCompile>
+    <ClCompile Include="test\listbox_test.cpp">
+      <Filter>test\bkrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -18,6 +18,8 @@
 #include "text.hpp"
 #include "view.hpp"
 
+#include "listbox.hpp"
+
 #include "bklib/dictionary.hpp"
 #include "bklib/math.hpp"
 #include "bklib/scope_guard.hpp"
@@ -233,6 +235,8 @@ private:
 
     map_inspect_message inspect_message_;
 
+    listbox<item*> test_list_;
+
     context ctx_;
 };
 
@@ -299,6 +303,7 @@ bkrl::game::game()
   , last_frame_ {std::chrono::high_resolution_clock::now()}
   , message_log_ {make_message_log(*text_renderer_)}
   , inspect_message_ {*text_renderer_, bklib::irect {0, 0, system_->client_width(), system_->client_height()}}
+  , test_list_ {600, 480}
   , ctx_ (make_context())
 {
     //
@@ -462,6 +467,7 @@ void bkrl::game::render()
     current_map().draw(*renderer_, view_);
 
     message_log_->draw(*renderer_);
+    test_list_.draw(*renderer_);
     inventory_->draw(*renderer_);
     inspect_message_.draw(*renderer_);
 
@@ -608,6 +614,37 @@ void bkrl::game::on_show_inventory()
 void bkrl::game::on_show_equipment()
 {
     do_show_equipment();
+
+    auto& player = get_player();
+
+    test_list_.clear();
+    auto const c_shortcut = test_list_.append_col("");
+    auto const c_icon     = test_list_.append_col("");
+    auto const c_item     = test_list_.append_col("Item");
+    auto const c_slot     = test_list_.append_col("Slot");
+    auto const c_weight   = test_list_.append_col("Weight");
+
+    test_list_.set_col_width(c_shortcut, 1.0, layout_unit_t::em);
+    test_list_.set_col_width(c_icon, 1.0, layout_unit_t::em);
+    test_list_.set_col_width(c_item, 1.0, 10.0, layout_unit_t::em);
+
+    test_list_.set_query_function([&](int const col, item const* const i) -> bklib::utf8_string {
+        switch (col) {
+        case 2: return i->friendly_name(ctx_);
+        default:
+            break;
+        }
+
+        return "?";
+    });
+
+    for (auto& i : player.item_list()) {
+        has_flag(i, item_flag::is_equipped);
+        test_list_.append_row(&i);
+    }
+
+    test_list_.update_layout(*text_renderer_);
+    test_list_.show(true);
 }
 
 //--------------------------------------------------------------------------------------------------
