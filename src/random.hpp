@@ -262,7 +262,7 @@ struct random_integer {
         case distribution_type::gaussian:
             return random_gaussian(random, data.g.mean, data.g.variance);
         default:
-            BK_UNREACHABLE;
+            break;
         }
 
         BK_UNREACHABLE;

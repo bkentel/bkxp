@@ -28,7 +28,7 @@ make_result(
 //--------------------------------------------------------------------------------------------------
 bkrl::equipment::equipment()
 {
-    slots_.insert(begin(slots_), {
+    slots_.insert(std::begin(slots_), {
         slot_t {equip_slot::hand_main, "right hand", nullptr}
       , slot_t {equip_slot::hand_off,  "left hand",  nullptr}
       , slot_t {equip_slot::head,      "head",       nullptr}

@@ -82,6 +82,12 @@ public:
 
     template <typename Predicate>
     void unequip(Predicate&& predicate);
+
+    auto begin() const { return slots_.begin(); }
+    auto end()   const { return slots_.end(); }
+
+    auto begin() { return slots_.begin(); }
+    auto end()   { return slots_.end(); }
 private:
     slot_t const* find_slot_(equip_slot const slot) const;
 

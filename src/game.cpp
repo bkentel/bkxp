@@ -235,7 +235,7 @@ private:
 
     map_inspect_message inspect_message_;
 
-    listbox<item*> test_list_;
+    listbox<equipment::slot_t*> test_list_;
 
     context ctx_;
 };
@@ -455,23 +455,25 @@ void bkrl::game::render()
     last_frame_ = now;
     render_flag_ = render_type::wait;
 
-    renderer_->clear();
-    renderer_->clear_clip_region();
+    auto& render = *renderer_;
+
+    render.clear();
+    render.clear_clip_region();
 
     auto const scale = view_.get_zoom();
     auto const trans = view_.get_scroll();
 
-    renderer_->set_scale(x(scale), y(scale));
-    renderer_->set_translation(x(trans), y(trans));
+    render.set_scale(x(scale), y(scale));
+    render.set_translation(x(trans), y(trans));
 
-    current_map().draw(*renderer_, view_);
+    current_map().draw(render, view_);
 
-    message_log_->draw(*renderer_);
-    test_list_.draw(*renderer_);
-    inventory_->draw(*renderer_);
-    inspect_message_.draw(*renderer_);
+    message_log_->draw(render);
+    inventory_->draw(render);
+    inspect_message_.draw(render);
+    test_list_.draw(render);
 
-    renderer_->present();
+    render.present();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -618,29 +620,37 @@ void bkrl::game::on_show_equipment()
     auto& player = get_player();
 
     test_list_.clear();
-    auto const c_shortcut = test_list_.append_col("");
-    auto const c_icon     = test_list_.append_col("");
-    auto const c_item     = test_list_.append_col("Item");
+    auto const c_shortcut = test_list_.append_col("*");
     auto const c_slot     = test_list_.append_col("Slot");
+    auto const c_icon     = test_list_.append_col("*");
+    auto const c_item     = test_list_.append_col("Item");
     auto const c_weight   = test_list_.append_col("Weight");
 
     test_list_.set_col_width(c_shortcut, 1.0, layout_unit_t::em);
     test_list_.set_col_width(c_icon, 1.0, layout_unit_t::em);
     test_list_.set_col_width(c_item, 1.0, 10.0, layout_unit_t::em);
 
-    test_list_.set_query_function([&](int const col, item const* const i) -> bklib::utf8_string {
-        switch (col) {
-        case 2: return i->friendly_name(ctx_);
-        default:
-            break;
+    test_list_.set_query_function([&, i = 0](int const col, equipment::slot_t* const eq) mutable {
+        if (col == c_shortcut) {
+            char const id[] = {static_cast<char>(bklib::alphanum_id::to_char(i++)), 0};
+            return bklib::utf8_string {id};
+        } else if (col == c_slot) {
+            return eq->name.to_string();
+        } else if (col == c_icon) {
+            return bklib::utf8_string {"?"};
+        } else if (col == c_item) {
+            return eq->itm
+                ? eq->itm->friendly_name(ctx_)
+                : bklib::utf8_string {"empty"};
+        } else if (col == c_weight) {
+            return eq->itm ? std::to_string(eq->itm->weight()) : "?";
         }
 
-        return "?";
+        return bklib::utf8_string {"?"};
     });
 
-    for (auto& i : player.item_list()) {
-        has_flag(i, item_flag::is_equipped);
-        test_list_.append_row(&i);
+    for (auto& eq : player.equip_list()) {
+        test_list_.append_row(&eq);
     }
 
     test_list_.update_layout(*text_renderer_);

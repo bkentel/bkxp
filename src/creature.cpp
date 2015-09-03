@@ -194,7 +194,7 @@ int bkrl::creature::modify(stat_type const stat, int const mod)
     case st::luck:
         return set_new_mod(stats_.luc_val);
     default:
-        BK_UNREACHABLE;
+        break;
     }
 
     BK_UNREACHABLE;
@@ -215,7 +215,7 @@ int bkrl::creature::current(stat_type stat) const noexcept
     case st::wisdom:       return stats_.wis_val.value();
     case st::charisma:     return stats_.cha_val.value();
     case st::luck:         return stats_.luc_val.value();
-    default:               BK_UNREACHABLE;
+    default:               break;
     }
 
     BK_UNREACHABLE;

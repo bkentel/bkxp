@@ -149,7 +149,7 @@ void bkrl::listbox_base::draw(renderer& render)
     auto const bounds = make_renderer_rect(bounds_);
     render.set_clip_region(bounds);
 
-    render.draw_filled_rect(bounds, make_color(100, 100, 100, 200));
+    render.draw_filled_rect(bounds, make_color(100, 100, 100, 240));
 
     auto const n_rows = static_cast<size_t>(rows());
     auto const n_cols = static_cast<size_t>(cols());
