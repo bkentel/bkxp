@@ -56,7 +56,7 @@ void bkrl::listbox_base::update_layout(text_renderer& trender)
     //
     // update text & actual widths; calculate total height
     //
-    auto const fill_row = [&](std::vector<text_layout>& row, auto const& src) {
+    auto const fill_row = [n_cols, line_h, this, &trender](std::vector<text_layout>& row, auto const& src) {
         int row_h = 0;
 
         for (auto c = 0u; c < n_cols; ++c) {
