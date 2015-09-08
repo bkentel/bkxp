@@ -303,7 +303,7 @@ bkrl::game::game()
   , last_frame_ {std::chrono::high_resolution_clock::now()}
   , message_log_ {make_message_log(*text_renderer_)}
   , inspect_message_ {*text_renderer_, bklib::irect {0, 0, system_->client_width(), system_->client_height()}}
-  , test_list_ {600, 480}
+  , test_list_ {110, 125, 600, 480}
   , ctx_ (make_context())
 {
     //
@@ -364,6 +364,8 @@ bkrl::game::game()
     };
 
     system_->on_mouse_motion = [&](mouse_state const m) {
+        test_list_.on_mouse_move(bklib::ipoint2 {m.x, m.y});
+
         if (inventory_->on_mouse_move(m)) {
             return;
         }
@@ -620,6 +622,8 @@ void bkrl::game::on_show_equipment()
     auto& player = get_player();
 
     test_list_.clear();
+    test_list_.set_margin(2);
+
     auto const c_shortcut = test_list_.append_col("*");
     auto const c_slot     = test_list_.append_col("Slot");
     auto const c_icon     = test_list_.append_col("*");

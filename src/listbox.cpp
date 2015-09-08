@@ -2,6 +2,13 @@
 
 #include "bklib/scope_guard.hpp"
 
+bkrl::listbox_base::listbox_base(int const left, int const top, int const width, int const height)
+  : bounds_ {left, top, left + width, top + height}
+{
+    BK_PRECONDITION(width  >= 0);
+    BK_PRECONDITION(height >= 0);
+}
+
 void bkrl::listbox_base::update_layout(text_renderer& trender)
 {
     if (data_.cells.empty()) {
@@ -154,36 +161,66 @@ void bkrl::listbox_base::draw(renderer& render)
     auto const n_rows = static_cast<size_t>(rows());
     auto const n_cols = static_cast<size_t>(cols());
 
-    auto const x0 = bounds_.left - scroll_x_;
-    auto const y0 = bounds_.top  - scroll_y_;
+    auto const x0 = content_left();
+    auto const y0 = content_top();
     auto const lh = render_data_.line_h;
 
-    int y = y0;
-    int x = x0;
+    auto const cm = cell_margin_;
+
+    int x     = x0 + cm.left;
+    int y     = y0 + cm.top;
+    int row_h = lh;
 
     for (auto c = 0u; c < n_cols; ++c) {
         auto const& col = render_data_.col_headers[c];
-        col.draw(render, x, y);
-        x += data_.cols[c].width;
+        col.draw(render, x + cm.left, y + cm.top);
+        x += data_.cols[c].width + cm.left + cm.right;
+        row_h = std::max(row_h, col.extent().height());
     }
+
+    y += row_h + cm.top + cm.bottom;
 
     if (!n_rows) {
         return;
     }
 
-    y = y0 + lh;
     for (auto r = 0u; r < n_rows; ++r) {
-        x = x0;
+        row_h = lh;
+        x = x0 + cm.left;
+
+        if (r % 2 == 0) {
+            render.draw_filled_rect(make_renderer_rect(
+                bklib::make_rect(x0, y, x0 + width(), y + lh))
+              , make_color(120, 120, 120, 240));
+        }
 
         for (auto c = 0u; c < n_cols; ++c) {
             auto const& col = data_.cols[c];
             auto const& cell = render_data_.cells[r][c];
 
-            cell.draw(render, x, y);
+            cell.draw(render, x + cm.left, y + cm.top);
 
-            x += col.width;
+            auto const ext = cell.extent();
+
+            if (last_mouse_row_ == r && last_mouse_col_ == c) {
+                auto const r = bklib::make_rect(x, y, x + ext.width(), y + ext.height());
+
+                render.draw_filled_rect(make_renderer_rect(r)
+                  , make_color(255, 120, 120, 240));
+            }
+
+            x += col.width + cm.left + cm.right;
+            row_h = std::max(row_h, ext.height());
         }
 
-        y += lh;
+        y += row_h + cm.top + cm.bottom;
     }
 }
+
+/////
+
+
+
+
+
+////

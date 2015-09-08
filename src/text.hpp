@@ -49,6 +49,8 @@ public:
 
     static constexpr auto unlimited = size_type {-1};
 
+    text_layout() = default;
+
     text_layout(text_renderer& render, bklib::utf8_string_view text
         , size_type x = 0
         , size_type y = 0
@@ -84,10 +86,10 @@ private:
         uint32_t  color;
     };
 
-    size_type x_;
-    size_type y_;
-    size_type w_;
-    size_type h_;
+    size_type x_ = 0;
+    size_type y_ = 0;
+    size_type w_ = unlimited;
+    size_type h_ = unlimited;
     size_type actual_w_ = 0;
     size_type actual_h_ = 0;
 

@@ -122,12 +122,14 @@ public:
     }
 
     int col_left(int const col) const noexcept {
+        auto const cm = cell_margin_;
+
         return std::accumulate(
             begin(data_.cols)
           , std::next(begin(data_.cols), col)
-          , bounds_.left
-          , [](int const sum, auto const& c) noexcept {
-                return sum + c.width;
+          , content_left() + cm.left
+          , [cm](int const sum, auto const& c) noexcept {
+                return sum + c.width + cm.left + cm.right;
         });
     }
 
@@ -145,6 +147,14 @@ public:
 
     int height() const noexcept {
         return bounds_.height();
+    }
+
+    int content_left() const noexcept {
+        return bounds_.left - scroll_x_;
+    }
+
+    int content_top() const noexcept {
+        return bounds_.top - scroll_y_;
     }
 
     int content_width() const noexcept {
@@ -227,16 +237,27 @@ public:
         bool ok;
     };
 
-    hit_test_t hit_test(bklib::ipoint2 const p) const noexcept;
+    hit_test_t hit_test(bklib::ipoint2 p) const noexcept;
 
     void draw(renderer& render);
-protected:
-    listbox_base(int const width, int const height)
-      : bounds_ {bklib::make_rect(0, 0, width, height)}
-    {
-        BK_PRECONDITION(width  >= 0);
-        BK_PRECONDITION(height >= 0);
+
+    void set_margin(int8_t const n) {
+        cell_margin_ = bklib::make_rect<int8_t>(n, n, n, n);
     }
+
+    void on_mouse_move(bklib::ipoint2 const p) {
+        auto const ht = hit_test(p);
+        if (!ht.ok) {
+            last_mouse_row_ = -1;
+            last_mouse_col_ = -1;
+            return;
+        }
+
+        last_mouse_row_ = ht.row;
+        last_mouse_col_ = ht.col;
+    }
+protected:
+    listbox_base(int left, int top, int width, int height);
 
     auto insert_row_(int const where) {
         auto const size = cols();
@@ -278,6 +299,13 @@ protected:
     int scroll_y_max_ = 0;
     int selection_ = 0;
 
+    int last_mouse_row_ = -1;
+    int last_mouse_col_ = -1;
+
+    bklib::rect_t<int8_t> cell_padding_ = bklib::make_rect<int8_t>(0, 0, 0, 0);
+    bklib::rect_t<int8_t> cell_margin_  = bklib::make_rect<int8_t>(0, 0, 0, 0);
+    bklib::rect_t<int8_t> cell_border_  = bklib::make_rect<int8_t>(0, 0, 0, 0);
+
     bool is_visible_    = false;
     bool use_shortcuts_ = true;
     bool use_icons_     = true;
@@ -288,14 +316,14 @@ class listbox final : public listbox_base {
 public:
     using query_t = std::function<bklib::utf8_string (int, T const&)>;
 
-    listbox(int const width, int const height, query_t query)
-      : listbox_base {width, height}
+    listbox(int const left, int const top, int const width, int const height, query_t query)
+      : listbox_base {left, top, width, height}
       , query_ {std::move(query)}
     {
     }
 
-    listbox(int const width, int const height)
-      : listbox {width, height, [](int, T const&) { return bklib::utf8_string {}; }}
+    listbox(int const left, int const top, int const width, int const height)
+      : listbox {left, top, width, height, [](int, T const&) { return bklib::utf8_string {}; }}
     {
     }
 
