@@ -279,30 +279,37 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    template <typename Query>
+    cell_t generate_cell_at_(Query query, text_renderer& trender, int const r, int const c) {
+        cell_t result {query(r, c), trender};
+
+        auto const extent = result.label.layout.extent();
+        cols_[c + 1].width  = std::max(cols_[c + 1].width,  extent.width());
+        rows_[r + 1].height = std::max(rows_[r + 1].height, extent.height());
+
+        return result;
+    }
+
     template <typename Iterator, typename GetLabel, typename Query>
     void insert_row(
         Iterator first, Iterator last
-      , GetLabel label
-      , Query    query
-      , int const n
-      , int const where = at_end
+      , GetLabel label, Query query
+      , int const n, int const where = at_end
     ) {
-        BK_PRECONDITION(n >= 0);
+        auto&      trender = *text_renderer_;
+        auto const n_cols  = cols() - 1;
+        auto       r       = rows() - 1;
 
-        auto& trender = *text_renderer_;
-        auto r = rows() - 1;
-        auto const n_cols = cols() - 1;
-
+        BK_PRECONDITION(n      >= 0);
         BK_PRECONDITION(n_cols >= 0);
+        BK_PRECONDITION(r      >= 0);
 
         rows_.reserve(static_cast<size_t>(rows_.size() + n));
         transform_insert(rows_, first, last, end(rows_), [&](auto const& data) {
             return row_t {label(data), trender};
         });
 
-        auto const first_row = cells_.insert(
-            index_to_iterator(cells_, where)
-          , n
+        auto const first_row = cells_.insert(index_to_iterator(cells_, where), n
           , decltype(cells_)::value_type {});
 
         auto const last_row = std::next(first_row, n);
@@ -312,30 +319,21 @@ public:
 
             row.reserve(static_cast<size_t>(row.size() + n_cols));
             std::generate_n(back_inserter(row), n_cols, [&, r, c = 0]() mutable {
-                cell_t result {query(r, c), trender};
-
-                auto const extent = result.label.layout.extent();
-                cols_[c + 1].width  = std::max(cols_[c + 1].width,  extent.width());
-                rows_[r + 1].height = std::max(rows_[r + 1].height, extent.height());
-
-                ++c;
-                return result;
+                return generate_cell_at_(query, trender, r, c++);
             });
 
             ++r;
         }
 
-        layout_rows_(where, 0);
-        layout_cols_(where, 0);
+        layout_rows_(where, n);
+        layout_cols_(where, n);
     }
 
     template <typename Iterator, typename GetLabel, typename Query>
     void insert_col(
         Iterator first, Iterator last
-      , GetLabel label
-      , Query    query
-      , int const n
-      , int const where = at_end
+      , GetLabel label, Query query
+      , int const n, int const where = at_end
     ) {
         BK_PRECONDITION(n >= 0);
 
@@ -355,47 +353,55 @@ public:
         for (auto& row : cells_) {
             row.reserve(static_cast<size_t>(row.size() + n_cols));
             std::generate_n(back_inserter(row), n, [&, r, c = c0]() mutable {
-                cell_t result {query(r, c), trender};
-
-                auto const extent = result.label.layout.extent();
-                cols_[c + 1].width  = std::max(cols_[c + 1].width,  extent.width());
-                rows_[r + 1].height = std::max(rows_[r + 1].height, extent.height());
-
-                ++c;
-                return result;
+                return generate_cell_at_(query, trender, r, c++);
             });
 
-            slide(next(begin(row), n_cols)
-                , end(row)
-                , index_to_iterator(row, where));
-
+            slide(next(begin(row), n_cols), end(row), index_to_iterator(row, where));
             ++r;
         }
 
-        layout_cols_(where, 0);
+        layout_rows_(where, n);
+        layout_cols_(where, n);
     }
 
     void erase_row(int r);
     void erase_col(int c);
 
     void insert(string_t text);
+
+    cell_t const& at(int const r, int const c) const {
+        BK_PRECONDITION(r + 1 < static_cast<int>(rows_.size()));
+        BK_PRECONDITION(c + 1 < static_cast<int>(cols_.size()));
+
+        return cells_[r][c];
+    }
 private:
     void layout_rows_(int const where, int const n) {
         int32_t y = 0;
+        int32_t h_total = 0;
 
         for (auto& row : rows_) {
             row.top = y;
             y += row.height;
+            h_total += row.height;
         }
+
+        content_height_ = h_total;
+        scroll_y_max_ = bklib::clamp_min(client_bounds().height() - bounds().height(), 0);
     }
 
     void layout_cols_(int const where, int const n) {
         int32_t x = 0;
+        int32_t w_total = 0;
 
         for (auto& col : cols_) {
             col.left = x;
             x += col.width;
+            w_total += col.width;
         }
+
+        content_width_ = w_total;
+        scroll_x_max_ = bklib::clamp_min(client_bounds().width() - bounds().width(), 0);
     }
 
     rect_t bounds_;
@@ -430,15 +436,14 @@ public:
     {
     }
 
-    //! @param pred  function(Iterator::value_type) -> bool
-    //! @param label function(ColData)              -> string_t
-    //! @param data  function(Iterator::value_type) -> RowData
+    //! @tparam Iterator  forward_iterator
+    //! @tparam Predicate function(Iterator::value_type) -> bool
+    //! @tparam GetLabel  function(ColData)              -> string_t
+    //! @tparam GetData   function(Iterator::value_type) -> RowData
     template <typename Iterator, typename Predicate, typename GetLabel, typename GetData>
     void insert_row(
         Iterator first, Iterator last
-      , Predicate pred
-      , GetLabel  label
-      , GetData   data
+      , Predicate pred, GetLabel label, GetData data
       , int const where = at_end
     ) {
         auto const size = row_data_.size();
@@ -454,16 +459,14 @@ public:
           , where);
     }
 
-
-    //! @param pred  function(Iterator::value_type) -> bool
-    //! @param label function(ColData)              -> string_t
-    //! @param data  function(Iterator::value_type) -> ColData
+    //! @tparam Iterator  forward_iterator
+    //! @tparam Predicate function(Iterator::value_type) -> bool
+    //! @tparam GetLabel  function(ColData)              -> string_t
+    //! @tparam GetData   function(Iterator::value_type) -> ColData
     template <typename Iterator, typename Predicate, typename GetLabel, typename GetData>
     void insert_col(
         Iterator first, Iterator last
-      , Predicate pred
-      , GetLabel  label
-      , GetData   data
+      , Predicate pred, GetLabel label, GetData data
       , int const where = at_end
     ) {
         auto const size = col_data_.size();
@@ -478,33 +481,15 @@ public:
           , static_cast<int>(col_data_.size() - size)
           , where);
     }
-private:
-    //! @param pred  function(Iterator::value_type) -> bool
-    //! @param label function(ColData)              -> string_t
-    //! @param data  function(Iterator::value_type) -> ColData
-    template <typename Container, typename Function, typename Iterator, typename Predicate, typename GetLabel, typename GetData>
-    void insert_(
-        Container& c
-      , Function f
-      , Iterator first, Iterator last
-      , Predicate pred
-      , GetLabel  label
-      , GetData   data
-      , int const where = at_end
-    ) {
-        auto const size = c.size();
 
-        auto const result = transform_if(
-            c, first, last, index_to_iterator(c, where), pred, data);
+    std::pair<RowData const&, ColData const&>
+    data(int const r, int const c) const {
+        BK_PRECONDITION(r < static_cast<int>(row_data_.size()));
+        BK_PRECONDITION(c < static_cast<int>(col_data_.size()));
 
-        static_cast<listview_base*>(this)->*f(
-            result.first, result.second
-          , label
-          , [this](int const r, int const c) { return query_(row_data_[r], col_data_[c]); }
-          , static_cast<int>(c.size() - size)
-          , where);
+        return {row_data_[r], col_data_[c]};
     }
-
+private:
     query_t query_;
     std::vector<RowData> row_data_;
     std::vector<ColData> col_data_;
@@ -538,6 +523,10 @@ TEST_CASE("listview") {
       , data_t {5.4f, "five"}
     };
 
+    std::array<col_t, 2> const col_header {
+        col_t::text, col_t::value
+    };
+
     bkrl::listview<data_t const*, col_t> list {list_x, list_y, list_w, list_h, trender
       , [](data_t const* const rdata, col_t const cdata) {
             switch (cdata) {
@@ -549,6 +538,20 @@ TEST_CASE("listview") {
 
             BK_UNREACHABLE;
         }};
+
+    auto const make_list = [&] {
+        list.insert_col(begin(col_header), end(col_header)
+          , [](col_t const)   { return true; }
+          , [](col_t const c) { return c == col_t::text ? "text" : "value"; }
+          , [](col_t const c) { return c; }
+        );
+
+        list.insert_row(begin(data), end(data)
+          , [](auto const&)     { return true; }
+          , [](auto const&)     { return ""; }
+          , [](data_t const& d) { return &d; }
+        );
+    };
 
     SECTION("initial state") {
         REQUIRE(list.cols() == 1);
@@ -565,21 +568,29 @@ TEST_CASE("listview") {
     }
 
     SECTION("simple") {
-        std::array<col_t, 2> const col_header {
-            col_t::text, col_t::value
-        };
+        make_list();
 
-        list.insert_col(begin(col_header), end(col_header)
-          , [](col_t const)   { return true; }
-          , [](col_t const c) { return c == col_t::text ? "text" : "value"; }
-          , [](col_t const c) { return c; }
-        );
+        auto const rows = static_cast<int>(data.size());
+        auto const cols = static_cast<int>(col_header.size());
 
-        list.insert_row(begin(data), end(data)
-          , [](auto const&)        { return true; }
-          , [](auto const&)        { return ""; }
-          , [](data_t const& data) { return &data; }
-        );
+        REQUIRE(list.rows() == rows + 1);
+        REQUIRE(list.cols() == cols + 1) ;
+
+        for (auto r = 0; r < rows; ++r) {
+            for (auto c = 0; c < cols; ++c) {
+                auto const p = list.data(r, c);
+                REQUIRE(p.first  == &data[r]);
+                REQUIRE(p.second == col_header[c]);
+
+                auto const& text = list.at(r, c).label.text;
+
+                switch (col_header[c]) {
+                case col_t::text:  REQUIRE(text == data[r].text); break;
+                case col_t::value: REQUIRE(text == std::to_string(data[r].value)); break;
+                default:           REQUIRE(false); break;
+                }
+            }
+        }
     }
 
 }
