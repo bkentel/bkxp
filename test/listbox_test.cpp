@@ -273,8 +273,8 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    int rows() const noexcept { return static_cast<int>(rows_.size()); }
-    int cols() const noexcept { return static_cast<int>(cols_.size()); }
+    int rows() const noexcept { return static_cast<int>(rows_.size()) - 1; }
+    int cols() const noexcept { return static_cast<int>(cols_.size()) - 1; }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -297,17 +297,19 @@ public:
       , int const n, int const where = at_end
     ) {
         auto&      trender = *text_renderer_;
-        auto const n_cols  = cols() - 1;
-        auto       r       = rows() - 1;
+        auto const n_cols  = cols();
+        auto       r       = (where == at_end) ? rows() : where;
 
         BK_PRECONDITION(n      >= 0);
         BK_PRECONDITION(n_cols >= 0);
         BK_PRECONDITION(r      >= 0);
 
         rows_.reserve(static_cast<size_t>(rows_.size() + n));
-        transform_insert(rows_, first, last, end(rows_), [&](auto const& data) {
-            return row_t {label(data), trender};
-        });
+        transform_insert(rows_, first, last
+          , index_to_iterator(rows_, where + (where == at_end ? 0 : 1))
+          , [&](auto const& data) {
+                return row_t {label(data), trender};
+            });
 
         auto const first_row = cells_.insert(index_to_iterator(cells_, where), n
           , decltype(cells_)::value_type {});
@@ -340,23 +342,23 @@ public:
         auto& trender = *text_renderer_;
 
         cols_.reserve(static_cast<size_t>(cols_.size() + n));
-        transform_insert(cols_, first, last, end(cols_), [&](auto const& data) {
-            return col_t {label(data), trender};
-        });
+        transform_insert(cols_, first, last
+          , index_to_iterator(cols_, where + (where == at_end ? 0 : 1))
+          , [&](auto const& data) {
+                return col_t {label(data), trender};
+            });
 
-        auto const n_cols = cols() - 1;
+        auto const n_cols = cols();
         auto const c0     = (where == at_end) ? n_cols : where;
-        int        r       = 0;
-
-        BK_PRECONDITION(n_cols >= 0);
+        int        r      = 0;
 
         for (auto& row : cells_) {
-            row.reserve(static_cast<size_t>(row.size() + n_cols));
+            row.reserve(static_cast<size_t>(row.size() + n));
             std::generate_n(back_inserter(row), n, [&, r, c = c0]() mutable {
                 return generate_cell_at_(query, trender, r, c++);
             });
 
-            slide(next(begin(row), n_cols), end(row), index_to_iterator(row, where));
+            slide(next(begin(row), n_cols - n), end(row), index_to_iterator(row, where));
             ++r;
         }
 
@@ -370,10 +372,20 @@ public:
     void insert(string_t text);
 
     cell_t const& at(int const r, int const c) const {
-        BK_PRECONDITION(r + 1 < static_cast<int>(rows_.size()));
-        BK_PRECONDITION(c + 1 < static_cast<int>(cols_.size()));
+        BK_PRECONDITION(r < rows());
+        BK_PRECONDITION(c < cols());
 
         return cells_[r][c];
+    }
+
+    col_t const& col_header(int const c) const noexcept {
+        BK_PRECONDITION(c < cols() + 1);
+        return cols_[static_cast<size_t>(c + 1)];
+    }
+
+    row_t const& row_header(int const r) const noexcept {
+        BK_PRECONDITION(r < rows() + 1);
+        return rows_[static_cast<size_t>(r + 1)];
     }
 private:
     void layout_rows_(int const where, int const n) {
@@ -489,6 +501,16 @@ public:
 
         return {row_data_[r], col_data_[c]};
     }
+
+    RowData const& row_data(int const r) const {
+        BK_PRECONDITION(r < static_cast<int>(row_data_.size()));
+        return row_data_[r];
+    }
+
+    ColData const& col_data(int const c) const {
+        BK_PRECONDITION(c < static_cast<int>(col_data_.size()));
+        return col_data_[c];
+    }
 private:
     query_t query_;
     std::vector<RowData> row_data_;
@@ -553,9 +575,21 @@ TEST_CASE("listview") {
         );
     };
 
+    auto const check_cell = [&](
+        int const r, int const c
+      , auto const& rdata, auto const& cdata, auto const& text
+    ) {
+        auto const p = list.data(r, c);
+        REQUIRE(p.first  == rdata);
+        REQUIRE(p.second == cdata);
+
+        auto const& cell_text = list.at(r, c).label.text;
+        REQUIRE(cell_text == text);
+    };
+
     SECTION("initial state") {
-        REQUIRE(list.cols() == 1);
-        REQUIRE(list.rows() == 1);
+        REQUIRE(list.cols() == 0);
+        REQUIRE(list.rows() == 0);
 
         auto const b = list.bounds();
         REQUIRE(b.left     == list_x);
@@ -567,30 +601,182 @@ TEST_CASE("listview") {
         REQUIRE(b == cb);
     }
 
-    SECTION("simple") {
+    auto const check_row = [&](int const r, bklib::utf8_string_view const hdr, auto const& ilist) {
+        REQUIRE(r < list.rows());
+        REQUIRE(list.row_header(r).label.text == hdr);
+
+        int const cols = list.cols();
+        int c = 0;
+
+        for (auto const& i : ilist) {
+            REQUIRE(c < cols);
+            REQUIRE(list.at(r, c++).label.text == i);
+        }
+    };
+
+    auto const check_row_data = [&](auto const& ilist) {
+        int const rows = list.rows();
+        int r = 0;
+
+        for (auto const& i : ilist) {
+            REQUIRE(r < rows);
+            REQUIRE(list.row_data(r++) == i);
+        }
+    };
+
+    auto const check_col_data = [&](auto const& ilist) {
+        int const cols = list.cols();
+        int c = 0;
+
+        for (auto const& i : ilist) {
+            REQUIRE(c < cols);
+            REQUIRE(list.col_data(c++) == i);
+        }
+    };
+
+    auto const check_col_header = [&](auto const& ilist) {
+        int const cols = list.cols();
+        int c = 0;
+
+        for (auto const& i : ilist) {
+            REQUIRE(c < cols);
+            REQUIRE(list.col_header(c++).label.text == i);
+        }
+    };
+
+    SECTION("insert") {
         make_list();
 
         auto const rows = static_cast<int>(data.size());
         auto const cols = static_cast<int>(col_header.size());
 
-        REQUIRE(list.rows() == rows + 1);
-        REQUIRE(list.cols() == cols + 1) ;
-
-        for (auto r = 0; r < rows; ++r) {
-            for (auto c = 0; c < cols; ++c) {
-                auto const p = list.data(r, c);
-                REQUIRE(p.first  == &data[r]);
-                REQUIRE(p.second == col_header[c]);
-
-                auto const& text = list.at(r, c).label.text;
-
-                switch (col_header[c]) {
-                case col_t::text:  REQUIRE(text == data[r].text); break;
-                case col_t::value: REQUIRE(text == std::to_string(data[r].value)); break;
-                default:           REQUIRE(false); break;
+        auto const check_values = [&](int const r0, int const c0) {
+            for (auto r = r0; r < rows; ++r) {
+                for (auto c = c0; c < cols; ++c) {
+                    check_cell(r, c, &data[r - r0], col_header[c - c0]
+                        , c - c0 == 0 ? data[r - r0].text : std::to_string(data[r - r0].value));
                 }
             }
+        };
+
+        using cell_list_t    = std::initializer_list<bklib::utf8_string>;
+        using row_list_t     = std::initializer_list<data_t const*>;
+        using col_list_t     = std::initializer_list<col_t>;
+        using col_hdr_list_t = std::initializer_list<bklib::utf8_string>;
+
+        auto const cell_txt = [&](int const r) { return data[r].text; };
+        auto const cell_val = [&](int const r) { return std::to_string(data[r].value); };
+
+        SECTION("initial state") {
+            REQUIRE(list.rows() == rows);
+            REQUIRE(list.cols() == cols);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t {"text",      "value"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_val(0)});
+            check_row(1, "", cell_list_t    {cell_txt(1), cell_val(1)});
+            check_row(2, "", cell_list_t    {cell_txt(2), cell_val(2)});
+            check_row(3, "", cell_list_t    {cell_txt(3), cell_val(3)});
+            check_row(4, "", cell_list_t    {cell_txt(4), cell_val(4)});
         }
+
+        SECTION("at start") {
+            //insert a new column
+            list.insert_col(begin(col_header), begin(col_header) + 1
+              , [](col_t const)   { return true; }
+              , [](col_t const c) { return "text2"; }
+              , [](col_t const c) { return c; }
+              , 0
+            );
+
+            REQUIRE(list.rows() == rows);
+            REQUIRE(list.cols() == cols + 1);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t {"text2",     "text",      "value"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_txt(0), cell_val(0)});
+            check_row(1, "", cell_list_t    {cell_txt(1), cell_txt(1), cell_val(1)});
+            check_row(2, "", cell_list_t    {cell_txt(2), cell_txt(2), cell_val(2)});
+            check_row(3, "", cell_list_t    {cell_txt(3), cell_txt(3), cell_val(3)});
+            check_row(4, "", cell_list_t    {cell_txt(4), cell_txt(4), cell_val(4)});
+
+            //insert a new row
+            list.insert_row(begin(data), begin(data) + 1
+              , [](auto const&)     { return true; }
+              , [](auto const&)     { return "0"; }
+              , [](data_t const& d) { return &d; }
+              , 0
+            );
+
+            REQUIRE(list.rows() == rows + 1);
+            REQUIRE(list.cols() == cols + 1);
+
+            check_row_data(row_list_t {&data[0], &data[0], &data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t        {col_t::text, col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t  {"text2",     "text",      "value"});
+            check_row(0, "0", cell_list_t    {cell_txt(0), cell_txt(0), cell_val(0)});
+            check_row(1, "",  cell_list_t    {cell_txt(0), cell_txt(0), cell_val(0)});
+            check_row(2, "",  cell_list_t    {cell_txt(1), cell_txt(1), cell_val(1)});
+            check_row(3, "",  cell_list_t    {cell_txt(2), cell_txt(2), cell_val(2)});
+            check_row(4, "",  cell_list_t    {cell_txt(3), cell_txt(3), cell_val(3)});
+            check_row(5, "",  cell_list_t    {cell_txt(4), cell_txt(4), cell_val(4)});
+        }
+
+        SECTION("at middle") {
+            //insert new column
+            list.insert_col(begin(col_header), begin(col_header) + 1
+              , [](col_t const)   { return true; }
+              , [](col_t const c) { return "text2"; }
+              , [](col_t const c) { return c; }
+              , 1
+            );
+
+            REQUIRE(list.rows() == rows);
+            REQUIRE(list.cols() == cols + 1);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t {"text",      "text2",     "value"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_txt(0), cell_val(0)});
+            check_row(1, "", cell_list_t    {cell_txt(1), cell_txt(1), cell_val(1)});
+            check_row(2, "", cell_list_t    {cell_txt(2), cell_txt(2), cell_val(2)});
+            check_row(3, "", cell_list_t    {cell_txt(3), cell_txt(3), cell_val(3)});
+            check_row(4, "", cell_list_t    {cell_txt(4), cell_txt(4), cell_val(4)});
+
+            //insert new row
+            list.insert_row(begin(data), begin(data) + 1
+              , [](auto const&)     { return true; }
+              , [](auto const&)     { return "0"; }
+              , [](data_t const& d) { return &d; }
+              , 1
+            );
+
+            REQUIRE(list.rows() == rows + 1);
+            REQUIRE(list.cols() == cols + 1);
+
+            check_row_data(row_list_t {&data[0], &data[0], &data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t        {col_t::text, col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t  {"text",      "text2",     "value"});
+            check_row(0, "",  cell_list_t    {cell_txt(0), cell_txt(0), cell_val(0)});
+            check_row(1, "0", cell_list_t    {cell_txt(0), cell_txt(0), cell_val(0)});
+            check_row(2, "",  cell_list_t    {cell_txt(1), cell_txt(1), cell_val(1)});
+            check_row(3, "",  cell_list_t    {cell_txt(2), cell_txt(2), cell_val(2)});
+            check_row(4, "",  cell_list_t    {cell_txt(3), cell_txt(3), cell_val(3)});
+            check_row(5, "",  cell_list_t    {cell_txt(4), cell_txt(4), cell_val(4)});
+        }
+    }
+
+    SECTION("insert at start") {
+        make_list();
+
+
     }
 
 }
