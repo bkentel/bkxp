@@ -296,13 +296,9 @@ public:
       , GetLabel label, Query query
       , int const n, int const where = at_end
     ) {
-        auto&      trender = *text_renderer_;
-        auto const n_cols  = cols();
-        auto       r       = (where == at_end) ? rows() : where;
+        BK_PRECONDITION(n >= 0);
 
-        BK_PRECONDITION(n      >= 0);
-        BK_PRECONDITION(n_cols >= 0);
-        BK_PRECONDITION(r      >= 0);
+        auto& trender = *text_renderer_;
 
         rows_.reserve(static_cast<size_t>(rows_.size() + n));
         transform_insert(rows_, first, last
@@ -315,6 +311,9 @@ public:
           , decltype(cells_)::value_type {});
 
         auto const last_row = std::next(first_row, n);
+
+        auto const n_cols  = cols();
+        auto       r       = (where == at_end) ? rows() - n : where;
 
         for (auto it = first_row; it != last_row; ++it) {
             auto& row = *it;
@@ -349,7 +348,7 @@ public:
             });
 
         auto const n_cols = cols();
-        auto const c0     = (where == at_end) ? n_cols : where;
+        auto const c0     = (where == at_end) ? n_cols - n : where;
         int        r      = 0;
 
         for (auto& row : cells_) {
@@ -466,7 +465,9 @@ public:
         listview_base::insert_row(
             result.first, result.second
           , label
-          , [this](int const r, int const c) { return query_(row_data_[r], col_data_[c]); }
+          , [this](int const r, int const c) {
+                return query_(row_data_[static_cast<size_t>(r)], col_data_[static_cast<size_t>(c)]);
+            }
           , static_cast<int>(row_data_.size() - size)
           , where);
     }
@@ -489,7 +490,9 @@ public:
         listview_base::insert_col(
             result.first, result.second
           , label
-          , [this](int const r, int const c) { return query_(row_data_[r], col_data_[c]); }
+          , [this](int const r, int const c) {
+                return query_(row_data_[static_cast<size_t>(r)], col_data_[static_cast<size_t>(c)]);
+            }
           , static_cast<int>(col_data_.size() - size)
           , where);
     }
@@ -575,32 +578,6 @@ TEST_CASE("listview") {
         );
     };
 
-    auto const check_cell = [&](
-        int const r, int const c
-      , auto const& rdata, auto const& cdata, auto const& text
-    ) {
-        auto const p = list.data(r, c);
-        REQUIRE(p.first  == rdata);
-        REQUIRE(p.second == cdata);
-
-        auto const& cell_text = list.at(r, c).label.text;
-        REQUIRE(cell_text == text);
-    };
-
-    SECTION("initial state") {
-        REQUIRE(list.cols() == 0);
-        REQUIRE(list.rows() == 0);
-
-        auto const b = list.bounds();
-        REQUIRE(b.left     == list_x);
-        REQUIRE(b.top      == list_y);
-        REQUIRE(b.width()  == list_w);
-        REQUIRE(b.height() == list_h);
-
-        auto const cb = list.client_bounds();
-        REQUIRE(b == cb);
-    }
-
     auto const check_row = [&](int const r, bklib::utf8_string_view const hdr, auto const& ilist) {
         REQUIRE(r < list.rows());
         REQUIRE(list.row_header(r).label.text == hdr);
@@ -644,20 +621,25 @@ TEST_CASE("listview") {
         }
     };
 
+    SECTION("initial state") {
+        REQUIRE(list.cols() == 0);
+        REQUIRE(list.rows() == 0);
+
+        auto const b = list.bounds();
+        REQUIRE(b.left     == list_x);
+        REQUIRE(b.top      == list_y);
+        REQUIRE(b.width()  == list_w);
+        REQUIRE(b.height() == list_h);
+
+        auto const cb = list.client_bounds();
+        REQUIRE(b == cb);
+    }
+
     SECTION("insert") {
         make_list();
 
         auto const rows = static_cast<int>(data.size());
         auto const cols = static_cast<int>(col_header.size());
-
-        auto const check_values = [&](int const r0, int const c0) {
-            for (auto r = r0; r < rows; ++r) {
-                for (auto c = c0; c < cols; ++c) {
-                    check_cell(r, c, &data[r - r0], col_header[c - c0]
-                        , c - c0 == 0 ? data[r - r0].text : std::to_string(data[r - r0].value));
-                }
-            }
-        };
 
         using cell_list_t    = std::initializer_list<bklib::utf8_string>;
         using row_list_t     = std::initializer_list<data_t const*>;
@@ -770,6 +752,51 @@ TEST_CASE("listview") {
             check_row(3, "",  cell_list_t    {cell_txt(2), cell_txt(2), cell_val(2)});
             check_row(4, "",  cell_list_t    {cell_txt(3), cell_txt(3), cell_val(3)});
             check_row(5, "",  cell_list_t    {cell_txt(4), cell_txt(4), cell_val(4)});
+        }
+
+        SECTION("at end") {
+            //insert a new column
+            list.insert_col(begin(col_header), begin(col_header) + 1
+              , [](col_t const)   { return true; }
+              , [](col_t const c) { return "text2"; }
+              , [](col_t const c) { return c; }
+              , list.at_end
+            );
+
+            REQUIRE(list.rows() == rows);
+            REQUIRE(list.cols() == cols + 1);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::value, col_t::text});
+            check_col_header(col_hdr_list_t {"text",     "value",     "text2"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_val(0), cell_txt(0)});
+            check_row(1, "", cell_list_t    {cell_txt(1), cell_val(1), cell_txt(1)});
+            check_row(2, "", cell_list_t    {cell_txt(2), cell_val(2), cell_txt(2)});
+            check_row(3, "", cell_list_t    {cell_txt(3), cell_val(3), cell_txt(3)});
+            check_row(4, "", cell_list_t    {cell_txt(4), cell_val(4), cell_txt(4)});
+
+            //insert a new row
+            list.insert_row(begin(data), begin(data) + 1
+              , [](auto const&)     { return true; }
+              , [](auto const&)     { return "0"; }
+              , [](data_t const& d) { return &d; }
+              , list.at_end
+            );
+
+            REQUIRE(list.rows() == rows + 1);
+            REQUIRE(list.cols() == cols + 1);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4], &data[0]});
+
+            check_col_data(col_list_t        {col_t::text, col_t::value, col_t::text});
+            check_col_header(col_hdr_list_t  {"text",     "value",     "text2"});
+            check_row(0, "",  cell_list_t    {cell_txt(0), cell_val(0), cell_txt(0)});
+            check_row(1, "",  cell_list_t    {cell_txt(1), cell_val(1), cell_txt(1)});
+            check_row(2, "",  cell_list_t    {cell_txt(2), cell_val(2), cell_txt(2)});
+            check_row(3, "",  cell_list_t    {cell_txt(3), cell_val(3), cell_txt(3)});
+            check_row(4, "",  cell_list_t    {cell_txt(4), cell_val(4), cell_txt(4)});
+            check_row(5, "0", cell_list_t    {cell_txt(0), cell_val(0), cell_txt(0)});
         }
     }
 
