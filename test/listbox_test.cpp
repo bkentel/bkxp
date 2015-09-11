@@ -462,20 +462,31 @@ public:
         auto const result = transform_if(
             row_data_, first, last, index_to_iterator(row_data_, where), pred, data);
 
+        auto const n = static_cast<int>(row_data_.size() - size);
+        if (n == 0) {
+            return;
+        }
+
         listview_base::insert_row(
             result.first, result.second
           , label
           , [this](int const r, int const c) {
-                return query_(row_data_[static_cast<size_t>(r)], col_data_[static_cast<size_t>(c)]);
+                return query_(row_data_[static_cast<size_t>(r)]
+                            , col_data_[static_cast<size_t>(c)]);
             }
-          , static_cast<int>(row_data_.size() - size)
-          , where);
+          , n, where);
     }
 
+    //----------------------------------------------------------------------------------------------
+    //! Apply the function @p label to each value in [@p first, @p last) which matches the
+    //! predicate given by @p pred to get the string to use as a column label, and apply
+    //! @p data to each value to get the column data.
+    //
     //! @tparam Iterator  forward_iterator
     //! @tparam Predicate function(Iterator::value_type) -> bool
     //! @tparam GetLabel  function(ColData)              -> string_t
     //! @tparam GetData   function(Iterator::value_type) -> ColData
+    //----------------------------------------------------------------------------------------------
     template <typename Iterator, typename Predicate, typename GetLabel, typename GetData>
     void insert_col(
         Iterator first, Iterator last
@@ -487,14 +498,19 @@ public:
         auto const result = transform_if(
             col_data_, first, last, index_to_iterator(col_data_, where), pred, data);
 
+        auto const n = static_cast<int>(col_data_.size() - size);
+        if (n == 0) {
+            return;
+        }
+
         listview_base::insert_col(
             result.first, result.second
           , label
           , [this](int const r, int const c) {
-                return query_(row_data_[static_cast<size_t>(r)], col_data_[static_cast<size_t>(c)]);
+                return query_(row_data_[static_cast<size_t>(r)]
+                            , col_data_[static_cast<size_t>(c)]);
             }
-          , static_cast<int>(col_data_.size() - size)
-          , where);
+          , n, where);
     }
 
     std::pair<RowData const&, ColData const&>
@@ -797,6 +813,30 @@ TEST_CASE("listview") {
             check_row(3, "",  cell_list_t    {cell_txt(3), cell_val(3), cell_txt(3)});
             check_row(4, "",  cell_list_t    {cell_txt(4), cell_val(4), cell_txt(4)});
             check_row(5, "0", cell_list_t    {cell_txt(0), cell_val(0), cell_txt(0)});
+        }
+
+        SECTION("nothing") {
+            //insert a new column
+            list.insert_col(begin(col_header), begin(col_header)
+              , [](col_t const)   { return true; }
+              , [](col_t const c) { return "text2"; }
+              , [](col_t const c) { return c; }
+              , list.at_end
+            );
+
+            REQUIRE(list.rows() == rows);
+            REQUIRE(list.cols() == cols + 1);
+
+            //insert a new row
+            list.insert_row(begin(data), begin(data)
+              , [](auto const&)     { return true; }
+              , [](auto const&)     { return "0"; }
+              , [](data_t const& d) { return &d; }
+              , list.at_end
+            );
+
+            REQUIRE(list.rows() == rows + 1);
+            REQUIRE(list.cols() == cols + 1);
         }
     }
 
