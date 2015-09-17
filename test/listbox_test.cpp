@@ -16,8 +16,11 @@
 
 namespace bkrl {
 
+//--------------------------------------------------------------------------------------------------
+//! Slide the range [f, l) so that @p f is at where @p p was.
+//--------------------------------------------------------------------------------------------------
 template <typename Iterator>
-auto slide(Iterator f, Iterator l, Iterator p)
+auto slide(Iterator const f, Iterator const l, Iterator const p)
     -> std::pair<Iterator, Iterator>
 {
     if (p < f) { return {p, std::rotate(p, f, l)}; }
@@ -25,8 +28,11 @@ auto slide(Iterator f, Iterator l, Iterator p)
     return {f, l};
 }
 
+//--------------------------------------------------------------------------------------------------
+//! As std::transform but only for values matching @p pred.
+//--------------------------------------------------------------------------------------------------
 template <typename SrcIt, typename DstIt, typename Predicate, typename Transform>
-DstIt transform_if(SrcIt first, SrcIt last, DstIt out, Predicate pred, Transform trans)
+DstIt transform_if(SrcIt const first, SrcIt const last, DstIt out, Predicate pred, Transform trans)
 {
     for (auto it = first; it != last; ++it) {
         if (!pred(*it)) { continue; }
@@ -36,6 +42,12 @@ DstIt transform_if(SrcIt first, SrcIt last, DstIt out, Predicate pred, Transform
     return out;
 }
 
+//--------------------------------------------------------------------------------------------------
+//! As std::transform but only for values matching @p pred; transformed values are inserted at the
+//! location given by @p where.
+//!
+//! @note this is the implementation for random_access_iterator.
+//--------------------------------------------------------------------------------------------------
 template <typename Container, typename SrcIt, typename DstIt, typename Predicate, typename Transform>
 auto transform_if(
     Container& c
@@ -71,6 +83,11 @@ auto transform_if(
       , typename std::iterator_traits<DstIt>::iterator_category {});
 }
 
+//--------------------------------------------------------------------------------------------------
+//! As std::transform but inserts transformed values at the position given by where.
+//!
+//! @note this is the implementation for random_access_iterator.
+//--------------------------------------------------------------------------------------------------
 template <typename Container, typename SrcIt, typename DstIt, typename Transform>
 auto transform_insert(
     Container& c
@@ -104,7 +121,26 @@ auto transform_insert(
       , typename std::iterator_traits<DstIt>::iterator_category {});
 }
 
+template <typename C>
+static decltype(auto) index_to_iterator(C&& c, int const i) noexcept {
+    auto const size = static_cast<int>(c.size());
+
+    BK_PRECONDITION((i == -1 || i >= 0) && i < size);
+
+    using std::end;
+    using std::begin;
+
+    return (i == -1 || i == size)
+        ? end(c)
+        : std::next(begin(c), i);
+}
+
 class listview_base {
+    template <typename C>
+    static inline decltype(auto) checked_at_index(C&& c, int const i) noexcept {
+        BK_PRECONDITION(i >= 0 && i < static_cast<int>(c.size()));
+        return c[i];
+    }
 public:
     static constexpr int const at_end = -1;
 
@@ -169,25 +205,6 @@ public:
         label_t label;
     };
 public:
-    template <typename C>
-    static inline decltype(auto) checked_at_index(C&& c, int const i) noexcept {
-        BK_PRECONDITION(i >= 0 && i < static_cast<int>(c.size()));
-        return c[i];
-    }
-
-    template <typename C>
-    static decltype(auto) index_to_iterator(C&& c, int const i) noexcept {
-        auto const size = static_cast<int>(c.size());
-
-        BK_PRECONDITION((i == -1 || i >= 0) && i < size);
-
-        using std::end;
-        using std::begin;
-
-        return (i == -1 || i == size)
-          ? end(c)
-          : std::next(begin(c), i);
-    }
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
     listview_base(int32_t const x, int32_t const y, int32_t const w, int32_t const h
@@ -223,16 +240,20 @@ public:
                , scroll_y_ + bounds_.bottom };
     }
 
+    //! @note row 0 refers the column headers
+    //! @param row [0, rows()]
     rect_t row_bounds(int const row) const noexcept {
-        auto const& r = checked_at_index(rows_, row);
+        auto const& r = checked_at_index(rows_, row + 1);
         return { scroll_x_ + bounds_.left
                , scroll_y_ + r.top
                , scroll_x_ + bounds_.right
                , scroll_y_ + r.top + r.height };
     }
 
+    //! @note col 0 refers the row headers
+    //! @param row [0, cols()]
     rect_t col_bounds(int const col) const noexcept {
-        auto const& c = checked_at_index(cols_, col);
+        auto const& c = checked_at_index(cols_, col + 1);
         return { scroll_x_ + c.left
                , scroll_y_ + bounds_.top
                , scroll_x_ + c.left + c.width
@@ -279,17 +300,6 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    template <typename Query>
-    cell_t generate_cell_at_(Query query, text_renderer& trender, int const r, int const c) {
-        cell_t result {query(r, c), trender};
-
-        auto const extent = result.label.layout.extent();
-        cols_[c + 1].width  = std::max(cols_[c + 1].width,  extent.width());
-        rows_[r + 1].height = std::max(rows_[r + 1].height, extent.height());
-
-        return result;
-    }
-
     template <typename Iterator, typename GetLabel, typename Query>
     void insert_row(
         Iterator first, Iterator last
@@ -300,13 +310,17 @@ public:
 
         auto& trender = *text_renderer_;
 
+        // insert new rows at the end of rows_ and calculate the maximum width.
         rows_.reserve(static_cast<size_t>(rows_.size() + n));
         transform_insert(rows_, first, last
           , index_to_iterator(rows_, where + (where == at_end ? 0 : 1))
           , [&](auto const& data) {
-                return row_t {label(data), trender};
+                row_t result {label(data), trender};
+                cols_[0].width = std::max(cols_[0].width, result.label.layout.extent().width());
+                return result;
             });
 
+        // fill in the empty cells for the new rows
         auto const first_row = cells_.insert(index_to_iterator(cells_, where), n
           , decltype(cells_)::value_type {});
 
@@ -326,6 +340,7 @@ public:
             ++r;
         }
 
+        // fixup the list layout
         layout_rows_(where, n);
         layout_cols_(where, n);
     }
@@ -340,13 +355,17 @@ public:
 
         auto& trender = *text_renderer_;
 
+        // insert new columns at the end of cols_ and calculate the maximum height.
         cols_.reserve(static_cast<size_t>(cols_.size() + n));
         transform_insert(cols_, first, last
           , index_to_iterator(cols_, where + (where == at_end ? 0 : 1))
           , [&](auto const& data) {
-                return col_t {label(data), trender};
+                col_t result {label(data), trender};
+                rows_[0].height = std::max(rows_[0].height, result.label.layout.extent().height());
+                return result;
             });
 
+        // fill the cells for the new columns
         auto const n_cols = cols();
         auto const c0     = (where == at_end) ? n_cols - n : where;
         int        r      = 0;
@@ -361,15 +380,31 @@ public:
             ++r;
         }
 
+        // fixup the list layout
         layout_rows_(where, n);
         layout_cols_(where, n);
     }
 
-    void erase_row(int r);
-    void erase_col(int c);
+    void remove_row(int const where) {
+        BK_PRECONDITION(where >= 0 && where < rows());
+
+        rows_.erase(std::next(begin(rows_), where + 1));
+        cells_.erase(std::next(begin(cells_), where));
+    }
+
+    void remove_col(int const where) {
+        BK_PRECONDITION(where >= 0 && where < cols());
+
+        cols_.erase(std::next(begin(cols_), where + 1));
+        for (auto& row : cells_) {
+            row.erase(std::next(begin(row), where));
+        }
+    }
 
     void insert(string_t text);
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     cell_t const& at(int const r, int const c) const {
         BK_PRECONDITION(r < rows());
         BK_PRECONDITION(c < cols());
@@ -387,6 +422,17 @@ public:
         return rows_[static_cast<size_t>(r + 1)];
     }
 private:
+    template <typename Query>
+    cell_t generate_cell_at_(Query query, text_renderer& trender, int const r, int const c) {
+        cell_t result {query(r, c), trender};
+
+        auto const extent = result.label.layout.extent();
+        cols_[c + 1].width  = std::max(cols_[c + 1].width,  extent.width());
+        rows_[r + 1].height = std::max(rows_[r + 1].height, extent.height());
+
+        return result;
+    }
+
     void layout_rows_(int const where, int const n) {
         int32_t y = 0;
         int32_t h_total = 0;
@@ -447,10 +493,20 @@ public:
     {
     }
 
+    void set_query_function(query_t query) {
+        query_ = std::move(query);
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //! Apply the function @p label to each value in [@p first, @p last) which matches the
+    //! predicate given by @p pred to get the string to use as a row label, and apply
+    //! @p data to each value to get the row data.
+    //!
     //! @tparam Iterator  forward_iterator
     //! @tparam Predicate function(Iterator::value_type) -> bool
     //! @tparam GetLabel  function(ColData)              -> string_t
     //! @tparam GetData   function(Iterator::value_type) -> RowData
+    //----------------------------------------------------------------------------------------------
     template <typename Iterator, typename Predicate, typename GetLabel, typename GetData>
     void insert_row(
         Iterator first, Iterator last
@@ -481,7 +537,7 @@ public:
     //! Apply the function @p label to each value in [@p first, @p last) which matches the
     //! predicate given by @p pred to get the string to use as a column label, and apply
     //! @p data to each value to get the column data.
-    //
+    //!
     //! @tparam Iterator  forward_iterator
     //! @tparam Predicate function(Iterator::value_type) -> bool
     //! @tparam GetLabel  function(ColData)              -> string_t
@@ -513,12 +569,21 @@ public:
           , n, where);
     }
 
+    void remove_row(int const where) {
+        BK_PRECONDITION(where >= 0 && where < static_cast<int>(row_data_.size()));
+        row_data_.erase(std::next(begin(row_data_), where));
+        listview_base::remove_row(where);
+    }
+
+    void remove_col(int const where) {
+        BK_PRECONDITION(where >= 0 && where < static_cast<int>(col_data_.size()));
+        col_data_.erase(std::next(begin(col_data_), where));
+        listview_base::remove_col(where);
+    }
+
     std::pair<RowData const&, ColData const&>
     data(int const r, int const c) const {
-        BK_PRECONDITION(r < static_cast<int>(row_data_.size()));
-        BK_PRECONDITION(c < static_cast<int>(col_data_.size()));
-
-        return {row_data_[r], col_data_[c]};
+        return {row_data(r), col_data(c)};
     }
 
     RowData const& row_data(int const r) const {
@@ -567,6 +632,9 @@ TEST_CASE("listview") {
     std::array<col_t, 2> const col_header {
         col_t::text, col_t::value
     };
+
+    auto const rows = static_cast<int>(data.size());
+    auto const cols = static_cast<int>(col_header.size());
 
     bkrl::listview<data_t const*, col_t> list {list_x, list_y, list_w, list_h, trender
       , [](data_t const* const rdata, col_t const cdata) {
@@ -637,6 +705,14 @@ TEST_CASE("listview") {
         }
     };
 
+    auto const cell_txt = [&](int const r) { return data[r].text; };
+    auto const cell_val = [&](int const r) { return std::to_string(data[r].value); };
+
+    using cell_list_t    = std::initializer_list<bklib::utf8_string>;
+    using row_list_t     = std::initializer_list<data_t const*>;
+    using col_list_t     = std::initializer_list<col_t>;
+    using col_hdr_list_t = std::initializer_list<bklib::utf8_string>;
+
     SECTION("initial state") {
         REQUIRE(list.cols() == 0);
         REQUIRE(list.rows() == 0);
@@ -651,34 +727,25 @@ TEST_CASE("listview") {
         REQUIRE(b == cb);
     }
 
-    SECTION("insert") {
+    SECTION("make_list initial state") {
         make_list();
 
-        auto const rows = static_cast<int>(data.size());
-        auto const cols = static_cast<int>(col_header.size());
+        REQUIRE(list.rows() == rows);
+        REQUIRE(list.cols() == cols);
 
-        using cell_list_t    = std::initializer_list<bklib::utf8_string>;
-        using row_list_t     = std::initializer_list<data_t const*>;
-        using col_list_t     = std::initializer_list<col_t>;
-        using col_hdr_list_t = std::initializer_list<bklib::utf8_string>;
+        check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4]});
 
-        auto const cell_txt = [&](int const r) { return data[r].text; };
-        auto const cell_val = [&](int const r) { return std::to_string(data[r].value); };
+        check_col_data(col_list_t       {col_t::text, col_t::value});
+        check_col_header(col_hdr_list_t {"text",      "value"});
+        check_row(0, "", cell_list_t    {cell_txt(0), cell_val(0)});
+        check_row(1, "", cell_list_t    {cell_txt(1), cell_val(1)});
+        check_row(2, "", cell_list_t    {cell_txt(2), cell_val(2)});
+        check_row(3, "", cell_list_t    {cell_txt(3), cell_val(3)});
+        check_row(4, "", cell_list_t    {cell_txt(4), cell_val(4)});
+    }
 
-        SECTION("initial state") {
-            REQUIRE(list.rows() == rows);
-            REQUIRE(list.cols() == cols);
-
-            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3], &data[4]});
-
-            check_col_data(col_list_t       {col_t::text, col_t::value});
-            check_col_header(col_hdr_list_t {"text",      "value"});
-            check_row(0, "", cell_list_t    {cell_txt(0), cell_val(0)});
-            check_row(1, "", cell_list_t    {cell_txt(1), cell_val(1)});
-            check_row(2, "", cell_list_t    {cell_txt(2), cell_val(2)});
-            check_row(3, "", cell_list_t    {cell_txt(3), cell_val(3)});
-            check_row(4, "", cell_list_t    {cell_txt(4), cell_val(4)});
-        }
+    SECTION("insert") {
+        make_list();
 
         SECTION("at start") {
             //insert a new column
@@ -825,7 +892,7 @@ TEST_CASE("listview") {
             );
 
             REQUIRE(list.rows() == rows);
-            REQUIRE(list.cols() == cols + 1);
+            REQUIRE(list.cols() == cols);
 
             //insert a new row
             list.insert_row(begin(data), begin(data)
@@ -835,15 +902,132 @@ TEST_CASE("listview") {
               , list.at_end
             );
 
-            REQUIRE(list.rows() == rows + 1);
-            REQUIRE(list.cols() == cols + 1);
+            REQUIRE(list.rows() == rows);
+            REQUIRE(list.cols() == cols);
         }
     }
 
-    SECTION("insert at start") {
+    SECTION("remove") {
         make_list();
 
+        SECTION("at start") {
+            list.remove_row(0);
 
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols);
+
+            check_row_data(row_list_t {&data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t {"text",      "value"});
+            check_row(0, "", cell_list_t    {cell_txt(1), cell_val(1)});
+            check_row(1, "", cell_list_t    {cell_txt(2), cell_val(2)});
+            check_row(2, "", cell_list_t    {cell_txt(3), cell_val(3)});
+            check_row(3, "", cell_list_t    {cell_txt(4), cell_val(4)});
+
+            list.remove_col(0);
+
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols - 1);
+
+            check_row_data(row_list_t {&data[1], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::value});
+            check_col_header(col_hdr_list_t {"value"});
+            check_row(0, "", cell_list_t    {cell_val(1)});
+            check_row(1, "", cell_list_t    {cell_val(2)});
+            check_row(2, "", cell_list_t    {cell_val(3)});
+            check_row(3, "", cell_list_t    {cell_val(4)});
+        }
+
+        SECTION("at middle") {
+            list.remove_row(1);
+
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols);
+
+            check_row_data(row_list_t {&data[0], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t {"text",      "value"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_val(0)});
+            check_row(1, "", cell_list_t    {cell_txt(2), cell_val(2)});
+            check_row(2, "", cell_list_t    {cell_txt(3), cell_val(3)});
+            check_row(3, "", cell_list_t    {cell_txt(4), cell_val(4)});
+
+            //insert new column at end
+            list.insert_col(begin(col_header), begin(col_header) + 1
+              , [](col_t const)   { return true; }
+              , [](col_t const c) { return "text2"; }
+              , [](col_t const c) { return c; }
+            );
+
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols + 1);
+
+            list.remove_col(1);
+
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols);
+
+            check_row_data(row_list_t {&data[0], &data[2], &data[3], &data[4]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::text});
+            check_col_header(col_hdr_list_t {"text",      "text2"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_txt(0)});
+            check_row(1, "", cell_list_t    {cell_txt(2), cell_txt(2)});
+            check_row(2, "", cell_list_t    {cell_txt(3), cell_txt(3)});
+            check_row(3, "", cell_list_t    {cell_txt(4), cell_txt(4)});
+        }
+
+        SECTION("at end") {
+            list.remove_row(list.rows() - 1);
+
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3]});
+
+            check_col_data(col_list_t       {col_t::text, col_t::value});
+            check_col_header(col_hdr_list_t {"text",      "value"});
+            check_row(0, "", cell_list_t    {cell_txt(0), cell_val(0)});
+            check_row(1, "", cell_list_t    {cell_txt(1), cell_val(1)});
+            check_row(2, "", cell_list_t    {cell_txt(2), cell_val(2)});
+            check_row(3, "", cell_list_t    {cell_txt(3), cell_val(3)});
+
+            list.remove_col(list.cols() - 1);
+
+            REQUIRE(list.rows() == rows - 1);
+            REQUIRE(list.cols() == cols - 1);
+
+            check_row_data(row_list_t {&data[0], &data[1], &data[2], &data[3]});
+
+            check_col_data(col_list_t       {col_t::text});
+            check_col_header(col_hdr_list_t {"text"});
+            check_row(0, "", cell_list_t    {cell_txt(0)});
+            check_row(1, "", cell_list_t    {cell_txt(1)});
+            check_row(2, "", cell_list_t    {cell_txt(2)});
+            check_row(3, "", cell_list_t    {cell_txt(3)});
+        }
+    }
+
+    SECTION("hit test") {
+        make_list();
+
+        auto const row_h = trender.line_spacing();
+
+        for (auto r = 0; r < rows; ++r) {
+            auto const rbounds = list.row_bounds(r);
+            REQUIRE(rbounds.height() == row_h);
+            REQUIRE(rbounds.width()  == list_w);
+            REQUIRE(rbounds.left     == list_x);
+            REQUIRE(rbounds.top      == r * row_h);
+        }
+
+        for (auto c = 0; c < cols; ++c) {
+            auto const cbounds = list.col_bounds(c);
+
+        }
     }
 
 }
