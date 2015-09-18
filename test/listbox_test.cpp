@@ -13,6 +13,7 @@
 #include "bklib/math.hpp"
 #include "bklib/assert.hpp"
 #include "bklib/string.hpp"
+#include "bklib/scope_guard.hpp"
 
 namespace bkrl {
 
@@ -171,10 +172,14 @@ public:
 
         int32_t top    = 0;
         int32_t min_h  = 0;
-        int32_t max_h  = 0;
+        int32_t max_h  = std::numeric_limits<int32_t>::max();
         int32_t height = 0;
 
         int32_t bottom() const noexcept { return top + height; }
+
+        auto extent() const noexcept { return label.layout.extent(); }
+        int32_t actual_w() const noexcept { return extent().width(); }
+        int32_t actual_h() const noexcept { return extent().height(); }
     };
 
     struct col_t {
@@ -189,10 +194,14 @@ public:
 
         int32_t left  = 0;
         int32_t min_w = 0;
-        int32_t max_w = 0;
+        int32_t max_w = std::numeric_limits<int32_t>::max();
         int32_t width = 0;
 
         int32_t right() const noexcept { return left + width; }
+
+        auto extent() const noexcept { return label.layout.extent(); }
+        int32_t actual_w() const noexcept { return extent().width(); }
+        int32_t actual_h() const noexcept { return extent().height(); }
     };
 
     struct cell_t {
@@ -203,6 +212,16 @@ public:
         }
 
         label_t label;
+
+        auto extent() const noexcept { return label.layout.extent(); }
+        int32_t actual_w() const noexcept { return extent().width(); }
+        int32_t actual_h() const noexcept { return extent().height(); }
+
+        static decltype(auto) less_w() noexcept {
+            return [](cell_t const& lhs, cell_t const& rhs) noexcept {
+                return lhs.actual_w() < rhs.actual_w();
+            };
+        }
     };
 public:
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -243,21 +262,21 @@ public:
     //! @note row 0 refers the column headers
     //! @param row [0, rows()]
     rect_t row_bounds(int const row) const noexcept {
-        auto const& r = checked_at_index(rows_, row + 1);
-        return { scroll_x_ + bounds_.left
-               , scroll_y_ + r.top
-               , scroll_x_ + bounds_.right
-               , scroll_y_ + r.top + r.height };
+        auto const& r = checked_at_index(rows_, row);
+        return { bounds_.left  + scroll_x_
+               , bounds_.top   + scroll_y_ + r.top
+               , bounds_.right + (scroll_x_max_ - scroll_x_)
+               , bounds_.top   + scroll_y_ + r.top + r.height };
     }
 
     //! @note col 0 refers the row headers
     //! @param row [0, cols()]
     rect_t col_bounds(int const col) const noexcept {
-        auto const& c = checked_at_index(cols_, col + 1);
-        return { scroll_x_ + c.left
-               , scroll_y_ + bounds_.top
-               , scroll_x_ + c.left + c.width
-               , scroll_y_ + bounds_.bottom };
+        auto const& c = checked_at_index(cols_, col);
+        return { bounds_.left   + scroll_x_ + c.left
+               , bounds_.top    + scroll_y_
+               , bounds_.left   + scroll_x_ + c.left + c.width
+               , bounds_.bottom + (scroll_y_max_ - scroll_y_) };
     }
 
     rect_t cell_bounds(int const row, int const col) const noexcept {
@@ -280,6 +299,9 @@ public:
         if (!result.is_hit) {
             return result;
         }
+
+        auto const x0 = bounds_.left + scroll_x_;
+        auto const y0 = bounds_.top  + scroll_y_;
 
         result.col = std::count_if(begin(cols_), end(cols_), [xp = x(p)](col_t const& c) noexcept {
             return xp < c.left;
@@ -310,24 +332,23 @@ public:
 
         auto& trender = *text_renderer_;
 
-        // insert new rows at the end of rows_ and calculate the maximum width.
+        // insert new rows at the end of rows_ and calculate the maximum width required for the
+        // column header.
         rows_.reserve(static_cast<size_t>(rows_.size() + n));
         transform_insert(rows_, first, last
           , index_to_iterator(rows_, where + (where == at_end ? 0 : 1))
           , [&](auto const& data) {
                 row_t result {label(data), trender};
-                cols_[0].width = std::max(cols_[0].width, result.label.layout.extent().width());
+                cols_[0].width = std::max(cols_[0].width, result.extent().width());
                 return result;
             });
 
         // fill in the empty cells for the new rows
-        auto const first_row = cells_.insert(index_to_iterator(cells_, where), n
-          , decltype(cells_)::value_type {});
-
-        auto const last_row = std::next(first_row, n);
-
-        auto const n_cols  = cols();
-        auto       r       = (where == at_end) ? rows() - n : where;
+        using row_type = std::vector<cell_t>;
+        auto const first_row = cells_.insert(index_to_iterator(cells_, where), n, row_type {});
+        auto const last_row  = std::next(first_row, n);
+        auto const n_cols    = cols();
+        auto       r         = (where == at_end) ? rows() - n : where;
 
         for (auto it = first_row; it != last_row; ++it) {
             auto& row = *it;
@@ -341,8 +362,8 @@ public:
         }
 
         // fixup the list layout
-        layout_rows_(where, n);
-        layout_cols_(where, n);
+        layout_rows_();
+        layout_cols_();
     }
 
     template <typename Iterator, typename GetLabel, typename Query>
@@ -361,7 +382,7 @@ public:
           , index_to_iterator(cols_, where + (where == at_end ? 0 : 1))
           , [&](auto const& data) {
                 col_t result {label(data), trender};
-                rows_[0].height = std::max(rows_[0].height, result.label.layout.extent().height());
+                rows_[0].height = std::max(rows_[0].height, result.extent().height());
                 return result;
             });
 
@@ -381,8 +402,8 @@ public:
         }
 
         // fixup the list layout
-        layout_rows_(where, n);
-        layout_cols_(where, n);
+        layout_rows_();
+        layout_cols_();
     }
 
     void remove_row(int const where) {
@@ -390,15 +411,36 @@ public:
 
         rows_.erase(std::next(begin(rows_), where + 1));
         cells_.erase(std::next(begin(cells_), where));
+
+        //for each column in the row being removed, adjust the column width.
+        auto const nc = cols();
+        for (auto c = 0; c < nc + 1; ++c) {
+            update_col_width_(c);
+        }
+
+        // fixup the list layout
+        layout_rows_();
+        layout_cols_();
     }
 
     void remove_col(int const where) {
         BK_PRECONDITION(where >= 0 && where < cols());
 
+        //actually remove the column
         cols_.erase(std::next(begin(cols_), where + 1));
         for (auto& row : cells_) {
             row.erase(std::next(begin(row), where));
         }
+
+        //for each row in the column being removed, adjust the row height.
+        auto const nr = rows();
+        for (auto r = 0; r < nr + 1; ++r) {
+            update_row_height_(r);
+        }
+
+        // fixup the list layout
+        layout_rows_();
+        layout_cols_();
     }
 
     void insert(string_t text);
@@ -413,27 +455,69 @@ public:
     }
 
     col_t const& col_header(int const c) const noexcept {
-        BK_PRECONDITION(c < cols() + 1);
-        return cols_[static_cast<size_t>(c + 1)];
+        return const_cast<listview_base*>(this)->col_header_(c + 1);
     }
 
     row_t const& row_header(int const r) const noexcept {
-        BK_PRECONDITION(r < rows() + 1);
-        return rows_[static_cast<size_t>(r + 1)];
+        return const_cast<listview_base*>(this)->row_header_(r + 1);
     }
 private:
+    void update_col_width_(int const c) {
+        auto& col = col_header_(c);
+        auto max_w = col.actual_w();
+
+        if (c == 0) {
+            for (auto const& row : rows_) {
+                max_w = std::max(max_w, row.actual_w());
+            }
+        } else {
+            for (auto const& row : cells_) {
+                max_w = std::max(max_w, row[c - 1].actual_w());
+            }
+        }
+
+        col.width = bklib::clamp(max_w, col.min_w, col.max_w);
+    }
+
+    void update_row_height_(int const r) {
+        auto& row = row_header_(r);
+        auto max_h = row.actual_h();
+
+        if (r == 0) {
+            for (auto const& col : cols_) {
+                max_h = std::max(max_h, col.actual_h());
+            }
+        } else {
+            for (auto const& cell : cells_[r - 1]) {
+                max_h = std::max(max_h, cell.actual_h());
+            }
+        }
+
+        row.height = bklib::clamp(max_h, row.min_h, row.max_h);
+    }
+
+    col_t& col_header_(int const c) noexcept {
+        BK_PRECONDITION(c < cols() + 1);
+        return cols_[static_cast<size_t>(c)];
+    }
+
+    row_t& row_header_(int const r) noexcept {
+        BK_PRECONDITION(r < rows() + 1);
+        return rows_[static_cast<size_t>(r)];
+    }
+
     template <typename Query>
     cell_t generate_cell_at_(Query query, text_renderer& trender, int const r, int const c) {
         cell_t result {query(r, c), trender};
 
-        auto const extent = result.label.layout.extent();
+        auto const extent = result.extent();
         cols_[c + 1].width  = std::max(cols_[c + 1].width,  extent.width());
         rows_[r + 1].height = std::max(rows_[r + 1].height, extent.height());
 
         return result;
     }
 
-    void layout_rows_(int const where, int const n) {
+    void layout_rows_() {
         int32_t y = 0;
         int32_t h_total = 0;
 
@@ -447,7 +531,7 @@ private:
         scroll_y_max_ = bklib::clamp_min(client_bounds().height() - bounds().height(), 0);
     }
 
-    void layout_cols_(int const where, int const n) {
+    void layout_cols_() {
         int32_t x = 0;
         int32_t w_total = 0;
 
@@ -751,7 +835,7 @@ TEST_CASE("listview") {
             //insert a new column
             list.insert_col(begin(col_header), begin(col_header) + 1
               , [](col_t const)   { return true; }
-              , [](col_t const c) { return "text2"; }
+              , [](col_t const)   { return "text2"; }
               , [](col_t const c) { return c; }
               , 0
             );
@@ -796,7 +880,7 @@ TEST_CASE("listview") {
             //insert new column
             list.insert_col(begin(col_header), begin(col_header) + 1
               , [](col_t const)   { return true; }
-              , [](col_t const c) { return "text2"; }
+              , [](col_t const)   { return "text2"; }
               , [](col_t const c) { return c; }
               , 1
             );
@@ -841,7 +925,7 @@ TEST_CASE("listview") {
             //insert a new column
             list.insert_col(begin(col_header), begin(col_header) + 1
               , [](col_t const)   { return true; }
-              , [](col_t const c) { return "text2"; }
+              , [](col_t const)   { return "text2"; }
               , [](col_t const c) { return c; }
               , list.at_end
             );
@@ -886,7 +970,7 @@ TEST_CASE("listview") {
             //insert a new column
             list.insert_col(begin(col_header), begin(col_header)
               , [](col_t const)   { return true; }
-              , [](col_t const c) { return "text2"; }
+              , [](col_t const)   { return "text2"; }
               , [](col_t const c) { return c; }
               , list.at_end
             );
@@ -958,7 +1042,7 @@ TEST_CASE("listview") {
             //insert new column at end
             list.insert_col(begin(col_header), begin(col_header) + 1
               , [](col_t const)   { return true; }
-              , [](col_t const c) { return "text2"; }
+              , [](col_t const)   { return "text2"; }
               , [](col_t const c) { return c; }
             );
 
@@ -1011,22 +1095,29 @@ TEST_CASE("listview") {
         }
     }
 
-    SECTION("hit test") {
+    SECTION("bounds") {
         make_list();
 
         auto const row_h = trender.line_spacing();
 
-        for (auto r = 0; r < rows; ++r) {
+        for (auto r = 0; r < rows + 1; ++r) {
             auto const rbounds = list.row_bounds(r);
             REQUIRE(rbounds.height() == row_h);
             REQUIRE(rbounds.width()  == list_w);
             REQUIRE(rbounds.left     == list_x);
-            REQUIRE(rbounds.top      == r * row_h);
+            REQUIRE(rbounds.top      == list_y + r * row_h);
         }
 
-        for (auto c = 0; c < cols; ++c) {
+        int x = list_x;
+
+        for (auto c = 0; c < cols + 1; ++c) {
             auto const cbounds = list.col_bounds(c);
 
+            REQUIRE(cbounds.top == list_y);
+            REQUIRE(cbounds.left == x);
+            REQUIRE(cbounds.height() == list_h);
+
+            x += cbounds.width();
         }
     }
 
